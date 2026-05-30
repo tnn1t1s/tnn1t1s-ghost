@@ -1,0 +1,96 @@
+{
+  "slug": "tnn1t1s-ghost",
+  "name": "Ghost",
+  "version": "2.0.0",
+  "license": "MIT",
+  "brand": "TNN1T1S",
+  "author": "TNN1T1S",
+  "authorEmail": "",
+  "authorUrl": "",
+  "pluginUrl": "https://github.com/tnn1t1s/tnn1t1s-ghost",
+  "manualUrl": "https://github.com/tnn1t1s/tnn1t1s-ghost/blob/main/doc/GhostUserManual.md",
+  "sourceUrl": "https://github.com/tnn1t1s/tnn1t1s-ghost",
+  "donateUrl": "",
+  "changelogUrl": "https://github.com/tnn1t1s/tnn1t1s-ghost/blob/main/CHANGELOG.md",
+  "description": "Ghost is a Rack-native drum system inspired by classic 909 behavior: separate voices, shared accent, and a central controller that makes the kit behave like one instrument.",
+  "modules": [
+    {
+      "slug": "Tr909Ctrl",
+      "name": "GHOST CTRL",
+      "description": "Global state controller for the Ghost drum system. DEFAULT, ACCENT A, ACCENT B, and MASTER controls are broadcast to adjacent Ghost voices via the expander path. Hit-time events such as trigger and local/total accent gates are patched directly to each voice. Use GHOST CTRL to make the separate voices behave like one instrument.",
+      "tags": ["Controller", "Utility"]
+    },
+    {
+      "slug": "Kck",
+      "name": "GHOST KCK",
+      "description": "909-inspired kick voice. Struck bridged-T resonator model with damped sine body, pitch-envelope glide, bandpassed click transient, and tanh drive. Works standalone; comes alive with GHOST CTRL.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "KckLab",
+      "name": "GHOST KCK LAB",
+      "description": "Expanded kick voice for expert tuning and performance. Same engine as GHOST KCK with additional internal fit parameters exposed as live controls for voicing, sound design, and copying values back into defaults.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "Snr",
+      "name": "GHOST SNR",
+      "description": "909-inspired snare voice. Tune/Tone/Snappy/Level surface over reset triangle VCOs, fixed binary noise, and split body/noise envelopes. Accent-aware via GHOST CTRL.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "SnrLab",
+      "name": "GHOST SNR LAB",
+      "description": "Expanded snare voice for expert tuning and performance. Same engine as GHOST SNR with additional internal voicing controls exposed alongside the primary Tune / Tone / Snappy / Level surface.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "ChhOhh",
+      "name": "GHOST OHCH",
+      "description": "Combined open/closed hi-hat voice. CH and OH share a coupled sound path: a CH hit instantly mutes any sounding OH, reproducing the canonical hi-hat choke behavior often mistaken for compression. Accent-aware via GHOST CTRL.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "ChhOhhLab",
+      "name": "GHOST OHCH LAB",
+      "description": "Expanded hi-hat module for expert tuning and performance. Same combined CH/OH engine as GHOST OHCH with additional internal controls exposed alongside the primary performance surface.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "RimClap",
+      "name": "GHOST RIMCLAP",
+      "description": "Dual 909-style ROMpler voice: rim and clap in one module with independent triggers, controls, and outputs. Accent-aware via GHOST CTRL.",
+      "tags": ["Drum", "Utility"]
+    },
+    {
+      "slug": "RimClapLab",
+      "name": "GHOST RIMCLAP LAB",
+      "description": "Expanded rim/clap module for expert tuning and performance. Same dual ROM engine as GHOST RIMCLAP with additional internal controls exposed alongside the primary performance surface.",
+      "tags": ["Drum", "Utility"]
+    },
+    {
+      "slug": "Toms",
+      "name": "GHOST TOMS",
+      "description": "909-inspired tom kit. Three voices -- low, mid, and high -- share one calibrated engine with per-voice trigger, level, and output. Accent-aware via GHOST CTRL.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "TomLab",
+      "name": "GHOST TOM LAB",
+      "description": "Expanded tom voice for expert tuning and performance. Same engine as GHOST TOMS with additional internal fit parameters exposed as live controls for voicing and sound design.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "CrashRide",
+      "name": "GHOST CRSHRIDE",
+      "description": "909-inspired cymbal pair. Crash and ride share a paired module with independent Tune, Decay, Drive, Level, trigger, and output controls. Accent-aware via GHOST CTRL.",
+      "tags": ["Drum"]
+    },
+    {
+      "slug": "CrashRideLab",
+      "name": "GHOST CRSHRIDE LAB",
+      "description": "Expanded cymbal-pair module for expert tuning and performance. Same combined engine as GHOST CRSHRIDE with additional internal controls exposed alongside the primary performance surface.",
+      "tags": ["Drum"]
+    }
+  ]
+}

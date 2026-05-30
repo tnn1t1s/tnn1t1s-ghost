@@ -57,6 +57,13 @@ make RACK_DIR=/path/to/Rack-SDK
 make install
 ```
 
+## Audio provenance
+
+All embedded audio captures were recorded by the author from a drum machine the
+author owns and runs in their studio, and which the author has used on published
+recordings. No third-party sample libraries or proprietary ROM dumps are
+included.
+
 ## License
 
 MIT (see `LICENSE`). Bundled Inter font under the SIL Open Font License.

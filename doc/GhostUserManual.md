@@ -65,3 +65,10 @@ mistaken for compression. A fresh open-hat trigger re-arms the voice.
 
 Use any Rack sequencer (Hora Drum Sequencer, Impromptu Clocked + SEQ, etc.).
 Ghost is the behavioral layer between your sequencer and your drum voices.
+
+## Audio provenance
+
+All embedded audio captures were recorded by the author from a drum machine the
+author owns and runs in their studio, and which the author has used on published
+recordings. No third-party sample libraries or proprietary ROM dumps are
+included.

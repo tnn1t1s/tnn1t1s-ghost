@@ -1,0 +1,2114 @@
+{
+  "Kck": {
+    "slug": "Kck",
+    "displayName": "GHOST KCK",
+    "tier": "core",
+    "hp": 12,
+    "source": "Kck.cpp",
+    "counts": {
+      "params": 7,
+      "inputs": 10,
+      "outputs": 1
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "TUNE_PARAM",
+        "label": "Tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "DECAY_PARAM",
+        "label": "Decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "PITCH_PARAM",
+        "label": "Pitch amount",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.385,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "PITCH_DECAY_PARAM",
+        "label": "Pitch decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.26,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "CLICK_PARAM",
+        "label": "Click",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 5,
+        "enum": "DRIVE_PARAM",
+        "label": "Drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 6,
+        "enum": "LEVEL_PARAM",
+        "label": "Level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.85,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "TRIG_INPUT",
+        "label": "Trigger"
+      },
+      {
+        "id": 1,
+        "enum": "TUNE_CV_INPUT",
+        "label": "Tune CV"
+      },
+      {
+        "id": 2,
+        "enum": "DECAY_CV_INPUT",
+        "label": "Decay CV"
+      },
+      {
+        "id": 3,
+        "enum": "PITCH_CV_INPUT",
+        "label": "Pitch amount CV"
+      },
+      {
+        "id": 4,
+        "enum": "PITCH_DECAY_CV_INPUT",
+        "label": "Pitch decay CV"
+      },
+      {
+        "id": 5,
+        "enum": "CLICK_CV_INPUT",
+        "label": "Click CV"
+      },
+      {
+        "id": 6,
+        "enum": "DRIVE_CV_INPUT",
+        "label": "Drive CV"
+      },
+      {
+        "id": 7,
+        "enum": "LEVEL_CV_INPUT",
+        "label": "Level CV"
+      },
+      {
+        "id": 8,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B, sampled at TRIG)"
+      },
+      {
+        "id": 9,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "OUT_OUTPUT",
+        "label": "Audio"
+      }
+    ]
+  },
+  "KckLab": {
+    "slug": "KckLab",
+    "displayName": "GHOST KCK LAB",
+    "tier": "lab",
+    "hp": 18,
+    "source": "Kck.cpp",
+    "counts": {
+      "params": 28,
+      "inputs": 31,
+      "outputs": 1
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "TUNE_PARAM",
+        "label": "Tune",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 1,
+        "enum": "DECAY_PARAM",
+        "label": "Decay",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 2,
+        "enum": "PITCH_PARAM",
+        "label": "Pitch amount",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.385,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 3,
+        "enum": "PITCH_DECAY_PARAM",
+        "label": "Pitch decay",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.26,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 4,
+        "enum": "CLICK_PARAM",
+        "label": "Click / attack",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 5,
+        "enum": "DRIVE_PARAM",
+        "label": "Drive (extra)",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.0,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 6,
+        "enum": "LEVEL_PARAM",
+        "label": "Level",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.85,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 7,
+        "enum": "BASE_PITCH_OFFSET_PARAM",
+        "label": "Base pitch offset",
+        "unit": " Hz",
+        "min": 10.0,
+        "max": 80.0,
+        "default": 20.0,
+        "displayMin": 10.0,
+        "displayMax": 80.0
+      },
+      {
+        "id": 8,
+        "enum": "BASE_PITCH_SPAN_PARAM",
+        "label": "Base pitch span",
+        "unit": " Hz",
+        "min": 10.0,
+        "max": 120.0,
+        "default": 50.0,
+        "displayMin": 10.0,
+        "displayMax": 120.0
+      },
+      {
+        "id": 9,
+        "enum": "AMP_DECAY_MIN_PARAM",
+        "label": "Body decay min (1/tau)",
+        "unit": "",
+        "min": 1.0,
+        "max": 40.0,
+        "default": 20.0,
+        "displayMin": 1.0,
+        "displayMax": 40.0
+      },
+      {
+        "id": 10,
+        "enum": "AMP_DECAY_SPAN_PARAM",
+        "label": "Body decay span",
+        "unit": "",
+        "min": 0.0,
+        "max": 30.0,
+        "default": 13.0,
+        "displayMin": 0.0,
+        "displayMax": 30.0
+      },
+      {
+        "id": 11,
+        "enum": "SWEEP_FAST_BASE_PARAM",
+        "label": "Fast sweep amp",
+        "unit": " Hz",
+        "min": 0.0,
+        "max": 300.0,
+        "default": 112.0,
+        "displayMin": 0.0,
+        "displayMax": 300.0
+      },
+      {
+        "id": 12,
+        "enum": "SWEEP_FAST_RATE_PARAM",
+        "label": "Fast sweep rate (1/tau)",
+        "unit": "",
+        "min": 1.0,
+        "max": 300.0,
+        "default": 150.0,
+        "displayMin": 1.0,
+        "displayMax": 300.0
+      },
+      {
+        "id": 13,
+        "enum": "SWEEP_SLOW_BASE_PARAM",
+        "label": "Slow sweep amp",
+        "unit": " Hz",
+        "min": 0.0,
+        "max": 100.0,
+        "default": 8.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 14,
+        "enum": "SWEEP_SLOW_RATE_PARAM",
+        "label": "Slow sweep rate (1/tau)",
+        "unit": "",
+        "min": 0.5,
+        "max": 50.0,
+        "default": 15.0,
+        "displayMin": 0.5,
+        "displayMax": 50.0
+      },
+      {
+        "id": 15,
+        "enum": "BODY_FUND_GAIN_PARAM",
+        "label": "Body fundamental gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.5,
+        "default": 0.88,
+        "displayMin": 0.0,
+        "displayMax": 1.5
+      },
+      {
+        "id": 16,
+        "enum": "BODY_HARM_RATIO_PARAM",
+        "label": "Body harmonic ratio",
+        "unit": "",
+        "min": 1.0,
+        "max": 3.0,
+        "default": 2.02,
+        "displayMin": 1.0,
+        "displayMax": 3.0
+      },
+      {
+        "id": 17,
+        "enum": "BODY_HARM_GAIN_PARAM",
+        "label": "Body harmonic gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.19,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 18,
+        "enum": "SUB_GAIN_PARAM",
+        "label": "Sub gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.36,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 19,
+        "enum": "SUB_DECAY_PARAM",
+        "label": "Sub decay (1/tau)",
+        "unit": "",
+        "min": 0.1,
+        "max": 5.0,
+        "default": 0.85,
+        "displayMin": 0.1,
+        "displayMax": 5.0
+      },
+      {
+        "id": 20,
+        "enum": "CLICK_RATE_PARAM",
+        "label": "Click rate (1/tau)",
+        "unit": "",
+        "min": 20.0,
+        "max": 600.0,
+        "default": 140.0,
+        "displayMin": 20.0,
+        "displayMax": 600.0
+      },
+      {
+        "id": 21,
+        "enum": "CLICK_NOISE_PARAM",
+        "label": "Click noise gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.03,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 22,
+        "enum": "CHIRP_START_PARAM",
+        "label": "Click chirp start",
+        "unit": " Hz",
+        "min": 400.0,
+        "max": 3000.0,
+        "default": 1700.0,
+        "displayMin": 400.0,
+        "displayMax": 3000.0
+      },
+      {
+        "id": 23,
+        "enum": "CHIRP_RATE_PARAM",
+        "label": "Click chirp falling rate",
+        "unit": "",
+        "min": 0.0,
+        "max": 1500.0,
+        "default": 400.0,
+        "displayMin": 0.0,
+        "displayMax": 1500.0
+      },
+      {
+        "id": 24,
+        "enum": "CHIRP_GAIN_PARAM",
+        "label": "Click chirp gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.0,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 25,
+        "enum": "HP_COEF_PARAM",
+        "label": "HP coef",
+        "unit": "",
+        "min": 0.0,
+        "max": 0.05,
+        "default": 0.0012,
+        "displayMin": 0.0,
+        "displayMax": 0.05
+      },
+      {
+        "id": 26,
+        "enum": "DRIVE_BASE_PARAM",
+        "label": "Drive base",
+        "unit": "",
+        "min": 0.5,
+        "max": 4.0,
+        "default": 1.55,
+        "displayMin": 0.5,
+        "displayMax": 4.0
+      },
+      {
+        "id": 27,
+        "enum": "OUTPUT_GAIN_PARAM",
+        "label": "Output gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 2.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 2.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "TRIG_INPUT",
+        "label": "Trigger"
+      },
+      {
+        "id": 1,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B, sampled at TRIG)"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG)"
+      },
+      {
+        "id": 3,
+        "enum": "TUNE_CV",
+        "label": "Tune CV"
+      },
+      {
+        "id": 4,
+        "enum": "DECAY_CV",
+        "label": "Decay CV"
+      },
+      {
+        "id": 5,
+        "enum": "PITCH_CV",
+        "label": "Pitch amount CV"
+      },
+      {
+        "id": 6,
+        "enum": "PITCH_DECAY_CV",
+        "label": "Pitch decay CV"
+      },
+      {
+        "id": 7,
+        "enum": "CLICK_CV",
+        "label": "Click CV"
+      },
+      {
+        "id": 8,
+        "enum": "DRIVE_CV",
+        "label": "Drive CV"
+      },
+      {
+        "id": 9,
+        "enum": "LEVEL_CV",
+        "label": "Level CV"
+      },
+      {
+        "id": 10,
+        "enum": "BASE_PITCH_OFFSET_CV",
+        "label": "Base pitch offset CV"
+      },
+      {
+        "id": 11,
+        "enum": "BASE_PITCH_SPAN_CV",
+        "label": "Base pitch span CV"
+      },
+      {
+        "id": 12,
+        "enum": "AMP_DECAY_MIN_CV",
+        "label": "Amp decay min CV"
+      },
+      {
+        "id": 13,
+        "enum": "AMP_DECAY_SPAN_CV",
+        "label": "Amp decay span CV"
+      },
+      {
+        "id": 14,
+        "enum": "SWEEP_FAST_BASE_CV",
+        "label": "Fast sweep amp CV"
+      },
+      {
+        "id": 15,
+        "enum": "SWEEP_FAST_RATE_CV",
+        "label": "Fast sweep rate CV"
+      },
+      {
+        "id": 16,
+        "enum": "SWEEP_SLOW_BASE_CV",
+        "label": "Slow sweep amp CV"
+      },
+      {
+        "id": 17,
+        "enum": "SWEEP_SLOW_RATE_CV",
+        "label": "Slow sweep rate CV"
+      },
+      {
+        "id": 18,
+        "enum": "BODY_FUND_GAIN_CV",
+        "label": "Body fundamental gain CV"
+      },
+      {
+        "id": 19,
+        "enum": "BODY_HARM_RATIO_CV",
+        "label": "Body harm ratio CV"
+      },
+      {
+        "id": 20,
+        "enum": "BODY_HARM_GAIN_CV",
+        "label": "Body harm gain CV"
+      },
+      {
+        "id": 21,
+        "enum": "SUB_GAIN_CV",
+        "label": "Sub gain CV"
+      },
+      {
+        "id": 22,
+        "enum": "SUB_DECAY_CV",
+        "label": "Sub decay CV"
+      },
+      {
+        "id": 23,
+        "enum": "CLICK_RATE_CV",
+        "label": "Click rate CV"
+      },
+      {
+        "id": 24,
+        "enum": "CLICK_NOISE_CV",
+        "label": "Click noise CV"
+      },
+      {
+        "id": 25,
+        "enum": "CHIRP_START_CV",
+        "label": "Chirp start Hz CV"
+      },
+      {
+        "id": 26,
+        "enum": "CHIRP_RATE_CV",
+        "label": "Chirp falling rate CV"
+      },
+      {
+        "id": 27,
+        "enum": "CHIRP_GAIN_CV",
+        "label": "Chirp gain CV"
+      },
+      {
+        "id": 28,
+        "enum": "HP_COEF_CV",
+        "label": "HP coef CV"
+      },
+      {
+        "id": 29,
+        "enum": "DRIVE_BASE_CV",
+        "label": "Drive base CV"
+      },
+      {
+        "id": 30,
+        "enum": "OUTPUT_GAIN_CV",
+        "label": "Output gain CV"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "OUT_OUTPUT",
+        "label": "Audio"
+      }
+    ]
+  },
+  "Snr": {
+    "slug": "Snr",
+    "displayName": "GHOST SNR",
+    "tier": "core",
+    "hp": 12,
+    "source": "Snr.cpp",
+    "counts": {
+      "params": 4,
+      "inputs": 7,
+      "outputs": 1
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "TUNE_PARAM",
+        "label": "Tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "TONE_PARAM",
+        "label": "Tone",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "SNAPPY_PARAM",
+        "label": "Snappy",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "LEVEL_PARAM",
+        "label": "Level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.82,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "TRIG_INPUT",
+        "label": "Trigger"
+      },
+      {
+        "id": 1,
+        "enum": "TUNE_CV_INPUT",
+        "label": "Tune CV"
+      },
+      {
+        "id": 2,
+        "enum": "TONE_CV_INPUT",
+        "label": "Tone CV"
+      },
+      {
+        "id": 3,
+        "enum": "SNAPPY_CV_INPUT",
+        "label": "Snappy CV"
+      },
+      {
+        "id": 4,
+        "enum": "LEVEL_CV_INPUT",
+        "label": "Level CV"
+      },
+      {
+        "id": 5,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B, sampled at TRIG)"
+      },
+      {
+        "id": 6,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "OUT_OUTPUT",
+        "label": "Audio"
+      }
+    ]
+  },
+  "SnrLab": {
+    "slug": "SnrLab",
+    "displayName": "GHOST SNR LAB",
+    "tier": "lab",
+    "hp": 18,
+    "source": "Snr.cpp",
+    "counts": {
+      "params": 14,
+      "inputs": 3,
+      "outputs": 1
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "TUNE_PARAM",
+        "label": "Tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "TONE_PARAM",
+        "label": "Tone",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "SNAPPY_PARAM",
+        "label": "Snappy",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "LEVEL_PARAM",
+        "label": "Level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.82,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "BODY_DRIVE_PARAM",
+        "label": "Body drive",
+        "unit": "",
+        "min": 0.5,
+        "max": 2.0,
+        "default": null,
+        "displayMin": 0.5,
+        "displayMax": 2.0
+      },
+      {
+        "id": 5,
+        "enum": "TONE_MAX_PARAM",
+        "label": "Tone max seconds",
+        "unit": "",
+        "min": 0.04,
+        "max": 0.18,
+        "default": null,
+        "displayMin": 0.04,
+        "displayMax": 0.18
+      },
+      {
+        "id": 6,
+        "enum": "NOISE_LP_PARAM",
+        "label": "Noise LP Hz",
+        "unit": "",
+        "min": 4000.0,
+        "max": 16000.0,
+        "default": null,
+        "displayMin": 4000.0,
+        "displayMax": 16000.0
+      },
+      {
+        "id": 7,
+        "enum": "NOISE_HP_PARAM",
+        "label": "Noise HP Hz",
+        "unit": "",
+        "min": 1000.0,
+        "max": 8000.0,
+        "default": null,
+        "displayMin": 1000.0,
+        "displayMax": 8000.0
+      },
+      {
+        "id": 8,
+        "enum": "LOW_NOISE_GAIN_PARAM",
+        "label": "Low noise gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 0.2,
+        "default": null,
+        "displayMin": 0.0,
+        "displayMax": 0.2
+      },
+      {
+        "id": 9,
+        "enum": "HIGH_NOISE_BASE_PARAM",
+        "label": "High noise base",
+        "unit": "",
+        "min": 0.0,
+        "max": 0.08,
+        "default": null,
+        "displayMin": 0.0,
+        "displayMax": 0.08
+      },
+      {
+        "id": 10,
+        "enum": "HIGH_NOISE_SNAPPY_PARAM",
+        "label": "High noise snappy",
+        "unit": "",
+        "min": 0.0,
+        "max": 0.8,
+        "default": null,
+        "displayMin": 0.0,
+        "displayMax": 0.8
+      },
+      {
+        "id": 11,
+        "enum": "MIX_DRIVE_BASE_PARAM",
+        "label": "Mix drive base",
+        "unit": "",
+        "min": 0.5,
+        "max": 1.5,
+        "default": null,
+        "displayMin": 0.5,
+        "displayMax": 1.5
+      },
+      {
+        "id": 12,
+        "enum": "OUTPUT_GAIN_PARAM",
+        "label": "Output gain",
+        "unit": "",
+        "min": 0.4,
+        "max": 1.4,
+        "default": null,
+        "displayMin": 0.4,
+        "displayMax": 1.4
+      },
+      {
+        "id": 13,
+        "enum": "SNAPPY_SHAPE_PARAM",
+        "label": "Snappy shape",
+        "unit": "",
+        "min": 0.5,
+        "max": 4.0,
+        "default": null,
+        "displayMin": 0.5,
+        "displayMax": 4.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "TRIG_INPUT",
+        "label": "Trigger"
+      },
+      {
+        "id": 1,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B, sampled at TRIG)"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "OUT_OUTPUT",
+        "label": "Audio"
+      }
+    ]
+  },
+  "ChhOhh": {
+    "slug": "ChhOhh",
+    "displayName": "GHOST OHCH",
+    "tier": "core",
+    "hp": 14,
+    "source": "ChhOhh.cpp",
+    "counts": {
+      "params": 8,
+      "inputs": 4,
+      "outputs": 2
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "CHH_TUNE_PARAM",
+        "label": "Closed tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "CHH_DECAY_PARAM",
+        "label": "Closed decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.22,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "CHH_DRIVE_PARAM",
+        "label": "Closed drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.1,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "CHH_LEVEL_PARAM",
+        "label": "Closed level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.84,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "OHH_TUNE_PARAM",
+        "label": "Open tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 5,
+        "enum": "OHH_DECAY_PARAM",
+        "label": "Open decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.58,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 6,
+        "enum": "OHH_DRIVE_PARAM",
+        "label": "Open drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.12,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 7,
+        "enum": "OHH_LEVEL_PARAM",
+        "label": "Open level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.82,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "CHH_TRIG_INPUT",
+        "label": "Closed trigger"
+      },
+      {
+        "id": 1,
+        "enum": "OHH_TRIG_INPUT",
+        "label": "Open trigger"
+      },
+      {
+        "id": 2,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B; CH only)"
+      },
+      {
+        "id": 3,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "CHH_OUT_OUTPUT",
+        "label": "Closed audio"
+      },
+      {
+        "id": 1,
+        "enum": "OHH_OUT_OUTPUT",
+        "label": "Open audio"
+      }
+    ]
+  },
+  "ChhOhhLab": {
+    "slug": "ChhOhhLab",
+    "displayName": "GHOST OHCH LAB",
+    "tier": "lab",
+    "hp": 18,
+    "source": "ChhOhh.cpp",
+    "counts": {
+      "params": 10,
+      "inputs": 4,
+      "outputs": 2
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "CHH_TUNE_PARAM",
+        "label": "Closed tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "CHH_DECAY_PARAM",
+        "label": "Closed decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.22,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "CHH_DRIVE_PARAM",
+        "label": "Closed drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.1,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "CHH_LEVEL_PARAM",
+        "label": "Closed level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.84,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "CHH_BITS_PARAM",
+        "label": "Closed bit depth",
+        "unit": "",
+        "min": 1.0,
+        "max": 16.0,
+        "default": 16.0,
+        "displayMin": 1.0,
+        "displayMax": 16.0
+      },
+      {
+        "id": 5,
+        "enum": "OHH_TUNE_PARAM",
+        "label": "Open tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 6,
+        "enum": "OHH_DECAY_PARAM",
+        "label": "Open decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.58,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 7,
+        "enum": "OHH_DRIVE_PARAM",
+        "label": "Open drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.12,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 8,
+        "enum": "OHH_LEVEL_PARAM",
+        "label": "Open level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.82,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 9,
+        "enum": "OHH_BITS_PARAM",
+        "label": "Open bit depth",
+        "unit": "",
+        "min": 1.0,
+        "max": 16.0,
+        "default": 16.0,
+        "displayMin": 1.0,
+        "displayMax": 16.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "CHH_TRIG_INPUT",
+        "label": "Closed trigger"
+      },
+      {
+        "id": 1,
+        "enum": "OHH_TRIG_INPUT",
+        "label": "Open trigger"
+      },
+      {
+        "id": 2,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B; CH only)"
+      },
+      {
+        "id": 3,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "CHH_OUT_OUTPUT",
+        "label": "Closed audio"
+      },
+      {
+        "id": 1,
+        "enum": "OHH_OUT_OUTPUT",
+        "label": "Open audio"
+      }
+    ]
+  },
+  "RimClap": {
+    "slug": "RimClap",
+    "displayName": "GHOST RIMCLAP",
+    "tier": "core",
+    "hp": 12,
+    "source": "RimClap.cpp",
+    "counts": {
+      "params": 2,
+      "inputs": 3,
+      "outputs": 2
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "CLAP_LEVEL_PARAM",
+        "label": "Clap level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.9,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "RIM_LEVEL_PARAM",
+        "label": "Rim level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.9,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "CLAP_TRIG_INPUT",
+        "label": "Clap trigger"
+      },
+      {
+        "id": 1,
+        "enum": "RIM_TRIG_INPUT",
+        "label": "Rim trigger"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "CLAP_OUT_OUTPUT",
+        "label": "Clap audio"
+      },
+      {
+        "id": 1,
+        "enum": "RIM_OUT_OUTPUT",
+        "label": "Rim audio"
+      }
+    ]
+  },
+  "RimClapLab": {
+    "slug": "RimClapLab",
+    "displayName": "GHOST RIMCLAP LAB",
+    "tier": "lab",
+    "hp": 18,
+    "source": "RimClap.cpp",
+    "counts": {
+      "params": 6,
+      "inputs": 3,
+      "outputs": 2
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "CLAP_TUNE_PARAM",
+        "label": "Clap tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "CLAP_BITS_PARAM",
+        "label": "Clap bit depth",
+        "unit": "",
+        "min": 1.0,
+        "max": 16.0,
+        "default": 16.0,
+        "displayMin": 1.0,
+        "displayMax": 16.0
+      },
+      {
+        "id": 2,
+        "enum": "CLAP_LEVEL_PARAM",
+        "label": "Clap level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.9,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "RIM_TUNE_PARAM",
+        "label": "Rim tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "RIM_BITS_PARAM",
+        "label": "Rim bit depth",
+        "unit": "",
+        "min": 1.0,
+        "max": 16.0,
+        "default": 16.0,
+        "displayMin": 1.0,
+        "displayMax": 16.0
+      },
+      {
+        "id": 5,
+        "enum": "RIM_LEVEL_PARAM",
+        "label": "Rim level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.9,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "CLAP_TRIG_INPUT",
+        "label": "Clap trigger"
+      },
+      {
+        "id": 1,
+        "enum": "RIM_TRIG_INPUT",
+        "label": "Rim trigger"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "CLAP_OUT_OUTPUT",
+        "label": "Clap audio"
+      },
+      {
+        "id": 1,
+        "enum": "RIM_OUT_OUTPUT",
+        "label": "Rim audio"
+      }
+    ]
+  },
+  "TomLab": {
+    "slug": "TomLab",
+    "displayName": "GHOST TOM LAB",
+    "tier": "lab",
+    "hp": 18,
+    "source": "Toms.cpp",
+    "counts": {
+      "params": 20,
+      "inputs": 3,
+      "outputs": 1
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "TUNE_PARAM",
+        "label": "Tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "DECAY_PARAM",
+        "label": "Decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.45,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "LEVEL_PARAM",
+        "label": "Level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.85,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "BASE_HZ_PARAM",
+        "label": "Base Hz",
+        "unit": " Hz",
+        "min": 30.0,
+        "max": 300.0,
+        "default": 84.4,
+        "displayMin": 30.0,
+        "displayMax": 300.0
+      },
+      {
+        "id": 4,
+        "enum": "TUNE_OFFSET_PARAM",
+        "label": "Tune offset",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.5,
+        "default": 0.62,
+        "displayMin": 0.0,
+        "displayMax": 1.5
+      },
+      {
+        "id": 5,
+        "enum": "TUNE_SPAN_PARAM",
+        "label": "Tune span",
+        "unit": "",
+        "min": 0.0,
+        "max": 2.0,
+        "default": 0.88,
+        "displayMin": 0.0,
+        "displayMax": 2.0
+      },
+      {
+        "id": 6,
+        "enum": "PITCH_BEND_RATE_PARAM",
+        "label": "Pitch bend rate (1/tau)",
+        "unit": "",
+        "min": 0.5,
+        "max": 100.0,
+        "default": 16.0,
+        "displayMin": 0.5,
+        "displayMax": 100.0
+      },
+      {
+        "id": 7,
+        "enum": "PITCH_BEND_BASE_PARAM",
+        "label": "Pitch bend base",
+        "unit": " Hz",
+        "min": 0.0,
+        "max": 200.0,
+        "default": 22.0,
+        "displayMin": 0.0,
+        "displayMax": 200.0
+      },
+      {
+        "id": 8,
+        "enum": "PITCH_BEND_BASE_SCALE_PARAM",
+        "label": "Pitch bend baseHz scale",
+        "unit": "",
+        "min": 0.0,
+        "max": 0.2,
+        "default": 0.03,
+        "displayMin": 0.0,
+        "displayMax": 0.2
+      },
+      {
+        "id": 9,
+        "enum": "OSC2_RATIO_PARAM",
+        "label": "Osc2 ratio (vs osc1)",
+        "unit": "",
+        "min": 0.5,
+        "max": 4.0,
+        "default": 1.5,
+        "displayMin": 0.5,
+        "displayMax": 4.0
+      },
+      {
+        "id": 10,
+        "enum": "OSC1_GAIN_PARAM",
+        "label": "Osc1 gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.5,
+        "default": 0.63,
+        "displayMin": 0.0,
+        "displayMax": 1.5
+      },
+      {
+        "id": 11,
+        "enum": "OSC2_GAIN_PARAM",
+        "label": "Osc2 gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.12,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 12,
+        "enum": "CLICK_GAIN_PARAM",
+        "label": "Click gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.18,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      },
+      {
+        "id": 13,
+        "enum": "CLICK_LEN_PARAM",
+        "label": "Click length",
+        "unit": " smp",
+        "min": 1.0,
+        "max": 200.0,
+        "default": 30.0,
+        "displayMin": 1.0,
+        "displayMax": 200.0
+      },
+      {
+        "id": 14,
+        "enum": "ENV_RATE_MIN_PARAM",
+        "label": "Env rate min (decay=1)",
+        "unit": "",
+        "min": 1.0,
+        "max": 30.0,
+        "default": 6.0,
+        "displayMin": 1.0,
+        "displayMax": 30.0
+      },
+      {
+        "id": 15,
+        "enum": "ENV_RATE_SPAN_PARAM",
+        "label": "Env rate span",
+        "unit": "",
+        "min": 0.0,
+        "max": 50.0,
+        "default": 8.0,
+        "displayMin": 0.0,
+        "displayMax": 50.0
+      },
+      {
+        "id": 16,
+        "enum": "HP_COEF_PARAM",
+        "label": "HP coef",
+        "unit": "",
+        "min": 0.0,
+        "max": 0.05,
+        "default": 0.002,
+        "displayMin": 0.0,
+        "displayMax": 0.05
+      },
+      {
+        "id": 17,
+        "enum": "DRIVE_GAIN_PARAM",
+        "label": "Drive gain (0 = off)",
+        "unit": "",
+        "min": 0.0,
+        "max": 3.0,
+        "default": 0.0,
+        "displayMin": 0.0,
+        "displayMax": 3.0
+      },
+      {
+        "id": 18,
+        "enum": "OUTPUT_GAIN_PARAM",
+        "label": "Output gain",
+        "unit": "",
+        "min": 0.0,
+        "max": 2.0,
+        "default": 0.78,
+        "displayMin": 0.0,
+        "displayMax": 2.0
+      },
+      {
+        "id": 19,
+        "enum": "ACCENT_DRIVE_PARAM",
+        "label": "Accent drive",
+        "unit": "",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.08,
+        "displayMin": 0.0,
+        "displayMax": 1.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "TRIG_INPUT",
+        "label": "Trigger"
+      },
+      {
+        "id": 1,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B, sampled at TRIG)"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "OUT_OUTPUT",
+        "label": "Audio"
+      }
+    ]
+  },
+  "Toms": {
+    "slug": "Toms",
+    "displayName": "GHOST TOMS",
+    "tier": "core",
+    "hp": 12,
+    "source": "Toms.cpp",
+    "counts": {
+      "params": 3,
+      "inputs": 5,
+      "outputs": 3
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "LOW_LEVEL_PARAM",
+        "label": "Low level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.85,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "MID_LEVEL_PARAM",
+        "label": "Mid level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.85,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "HIGH_LEVEL_PARAM",
+        "label": "High level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.85,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "LOW_TRIG_INPUT",
+        "label": "Low trigger"
+      },
+      {
+        "id": 1,
+        "enum": "MID_TRIG_INPUT",
+        "label": "Mid trigger"
+      },
+      {
+        "id": 2,
+        "enum": "HIGH_TRIG_INPUT",
+        "label": "High trigger"
+      },
+      {
+        "id": 3,
+        "enum": "LOCAL_ACC_INPUT",
+        "label": "Local accent (Accent B, sampled at TRIG; shared)"
+      },
+      {
+        "id": 4,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "LOW_OUT_OUTPUT",
+        "label": "Low audio"
+      },
+      {
+        "id": 1,
+        "enum": "MID_OUT_OUTPUT",
+        "label": "Mid audio"
+      },
+      {
+        "id": 2,
+        "enum": "HIGH_OUT_OUTPUT",
+        "label": "High audio"
+      }
+    ]
+  },
+  "CrashRide": {
+    "slug": "CrashRide",
+    "displayName": "GHOST CRSHRIDE",
+    "tier": "core",
+    "hp": 14,
+    "source": "CrashRide.cpp",
+    "counts": {
+      "params": 8,
+      "inputs": 3,
+      "outputs": 2
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "CRASH_TUNE_PARAM",
+        "label": "Crash tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "CRASH_DECAY_PARAM",
+        "label": "Crash decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.58,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "CRASH_DRIVE_PARAM",
+        "label": "Crash drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.1,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "CRASH_LEVEL_PARAM",
+        "label": "Crash level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.82,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "RIDE_TUNE_PARAM",
+        "label": "Ride tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 5,
+        "enum": "RIDE_DECAY_PARAM",
+        "label": "Ride decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.65,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 6,
+        "enum": "RIDE_DRIVE_PARAM",
+        "label": "Ride drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.1,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 7,
+        "enum": "RIDE_LEVEL_PARAM",
+        "label": "Ride level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.8,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "CRASH_TRIG_INPUT",
+        "label": "Crash trigger"
+      },
+      {
+        "id": 1,
+        "enum": "RIDE_TRIG_INPUT",
+        "label": "Ride trigger"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "CRASH_OUT_OUTPUT",
+        "label": "Crash audio"
+      },
+      {
+        "id": 1,
+        "enum": "RIDE_OUT_OUTPUT",
+        "label": "Ride audio"
+      }
+    ]
+  },
+  "CrashRideLab": {
+    "slug": "CrashRideLab",
+    "displayName": "GHOST CRSHRIDE LAB",
+    "tier": "lab",
+    "hp": 18,
+    "source": "CrashRide.cpp",
+    "counts": {
+      "params": 10,
+      "inputs": 3,
+      "outputs": 2
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "CRASH_TUNE_PARAM",
+        "label": "Crash tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "CRASH_DECAY_PARAM",
+        "label": "Crash decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.58,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "CRASH_DRIVE_PARAM",
+        "label": "Crash drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.1,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "CRASH_LEVEL_PARAM",
+        "label": "Crash level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.82,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 4,
+        "enum": "CRASH_BITS_PARAM",
+        "label": "Crash bit depth",
+        "unit": "",
+        "min": 1.0,
+        "max": 16.0,
+        "default": 16.0,
+        "displayMin": 1.0,
+        "displayMax": 16.0
+      },
+      {
+        "id": 5,
+        "enum": "RIDE_TUNE_PARAM",
+        "label": "Ride tune",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.5,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 6,
+        "enum": "RIDE_DECAY_PARAM",
+        "label": "Ride decay",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.65,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 7,
+        "enum": "RIDE_DRIVE_PARAM",
+        "label": "Ride drive",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.1,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 8,
+        "enum": "RIDE_LEVEL_PARAM",
+        "label": "Ride level",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 0.8,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 9,
+        "enum": "RIDE_BITS_PARAM",
+        "label": "Ride bit depth",
+        "unit": "",
+        "min": 1.0,
+        "max": 16.0,
+        "default": 16.0,
+        "displayMin": 1.0,
+        "displayMax": 16.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "CRASH_TRIG_INPUT",
+        "label": "Crash trigger"
+      },
+      {
+        "id": 1,
+        "enum": "RIDE_TRIG_INPUT",
+        "label": "Ride trigger"
+      },
+      {
+        "id": 2,
+        "enum": "TOTAL_ACC_INPUT",
+        "label": "Total accent (Accent A, sampled at TRIG; shared)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": 0,
+        "enum": "CRASH_OUT_OUTPUT",
+        "label": "Crash audio"
+      },
+      {
+        "id": 1,
+        "enum": "RIDE_OUT_OUTPUT",
+        "label": "Ride audio"
+      }
+    ]
+  },
+  "Tr909Ctrl": {
+    "slug": "Tr909Ctrl",
+    "displayName": "GHOST CTRL",
+    "tier": "controller",
+    "hp": 8,
+    "source": "Tr909Ctrl.cpp",
+    "counts": {
+      "params": 4,
+      "inputs": 4,
+      "outputs": 0
+    },
+    "params": [
+      {
+        "id": 0,
+        "enum": "DEFAULT_PARAM",
+        "label": "Default level (no-accent)",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 1,
+        "enum": "ACCENT_A_PARAM",
+        "label": "Accent A amount",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 2,
+        "enum": "ACCENT_B_PARAM",
+        "label": "Accent B amount",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      },
+      {
+        "id": 3,
+        "enum": "MASTER_VOL_PARAM",
+        "label": "Master volume",
+        "unit": "%",
+        "min": 0.0,
+        "max": 1.0,
+        "default": 1.0,
+        "displayMin": 0.0,
+        "displayMax": 100.0
+      }
+    ],
+    "inputs": [
+      {
+        "id": 0,
+        "enum": "DEFAULT_CV_INPUT",
+        "label": "Default level CV"
+      },
+      {
+        "id": 1,
+        "enum": "ACCENT_A_CV_INPUT",
+        "label": "Accent A amount CV"
+      },
+      {
+        "id": 2,
+        "enum": "ACCENT_B_CV_INPUT",
+        "label": "Accent B amount CV"
+      },
+      {
+        "id": 3,
+        "enum": "MASTER_VOL_CV_INPUT",
+        "label": "Master volume CV"
+      }
+    ],
+    "outputs": []
+  }
+}

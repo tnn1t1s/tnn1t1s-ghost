@@ -1,0 +1,86 @@
+{
+  "_doc": "Control surface for the Ghost core voices + controller. Declarative target the engines and panel generator build against. cvPerParam=true means every knob has a matching CV input. Input order: triggers, then one CV per param in param order, then accents. LAB variants keep a curated surface and are specified in panel_spec.json.",
+  "Kck": {
+    "displayName": "GHOST KCK",
+    "tier": "core",
+    "hp": 16,
+    "cvPerParam": true,
+    "params": ["Tune", "Decay", "Pitch", "Pitch Decay", "Click", "Attack", "Tone", "Drive", "Level"],
+    "triggers": ["Trig"],
+    "accents": ["Local", "Total"],
+    "outputs": ["Audio"]
+  },
+  "Snr": {
+    "displayName": "GHOST SNR",
+    "tier": "core",
+    "hp": 12,
+    "cvPerParam": true,
+    "params": ["Tune", "Tone", "Snappy", "Level"],
+    "triggers": ["Trig"],
+    "accents": ["Local", "Total"],
+    "outputs": ["Audio"]
+  },
+  "ChhOhh": {
+    "displayName": "GHOST OHCH",
+    "tier": "core",
+    "hp": 16,
+    "cvPerParam": true,
+    "sections": [
+      {"name": "CLOSED", "params": ["Tune", "Decay", "Drive", "Level"]},
+      {"name": "OPEN",   "params": ["Tune", "Decay", "Drive", "Level"]}
+    ],
+    "triggers": ["CH Trig", "OH Trig"],
+    "accents": ["Local", "Total"],
+    "outputs": ["CH Audio", "OH Audio"]
+  },
+  "Toms": {
+    "displayName": "GHOST TOMS",
+    "tier": "core",
+    "hp": 14,
+    "cvPerParam": true,
+    "sections": [
+      {"name": "LOW",  "params": ["Tune", "Decay", "Level"]},
+      {"name": "MID",  "params": ["Tune", "Decay", "Level"]},
+      {"name": "HIGH", "params": ["Tune", "Decay", "Level"]}
+    ],
+    "triggers": ["Low Trig", "Mid Trig", "High Trig"],
+    "accents": ["Total"],
+    "outputs": ["Low Audio", "Mid Audio", "High Audio"]
+  },
+  "CrashRide": {
+    "displayName": "GHOST CRSHRIDE",
+    "tier": "core",
+    "hp": 16,
+    "cvPerParam": true,
+    "sections": [
+      {"name": "CRASH", "params": ["Tune", "Decay", "Drive", "Level"]},
+      {"name": "RIDE",  "params": ["Tune", "Decay", "Drive", "Level"]}
+    ],
+    "triggers": ["Crash Trig", "Ride Trig"],
+    "accents": ["Total"],
+    "outputs": ["Crash Audio", "Ride Audio"]
+  },
+  "RimClap": {
+    "displayName": "GHOST RIMCLAP",
+    "tier": "core",
+    "hp": 12,
+    "cvPerParam": true,
+    "sections": [
+      {"name": "RIM",  "params": ["Level"]},
+      {"name": "CLAP", "params": ["Level"]}
+    ],
+    "triggers": ["Rim Trig", "Clap Trig"],
+    "accents": ["Total"],
+    "outputs": ["Rim Audio", "Clap Audio"]
+  },
+  "Tr909Ctrl": {
+    "displayName": "GHOST CTRL",
+    "tier": "controller",
+    "hp": 8,
+    "cvPerParam": true,
+    "params": ["Default", "Accent A", "Accent B", "Master"],
+    "triggers": [],
+    "accents": [],
+    "outputs": []
+  }
+}

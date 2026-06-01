@@ -37,57 +37,66 @@ mid‑hit won't shift its level.
 
 ## The four cases
 
-Every voice has a per‑case output **level** (in dB, relative to its normal hit):
+Every voice has a per‑case output **level** ladder. The level depends on which
+gates fired at the trigger:
 
-| Case | Gates at trigger | Default level |
-|------|------------------|:--:|
-| **ghost**  | neither | −6 dB |
-| **global** | Total only (A) | −1 dB |
-| **local**  | Local only (B) | 0 dB (the reference "normal" hit) |
-| **both**   | Total + Local | +1.5 dB |
+| Case | Gates at trigger |
+|------|------------------|
+| **ghost**  | neither (the un‑accented "floor") |
+| **global** | Total only (A) |
+| **local**  | Local only (B) |
+| **both**   | Total + Local |
 
-> These defaults are **modest, ear‑tunable starting points — not verified
-> hardware values**. Several voices currently ship "neutral" (all cases 0 dB)
-> until calibrated against TR‑909 reference samples. Per‑voice tuning is expected.
+The actual levels are tuned **per voice**:
+
+- **GHOST KCK** — a wide, 909‑style ladder: ghost **15%**, local (B) **60%**,
+  global (A) **100%**, both **100%** (capped). The wide spread is what gives the
+  kick real accent dynamics; GHOST CTRL's **RANGE** switch moves the ghost floor
+  (Tight ~35% / Classic 15% / Wide ~8%).
+- **Other voices** — a gentle accent: un‑accented at the normal level, accented
+  hits about **+3 dB** on top (Accent A or both). This keeps the global accent
+  subtle across the kit, the way a TR‑909 accent reads.
 
 ## GHOST CTRL
 
-GHOST CTRL broadcasts four global controls to the **adjacent** Ghost voices via the
+GHOST CTRL broadcasts its global state to the **adjacent** Ghost voices via the
 expander path (no cables needed for these):
 
-| Control | What it scales |
+| Control | What it does |
 |---------|----------------|
-| **DEFAULT** | the no‑accent (ghost) level |
-| **ACCENT A** | the Total‑accent contribution (0..1) |
-| **ACCENT B** | the Local‑accent contribution (0..1) |
-| **MASTER** | final output level of each voice |
+| **ACCENT A** (knob + CV) | scales the Total‑accent contribution (0..1) |
+| **ACCENT B** (knob + CV) | scales the Local‑accent contribution (0..1) |
+| **MASTER** (knob + CV) | final output level of each voice |
+| **RANGE** (switch) | scales each voice's ghost floor: Tight / Classic / Wide |
 
-Each has a CV input. GHOST CTRL is **not** in the trigger path — per‑step gates
-(TRIG, LOCAL, TOTAL) are patched from your sequencer directly to each voice.
+There is **no DEFAULT knob** — the no‑accent level is the voice's own built‑in
+floor, and RANGE scales it. GHOST CTRL is **not** in the trigger path; per‑step
+gates (TRIG, LOCAL, TOTAL) are patched from your sequencer directly to each voice.
 
 ## How a hit's level is decided
 
-For a hit, the output gain is (`resolveAccentGain`):
-
-- **No accent** (or the relevant knob at 0): `gain = lin(ghostDb) × DEFAULT`
-- Otherwise: `gain = A·lin(globalDb) + B·lin(localDb) + A·B·(lin(bothDb) − lin(globalDb) − lin(localDb))`
-  where `A = ACCENT A`, `B = ACCENT B` are the GHOST CTRL amounts and the terms
-  switch in only for the gates that fired.
-
-The result is then multiplied by **MASTER**.
-
-**Worked example — a Total‑only (global) hit:**
+Accent is a **boost added on top of the un‑accented (ghost) level** — the
+accented hit never dips below ghost and never jumps in from silence
+(`resolveAccentGain`):
 
 ```
-gain = ACCENT_A × linear(globalDb) × MASTER
+ghost = lin(ghostDb × RANGE) × ghostAmount
+gain  = ghost
+        + A·(lin(globalDb) − ghost)          if Total fired
+        + B·(lin(localDb)  − ghost)          if Local fired
+        + A·B·(lin(bothDb)  − …)              if both fired
 ```
 
-- ACCENT A = 1 → full global level (default −1 dB)
-- ACCENT A = 0.5 → half that linear gain (≈ −7 dB)
-- ACCENT A = 0 → the hit **collapses to the ghost level**, not silence
+where `A = ACCENT A`, `B = ACCENT B`. The result is multiplied by **MASTER**.
 
-So **yes — a global accent is scaled by GHOST CTRL's ACCENT A knob.** The same
-holds for Local accent and ACCENT B.
+**Worked example — a Total‑only (global) hit on the kick:**
+
+- ACCENT A = 1 → full global level (the kick's 100% tier)
+- ACCENT A = 0.5 → halfway between ghost and global
+- ACCENT A = 0 → the hit **collapses to the ghost floor**, not silence
+
+So a global accent is scaled by GHOST CTRL's ACCENT A knob, and Local by ACCENT
+B — while RANGE sets how deep the floor they rise from sits.
 
 ## Level vs character (kept separate)
 
@@ -106,7 +115,7 @@ that's a deliberate design choice to make, not current behaviour.
 ## Patching summary
 
 - **From your sequencer → each voice:** `TRIG`, and the accent gates `TOTAL` / `LOCAL`.
-- **GHOST CTRL → voices:** place it adjacent; DEFAULT / ACCENT A / ACCENT B / MASTER
+- **GHOST CTRL → voices:** place it adjacent; ACCENT A / ACCENT B / MASTER / RANGE
   ride the expander.
 - To make a Local‑capable voice ignore Local, simply leave `LOCAL` unpatched
   (a voice can also be configured so "Local only" collapses to ghost).

@@ -6,8 +6,8 @@ plugin** (technical / VCV submission) and **Launch it** (community / content).
 
 ## Track A — Ship the plugin (VCV Library submission)
 
-- [ ] **Unregister the tuning benches** — drop `KckLab` (and don't ship `TomLab`);
-      they're flagged temporary in `src/plugin.cpp`. *(no issue yet — pre-req)*
+- [x] **Unregister the tuning benches** — `KckLab` dropped from the browser
+      (kick calibration done); `TomLab` never registered. Source kept for tuning.
 - [ ] #6 IP / ethics audit — no Roland/TR-909 public-facing; panel distinctness
 - [ ] #1 Manifest keywords for discoverability
 - [ ] #9 Documentation completeness (README + manual)

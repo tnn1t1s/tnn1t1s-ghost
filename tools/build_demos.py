@@ -7,11 +7,11 @@ genre-appropriate tempo on the clock. Patterns are grounded in documented 909
 breakdowns (Attack, Aulart, drum-patterns.com, filter house / minimal techno refs).
 
 Grids are written in 1-indexed 16-step form and repeated across the 2-bar
-(32-step) Hora page. Clock TEMPO = log2(BPM/60) (verified for SlimeChild Clock).
+(32-step) Hora page. Clock tempo is set by an empirically-calibrated linear fit
+(see tempo_for_bpm); the doc's log2 formula doesn't predict musical BPM here.
 
-NOTE (swing): #chicago/#revolution/#minimal are notated straight here. The Hora
-has no exposed shuffle param in its data, so swing is a TODO (probe the Hora
-shuffle param or apply it in Rack); the straight versions are still recognizable.
+Swing comes from the Hora's own shuffle (default ~2), which sounds good on the
+straight grids; the shuffle grooves (chicago/revolution/minimal) lean on it.
 """
 import math
 import os

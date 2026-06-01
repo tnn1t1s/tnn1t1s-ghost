@@ -13,12 +13,16 @@ behavior on top.
 
 ### GHOST CTRL
 
-Global state controller. Four controls, each with a CV input:
+Global state controller. Three knobs (each with a CV input) plus a switch:
 
-- **DEFAULT** — level of the no-accent (ghost) case.
-- **ACCENT A** — amount applied whenever Accent A fires.
-- **ACCENT B** — amount applied whenever Accent B fires.
+- **ACCENT A** — amount applied whenever Accent A (total accent) fires.
+- **ACCENT B** — amount applied whenever Accent B (local accent) fires.
 - **MASTER** — final output level scalar.
+- **RANGE** — dynamic range: how far an un-accented hit ducks below an accented
+  one. **Tight** (even), **Classic** (default), **Wide** (full ghost-kick
+  dynamics). RANGE scales each voice's accent floor, so it only affects voices
+  that have one — currently the kick. There is no separate "default level" knob:
+  the no-accent level is the voice's built-in floor, which RANGE scales.
 
 GHOST CTRL broadcasts this global state to adjacent Ghost voices via the
 expander path. It is *not* an audio or trigger bus: per-step triggers and
@@ -35,8 +39,12 @@ accent gates travel by cable directly from your sequencer to each voice.
 | **GHOST TOMS** | Low / mid / high tom kit on one calibrated engine |
 | **GHOST CRSHRIDE** | Crash + ride cymbals, independent Tune / Decay / Drive / Level |
 
-Each voice ships a **LAB** variant exposing additional internal parameters for
-expert tuning and sound design.
+### GHOST MIX
+
+A dedicated summing mixer for the kit: ten labeled inputs (Kick, Rim, Clap,
+Tom Lo/Mid/Hi, Closed Hat, Open Hat, Crash, Ride), each with a mute switch,
+summed to one MIX output. Per-voice level lives on the voices, so the mixer is a
+clean unity summer — the whole kit on one master mix point, in the box.
 
 ## Accent behavior
 

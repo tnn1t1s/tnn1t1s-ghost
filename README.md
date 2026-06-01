@@ -21,20 +21,18 @@ sequencer and your drum voices, not a closed world.
 
 | Module | Role |
 |--------|------|
-| **GHOST CTRL** | Global state controller: DEFAULT / ACCENT A / ACCENT B / MASTER, broadcast to adjacent voices via the expander path |
+| **GHOST CTRL** | Global controller: ACCENT A / ACCENT B / MASTER amounts + a RANGE switch (kick dynamic range), broadcast to adjacent voices via the expander path |
 | **GHOST KCK** | Kick voice (bridged-T resonator model) |
 | **GHOST SNR** | Snare voice (dual triangle VCO + noise) |
 | **GHOST OHCH** | Coupled open/closed hi-hat with canonical choke |
 | **GHOST RIMCLAP** | Rim + clap ROMpler voice |
 | **GHOST TOMS** | Low / mid / high tom kit |
 | **GHOST CRSHRIDE** | Crash + ride cymbal pair |
-
-Each voice also ships a **LAB** variant (`GHOST KCK LAB`, etc.) exposing
-additional internal parameters for expert tuning and sound design.
+| **GHOST MIX** | Dedicated 10-input kit summing mixer, one labeled input per voice with a mute switch |
 
 ## Architecture
 
-- **Global state** comes from GHOST CTRL (default level, two accent modes, master).
+- **Global state** comes from GHOST CTRL (two accent amounts, master, dynamic range).
 - **Hit-time events** (trigger, local accent, total accent) travel by cable
   directly to each voice. GHOST CTRL is *not* an audio or trigger bus; it
   broadcasts global state to adjacent modules via the expander path.
@@ -42,10 +40,29 @@ additional internal parameters for expert tuning and sound design.
 ```
 GHOST CTRL ──(expander: global state)──> adjacent Ghost voices
    │
-   └─ DEFAULT / ACCENT A / ACCENT B / MASTER
+   └─ ACCENT A / ACCENT B / MASTER / RANGE
 
 sequencer ──(cables: trig / accent gates)──> each voice
 ```
+
+## RANGE — dynamic range in a switch
+
+A real 909 needs a hardware mod to change how far an un-accented hit ducks below
+an accented one. GHOST CTRL's **RANGE** switch does it with three positions —
+**Tight** (even, house-friendly), **Classic** (default), and **Wide** (full
+ghost-kick dynamics). It scales each voice's accent floor, so it only moves
+voices that have one (the kick); the rest are untouched. The ACCENT A / B knobs
+still ride within the chosen range.
+
+## Patches
+
+Example patches live in `patches/`:
+
+- `patches/909-demos/` — eight classic-909 grooves, one per style (house,
+  Detroit, Chicago jack, hard techno, tribal, filter house, minimal techno, electro),
+  plus a minimal-techno multi-level kick study, each on GHOST MIX at its own tempo.
+- `patches/909-lessons/` — a build-it-up series (rimshot → kick → claps → toms →
+  hats) for learning the kit one voice at a time.
 
 ## Building
 

@@ -57,9 +57,16 @@ struct Config {
     // Oscillator 2 frequency ratio (1.5 = perfect fifth)
     float osc2Ratio          = 1.5f;
 
-    // Mix
+    // Mix. The 909 low tom is THREE damped sines at ratios 1 : 1.5 : 2.77.
     float osc1Gain           = 0.63f;
     float osc2Gain           = 0.12f;
+    float osc3Ratio          = 2.77f;   // top partial (relative to freq1)
+    float osc3Gain           = 0.08f;
+
+    // Noise circuit -- the 909 toms mix in a short white-noise burst (the
+    // "little noise" the body alone lacked). Subtle by default.
+    float noiseGain          = 0.06f;
+    float noiseDecayRate     = 28.f;    // noise burst 1/tau (~36 ms)
 
     // Click
     float clickGain          = 0.18f;
@@ -110,17 +117,25 @@ struct TomVoice {
     dsp::SchmittTrigger trigger;
     float phase1 = 0.f;
     float phase2 = 0.f;
+    float phase3 = 0.f;
     float t = 0.f;
     int   sampleCount = 0;
     float hpState = 0.f;
     bool  active = false;
+    uint32_t rngState = 1u;
 
     void fire() {
-        phase1 = phase2 = 0.f;
+        phase1 = phase2 = phase3 = 0.f;
         t = 0.f;
         sampleCount = 0;
         hpState = 0.f;
+        rngState = 22699u;
         active = true;
+    }
+
+    inline float nextNoise() {
+        rngState = rngState * 1664525u + 1013904223u;
+        return ((rngState >> 8) & 0xFFFFFFu) * (2.f / 16777216.f) - 1.f;
     }
 
     float process(const rack::Module::ProcessArgs& args,
@@ -136,6 +151,7 @@ struct TomVoice {
         const float freq1     = tunedFreq
                               + pitchEnv * (fit.pitchBendBase + fit.baseHz * fit.pitchBendBaseScale);
         const float freq2     = freq1 * fit.osc2Ratio;
+        const float freq3     = freq1 * fit.osc3Ratio;
         const float envRate   = fit.envRateMin + (1.f - decayNorm) * fit.envRateSpan;
         const float env       = std::exp(-envRate * t);
 
@@ -147,13 +163,21 @@ struct TomVoice {
 
         phase1 += freq1 * args.sampleTime;
         phase2 += freq2 * args.sampleTime;
+        phase3 += freq3 * args.sampleTime;
         phase1 -= std::floor(phase1);
         phase2 -= std::floor(phase2);
+        phase3 -= std::floor(phase3);
+
+        // Short white-noise burst (909 tom noise circuit), own fast envelope.
+        const float noise = nextNoise() * std::exp(-fit.noiseDecayRate * t)
+                          * Ghost::TR909::accentScale(fit.noiseGain, accentNorm, fit.accent.noiseAmt);
 
         float out = ((tomTriangle(phase1) * fit.osc1Gain
-                   + tomTriangle(phase2) * fit.osc2Gain)
+                   + tomTriangle(phase2) * fit.osc2Gain
+                   + tomTriangle(phase3) * fit.osc3Gain)
                    * Ghost::TR909::accentScale(1.f, accentNorm, fit.accent.bodyAmt)
-                   + click) * env;
+                   + click) * env
+                   + noise;
 
         // Leaky DC-blocking HP: y = x - LP(x).
         hpState += fit.hpCoef * (out - hpState);

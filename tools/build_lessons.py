@@ -36,13 +36,19 @@ DONOR_REF = "HEAD:patches/909-lessons/02-add-bassdrum.vcv"
 
 # ---- routing convention ----
 ACCENT_TRACK, KICK_TRACK, CLAP_TRACK, RIM_TRACK = 1, 2, 7, 8
+# Toms use the Hora's tom lanes, mapped descending: out6=HIGH, out7=MID, out8=LOW
+TOM_HI_TRACK, TOM_MID_TRACK, TOM_LO_TRACK = 4, 5, 6
 def out_of(track): return track + 2          # Hora: output id = track + 2
 
 # voice I/O ids
 KCK_TRIG, KCK_TOTAL_ACC = 0, 11
 RC_CLAP_TRIG, RC_RIM_TRIG, RC_TOTAL_ACC = 0, 1, 2
 RC_CLAP_OUT, RC_RIM_OUT = 0, 1
+TM_LO_TRIG, TM_MID_TRIG, TM_HI_TRIG, TM_TOTAL_ACC = 0, 1, 2, 4
+TM_LO_OUT, TM_MID_OUT, TM_HI_OUT = 0, 1, 2
 CLOCK_OUT, HORA_CLOCK_IN = 1, 2
+
+TOMS_ID = 9101000000000007
 
 # patterns (32-step page)
 QUARTERS  = [0, 4, 8, 12, 16, 20, 24, 28]    # four-on-floor / metronome
@@ -53,10 +59,16 @@ GROOVE = {                                    # the operator's hand-wired groove
     CLAP_TRACK:   [4, 12],
     RIM_TRACK:    [0, 1, 7, 11, 12, 14],
 }
+# lesson 04 toms: the operator's hand-drawn three-tom groove (from autosave).
+TOMS = {
+    TOM_HI_TRACK:  [7, 10, 23, 28],
+    TOM_MID_TRACK: [2, 13, 15],
+    TOM_LO_TRACK:  [1, 6, 11, 15],
+}
 
 # top-row layout: CTRL + voices must be contiguous for the accent bus
-ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12}
-ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap"]
+ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20}
+ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap", "Toms"]
 
 
 def load_base():
@@ -130,7 +142,13 @@ def pack_ctrl_row(data):
         x += ROW0_HP[model]
 
 
-def assemble(data, patterns, has_kick, has_clap):
+def add_toms(data):
+    """Inject a GHOST Toms module on the contiguous CTRL row."""
+    data["modules"].append(dict(id=TOMS_ID, plugin="tnn1t1s-ghost",
+                                model="Toms", version="2.0.0", pos=[36, 0]))
+
+
+def assemble(data, patterns, has_kick, has_clap, has_toms=False):
     hd = by_model(data, "Drumsequencer")["data"]
     h = by_model(data, "Drumsequencer")["id"]
     ctrl = by_model(data, "Tr909Ctrl")["id"]  # noqa: kept for clarity / future use
@@ -156,6 +174,16 @@ def assemble(data, patterns, has_kick, has_clap):
         cable(data, h, out_of(KICK_TRACK), k, KCK_TRIG, "#c91847")
         cable(data, h, out_of(ACCENT_TRACK), k, KCK_TOTAL_ACC, "#f3b0c2")
         cable(data, k, 0, um, 0)
+    # toms (three independent voices, shared accent)
+    if has_toms:
+        t = by_model(data, "Toms")["id"]
+        cable(data, h, out_of(TOM_HI_TRACK),  t, TM_HI_TRIG,  "#7a4ec2")   # out6 -> HIGH
+        cable(data, h, out_of(TOM_MID_TRACK), t, TM_MID_TRIG, "#7a4ec2")   # out7 -> MID
+        cable(data, h, out_of(TOM_LO_TRACK),  t, TM_LO_TRIG,  "#7a4ec2")   # out8 -> LOW
+        cable(data, h, out_of(ACCENT_TRACK),  t, TM_TOTAL_ACC, "#f3b0c2")
+        cable(data, t, TM_LO_OUT,  um, 3)
+        cable(data, t, TM_MID_OUT, um, 4)
+        cable(data, t, TM_HI_OUT,  um, 5)
     # mix -> audio
     cable(data, um, 0, au, 0, "#d8d8d8")
     cable(data, um, 0, au, 1, "#d8d8d8")
@@ -187,7 +215,18 @@ def build_03():
     save_vcv(data, os.path.join(LDIR, "03-add-claps.vcv"))
 
 
+def build_04():
+    data = load_base()
+    add_toms(data)
+    reset_routing(data)
+    patterns = dict(GROOVE)
+    patterns.update(TOMS)
+    assemble(data, patterns, has_kick=True, has_clap=True, has_toms=True)
+    save_vcv(data, os.path.join(LDIR, "04-add-toms.vcv"))
+
+
 if __name__ == "__main__":
     build_01()
     build_02()
     build_03()
+    build_04()

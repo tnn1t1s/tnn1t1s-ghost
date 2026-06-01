@@ -38,6 +38,8 @@ DONOR_REF = "HEAD:patches/909-lessons/02-add-bassdrum.vcv"
 ACCENT_TRACK, KICK_TRACK, CLAP_TRACK, RIM_TRACK = 1, 2, 7, 8
 # Toms use the Hora's tom lanes, mapped descending: out6=HIGH, out7=MID, out8=LOW
 TOM_HI_TRACK, TOM_MID_TRACK, TOM_LO_TRACK = 4, 5, 6
+# Hats on the Hora's hat lanes: out13=closed (CHH), out14=open (OHH)
+CHH_TRACK, OHH_TRACK = 11, 12
 def out_of(track): return track + 2          # Hora: output id = track + 2
 
 # voice I/O ids
@@ -46,9 +48,12 @@ RC_CLAP_TRIG, RC_RIM_TRIG, RC_TOTAL_ACC = 0, 1, 2
 RC_CLAP_OUT, RC_RIM_OUT = 0, 1
 TM_LO_TRIG, TM_MID_TRIG, TM_HI_TRIG, TM_TOTAL_ACC = 0, 1, 2, 4
 TM_LO_OUT, TM_MID_OUT, TM_HI_OUT = 0, 1, 2
+HH_CHH_TRIG, HH_OHH_TRIG, HH_TOTAL_ACC = 0, 1, 3
+HH_CHH_OUT, HH_OHH_OUT = 0, 1
 CLOCK_OUT, HORA_CLOCK_IN = 1, 2
 
 TOMS_ID = 9101000000000007
+CHHOHH_ID = 9101000000000008
 
 # patterns (32-step page)
 QUARTERS  = [0, 4, 8, 12, 16, 20, 24, 28]    # four-on-floor / metronome
@@ -65,10 +70,16 @@ TOMS = {
     TOM_MID_TRACK: [2, 13, 15],
     TOM_LO_TRACK:  [1, 6, 11, 15],
 }
+# lesson 05 hats: the operator's hand-drawn pattern (from autosave) -- a
+# sparse closed-hat figure with one open-hat ring.
+HATS = {
+    CHH_TRACK: [2, 6, 10],
+    OHH_TRACK: [14],
+}
 
 # top-row layout: CTRL + voices must be contiguous for the accent bus
-ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20}
-ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap", "Toms"]
+ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20, "ChhOhh": 14}
+ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap", "Toms", "ChhOhh"]
 
 
 def load_base():
@@ -148,7 +159,13 @@ def add_toms(data):
                                 model="Toms", version="2.0.0", pos=[36, 0]))
 
 
-def assemble(data, patterns, has_kick, has_clap, has_toms=False):
+def add_chhohh(data):
+    """Inject a GHOST ChhOhh (hats) module on the contiguous CTRL row."""
+    data["modules"].append(dict(id=CHHOHH_ID, plugin="tnn1t1s-ghost",
+                                model="ChhOhh", version="2.0.0", pos=[56, 0]))
+
+
+def assemble(data, patterns, has_kick, has_clap, has_toms=False, has_hats=False):
     hd = by_model(data, "Drumsequencer")["data"]
     h = by_model(data, "Drumsequencer")["id"]
     ctrl = by_model(data, "Tr909Ctrl")["id"]  # noqa: kept for clarity / future use
@@ -184,6 +201,14 @@ def assemble(data, patterns, has_kick, has_clap, has_toms=False):
         cable(data, t, TM_LO_OUT,  um, 3)
         cable(data, t, TM_MID_OUT, um, 4)
         cable(data, t, TM_HI_OUT,  um, 5)
+    # hats (closed + open, shared accent)
+    if has_hats:
+        hh = by_model(data, "ChhOhh")["id"]
+        cable(data, h, out_of(CHH_TRACK), hh, HH_CHH_TRIG, "#2aa198")
+        cable(data, h, out_of(OHH_TRACK), hh, HH_OHH_TRIG, "#2aa198")
+        cable(data, h, out_of(ACCENT_TRACK), hh, HH_TOTAL_ACC, "#f3b0c2")
+        cable(data, hh, HH_CHH_OUT, um, 6)
+        cable(data, hh, HH_OHH_OUT, um, 7)
     # mix -> audio
     cable(data, um, 0, au, 0, "#d8d8d8")
     cable(data, um, 0, au, 1, "#d8d8d8")
@@ -225,8 +250,22 @@ def build_04():
     save_vcv(data, os.path.join(LDIR, "04-add-toms.vcv"))
 
 
+def build_05():
+    data = load_base()
+    add_toms(data)
+    add_chhohh(data)
+    reset_routing(data)
+    patterns = dict(GROOVE)
+    patterns.update(TOMS)
+    patterns.update(HATS)
+    assemble(data, patterns, has_kick=True, has_clap=True,
+             has_toms=True, has_hats=True)
+    save_vcv(data, os.path.join(LDIR, "05-add-hats.vcv"))
+
+
 if __name__ == "__main__":
     build_01()
     build_02()
     build_03()
     build_04()
+    build_05()

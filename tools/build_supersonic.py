@@ -80,7 +80,7 @@ C = [
 cables=[{'id':7100000+i,'outputModuleId':om,'outputId':oi,'inputModuleId':im,'inputId':ii,'color':col}
         for i,(om,oi,im,ii,col) in enumerate(C,1)]
 
-patch={'version':base['version'],'unsaved':False,'zoom':base.get('zoom',-0.4),
+patch={'version':base['version'],'unsaved':False,'zoom':0.0,
        'gridOffset':base.get('gridOffset',[0,0]),'modules':modules,'cables':cables}
 with tempfile.TemporaryDirectory() as t:
     (pathlib.Path(t)/"patch.json").write_text(json.dumps(patch,indent=2))

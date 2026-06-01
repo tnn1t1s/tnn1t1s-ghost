@@ -15,7 +15,8 @@ from ..config.footprints import Footprint
 from ..config.layout import LayoutConfig
 from ..config.theme import Theme
 from ..dsl import PanelSpec
-from ..geometry import cell_centers, grouped_cell_centers
+from ..geometry import Vec, cell_centers, grouped_cell_centers
+from ..primitives.anchor import anchor
 from ..primitives.chevron import chevron_rule
 from ..primitives.dividers import dotted_vline
 from ..primitives.label import label
@@ -100,6 +101,16 @@ def build_panel(spec: PanelSpec, theme: Theme, layout: LayoutConfig,
                 r, c = divmod(i, cols)
                 els.append(mixer_cell(col_cxs[c], row_ys[r], port, theme, fontbook,
                                       layout, cell.label, cell.id, cell.mute))
+
+        elif sec.kind == "switch_row":
+            # bottom chevron (as every module has) + a centred switch anchor with
+            # its label below. The live switch widget draws itself at the anchor.
+            els.append(chevron_rule(cx, chev_half, layout.io.chevron_y_mm, theme))
+            cell = sec.cells[0]
+            y = layout.io.row_y_mm
+            els.append(anchor(Vec(cx, y), cell.id))
+            els.append(label(cx, y + 4.5, cell.label, fontbook.role("label"),
+                             theme.color("label")))
 
         elif sec.kind == "io_row":
             els.append(chevron_rule(cx, chev_half, layout.io.chevron_y_mm, theme))

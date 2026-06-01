@@ -43,6 +43,10 @@ struct Bus {
     float accentBAmount     = 1.f;
     float ghostAmount       = 1.f;
     float masterVolume      = 1.f;   // post-everything linear scalar
+    // RANGE: scales every voice's ghost-floor dB (mix.ghostDb * ghostScale).
+    // Voices with a 0 dB floor (gentleMix) are unaffected (0 * x = 0); only
+    // floored voices (the kick) widen/tighten. 1.0 = each voice's own default.
+    float ghostScale        = 1.f;
     bool  controllerPresent = false;
 };
 
@@ -174,14 +178,15 @@ namespace Accent {
 
     // Kick: pronounced 909-style accent ladder, specified as linear LEVELS
     // (at full CTRL amount each tier's gain == its target):
-    //   no accent (ghost)   10%  -> -20.0 dB   (low floor: ghost kicks barely there)
-    //   Accent B (local)    60%  ->  -4.44 dB  (moving Accent B swings 10->60%, ~16 dB)
+    //   no accent (ghost)   15%  -> -16.48 dB  (floor at CTRL RANGE = Classic)
+    //   Accent B (local)    60%  ->  -4.44 dB  (moving Accent B swings 15->60%, ~12 dB)
     //   Accent A (global)  100%  ->   0 dB     (the ceiling)
     //   both               100%  ->   0 dB     (capped at Accent A, never hotter)
-    // 20*log10(level) for each. Big spread so accents read like a real TR-909.
+    // 20*log10(level) for each. CTRL RANGE scales the ghost floor: Tight ~35%,
+    // Classic 15% (this default), Wide ~8%.
     inline AccentMix kickMix() {
         AccentMix m;
-        m.ghostDb = -20.0f; m.localDb = -4.44f; m.globalDb = 0.f; m.bothDb = 0.f;
+        m.ghostDb = -16.48f; m.localDb = -4.44f; m.globalDb = 0.f; m.bothDb = 0.f;
         return m;
     }
 }
@@ -221,7 +226,8 @@ inline float resolveAccentGain(bool totalGate, bool localGate,
                                const AccentMix& mix) {
     const bool effectiveTotal = totalGate && (bus.accentAAmount > 0.f);
     const bool effectiveLocal = localGate && (bus.accentBAmount > 0.f);
-    const float ghost = dbToLinear(mix.ghostDb) * bus.ghostAmount;
+    const float floorDb = mix.ghostDb * bus.ghostScale;   // RANGE widens/tightens
+    const float ghost = dbToLinear(floorDb) * bus.ghostAmount;
     if (!effectiveTotal && !effectiveLocal) {
         return ghost;
     }
@@ -230,7 +236,7 @@ inline float resolveAccentGain(bool totalGate, bool localGate,
     // CTRL amounts -- so the accented hit never dips below normal and never
     // jumps in from silence. Matches the TR-909, where accent just adds a bit
     // of gain on top (gentle), rather than replacing the level outright.
-    const float ghostLin = dbToLinear(mix.ghostDb);
+    const float ghostLin = dbToLinear(floorDb);
     const float dA    = dbToLinear(mix.globalDb) - ghostLin;   // boost delta vs ghost
     const float dB    = dbToLinear(mix.localDb)  - ghostLin;
     const float dBoth = dbToLinear(mix.bothDb)   - ghostLin;

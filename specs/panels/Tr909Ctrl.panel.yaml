@@ -14,3 +14,7 @@ sections:
       - { label: ACCENT A, param: param.main.accent-a, cv: cv.main.accent-a }
       - { label: ACCENT B, param: param.main.accent-b, cv: cv.main.accent-b }
       - { label: MASTER,   param: param.main.master,   cv: cv.main.master }
+
+  - kind: switch_row          # bottom chevron + centred RANGE switch (Tight/Classic/Wide)
+    cells:
+      - { label: RANGE, id: param.main.range }

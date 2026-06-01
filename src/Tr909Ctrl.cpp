@@ -34,9 +34,13 @@ struct Tr909Ctrl : Tr909Module {
     // DEFAULT (no-accent / ghost level) is fixed at full internally -- it was a
     // dull control, so the panel exposes only the expressive trims.
     enum ParamId  {
-        ACCENT_A_PARAM, ACCENT_B_PARAM, MASTER_VOL_PARAM,
+        ACCENT_A_PARAM, ACCENT_B_PARAM, MASTER_VOL_PARAM, RANGE_PARAM,
         NUM_PARAMS
     };
+
+    // RANGE positions -> ghost-floor scale broadcast on the bus. Against the
+    // kick's -16.48 dB (15%) floor: Tight ~35%, Classic 15% (1.0=native), Wide ~8%.
+    static constexpr float kRangeScale[3] = {0.55f, 1.0f, 1.33f};  // Tight/Classic/Wide
     enum InputId  {
         ACCENT_A_CV_INPUT, ACCENT_B_CV_INPUT, MASTER_VOL_CV_INPUT,
         NUM_INPUTS
@@ -48,6 +52,8 @@ struct Tr909Ctrl : Tr909Module {
         configParam(ACCENT_A_PARAM,   0.f, 1.f, 0.5f, "Accent A amount", "%", 0.f, 100.f);
         configParam(ACCENT_B_PARAM,   0.f, 1.f, 0.5f, "Accent B amount", "%", 0.f, 100.f);
         configParam(MASTER_VOL_PARAM, 0.f, 1.f, 0.5f, "Master volume",   "%", 0.f, 100.f);
+        configSwitch(RANGE_PARAM, 0.f, 2.f, 1.f, "Dynamic range",
+                     {"Tight", "Classic", "Wide"});
         configInput(ACCENT_A_CV_INPUT,   "Accent A amount CV");
         configInput(ACCENT_B_CV_INPUT,   "Accent B amount CV");
         configInput(MASTER_VOL_CV_INPUT, "Master volume CV");
@@ -64,6 +70,8 @@ struct Tr909Ctrl : Tr909Module {
         currentBus.accentAAmount     = knobPlusCV(*this, ACCENT_A_PARAM,   ACCENT_A_CV_INPUT);
         currentBus.accentBAmount     = knobPlusCV(*this, ACCENT_B_PARAM,   ACCENT_B_CV_INPUT);
         currentBus.masterVolume      = knobPlusCV(*this, MASTER_VOL_PARAM, MASTER_VOL_CV_INPUT);
+        int range = (int) std::lround(rack::math::clamp(params[RANGE_PARAM].getValue(), 0.f, 2.f));
+        currentBus.ghostScale        = kRangeScale[range];
         currentBus.controllerPresent = true;
     }
 };
@@ -90,7 +98,11 @@ struct Tr909CtrlWidget : ModuleWidget, SvgHelper<Tr909CtrlWidget> {
         bindInput<PJ301MPort>("cv.main.accent-a", Tr909Ctrl::ACCENT_A_CV_INPUT);
         bindInput<PJ301MPort>("cv.main.accent-b", Tr909Ctrl::ACCENT_B_CV_INPUT);
         bindInput<PJ301MPort>("cv.main.master",   Tr909Ctrl::MASTER_VOL_CV_INPUT);
+
+        bindParam<CKSSThreeHorizontal>("param.main.range", Tr909Ctrl::RANGE_PARAM);
     }
 };
+
+constexpr float Tr909Ctrl::kRangeScale[3];
 
 rack::Model* modelTr909Ctrl = createModel<Tr909Ctrl, Tr909CtrlWidget>("Tr909Ctrl");

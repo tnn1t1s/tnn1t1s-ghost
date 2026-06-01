@@ -64,13 +64,14 @@ namespace KckFit {
 struct Config {
     // Pitch range (calibrated against TR-909 BD ref tune050-attack050-decay050 = 49.8 Hz).
     // basePitch midpoint 45 Hz; FFT measurement adds ~5 Hz from slow-sweep residual.
-    float basePitchOffset           = 20.f;
-    float basePitchSpan             = 50.f;
+    // Calibrated so TUNE=100% -> 68.5 Hz (the TR-09 match, 2026-06-01).
+    float basePitchOffset           = 38.0f;   // TUNE=0 -> 38 Hz
+    float basePitchSpan             = 30.48f;  // TUNE=1 -> 68.48 Hz (matched)
 
     // Body envelope (1/tau range), calibrated against TR-909 BD: -20 dB at 170 ms
     // (tau ~ 73 ms, ampDecay ~ 13.5) at decay=0.5. JUCE original 2.25/1.75 was 10x too slow.
-    float ampDecayMin               = 20.f;    // decay=0 -> tau ~ 50 ms (snappy)
-    float ampDecaySpan              = 13.f;    // decay=1 -> tau ~ 143 ms (long)
+    float ampDecayMin               = 26.f;    // DECAY=0.5 -> 17.8 (matched); range tau ~38..104 ms
+    float ampDecaySpan              = 16.4f;
 
     // Fast pitch sweep. DAFx-14 paper §8.1 reports the real 909 attack
     // frequency shift lasts ~6 ms ("less than a single period at the higher
@@ -78,7 +79,7 @@ struct Config {
     // pitch energy into the 60-100 Hz band during the body window.
     float pitchSweepFastBase        = 112.f;    // Hz
     float pitchSweepFastAttack      = 65.f;
-    float pitchSweepFastRateBase    = 150.f;    // 1/tau ~ 6.7 ms (was 38)
+    float pitchSweepFastRateBase    = 28.f;     // PITCH-DECAY=0.5 -> sweep 1/tau 28 (matched)
     float pitchSweepFastRateAttack  = 22.f;
 
     // Slow pitch sigh. DAFx-14 describes the 909's R161-leakage sigh as
@@ -93,11 +94,27 @@ struct Config {
     // (matching ref 2H at -27 dB), but the artistic ear preferred the JUCE
     // value 0.19 for added body character. The 3H term remains as the analog
     // bite contribution.
-    float bodyFundGain              = 0.88f;
+    float bodyFundGain              = 0.696f;   // matched
     float bodyHarmRatio             = 2.02f;    // slightly detuned 2x for shimmer
     float bodyHarmPhase             = 0.10f;
     float bodyHarmGain              = 0.19f;    // ear-tuned: JUCE value
     float bodyThirdHarmGain         = 0.06f;
+
+    // --- 909 rebuild: clipped-triangle body + single pitch sweep ---------
+    // The 909 body is a saturated triangle filtered back toward a sine, not a
+    // pure sine + harmonic stack (a clean sine "sounds cheap"). These drive
+    // the new KckVoice::process; the sine/sub/chirp fields above are retained
+    // only so KckLab still compiles, and are unused by the rebuilt engine.
+    float bodyClip                  = 2.4f;    // triangle saturation (the 909 "dirt")
+    float bodyLpCoef                = 0.40f;   // (legacy one-pole; unused once resonant SVF on)
+    float clickPulseGain            = 0.6f;    // short attack pulse level
+
+    // Resonant sweep (the 909 "rez" zap at high TUNE). The sweep is a RATIO of
+    // the fundamental (so it widens dramatically as you tune up), and the body
+    // runs through a resonant 2-pole filter whose cutoff tracks the swept pitch.
+    float sweepRatio                = 4.0f;    // start freq = fundamental * (1 + sweepRatio*pitch)
+    float bodyReso                  = 0.62f;   // 0..1 body filter resonance (the zap)
+    float bodyFcMult                = 1.30f;   // body filter cutoff = freq * this (brightness)
 
     // Sub component retained on purpose. The strict circuit-faithful pass
     // disabled this entirely, but in live use the extra low-end weight made
@@ -127,7 +144,7 @@ struct Config {
     float hpCoef                    = 0.0012f;  // ear-tuned: JUCE value
     // Drive: spectrum-faithful pass set this to 1.0 to avoid intermod 2H, but
     // the artistic ear preferred the JUCE saturator at 1.55 for bite.
-    float driveBase                 = 1.55f;    // ear-tuned: JUCE value
+    float driveBase                 = 1.55f;    // matched
     float driveDecay                = 0.42f;
     float driveAttack               = 0.35f;
     float driveExtraSpan            = 1.0f;     // DRIVE knob 0..1 -> 0..1 added to drive amount
@@ -176,6 +193,10 @@ struct KckVoice {
     float phaseSub = 0.f;
     float t        = 0.f;
     float hpState  = 0.f;
+    float bodyLp   = 0.f;   // (legacy one-pole; unused once resonant SVF on)
+    float clickLp  = 0.f;   // one-pole LP state for the click noise
+    float svfLp    = 0.f;   // resonant body filter state (lowpass)
+    float svfBp    = 0.f;   // resonant body filter state (bandpass)
     bool  active   = false;
     uint32_t rngState = 1u;
 
@@ -185,6 +206,8 @@ struct KckVoice {
 
     void fire(float accentStrength) {
         phase = phaseSub = 0.f;
+        bodyLp = clickLp = 0.f;
+        svfLp = svfBp = 0.f;
         t = 0.f;
         hpState = 0.f;
         active = true;
@@ -212,70 +235,63 @@ struct KckVoice {
 
         const float acc = latchedAccent;  // 0..1, latched at fire()
 
-        const float basePitch = fit.basePitchOffset + tuneNorm * fit.basePitchSpan;
-        const float ampDecay  = fit.ampDecayMin - decayNorm * fit.ampDecaySpan;
+        // --- Authentic 909 rebuild -------------------------------------
+        // ONE pitch envelope (instant attack, exp decay) sweeps the osc from
+        // high down to the fundamental. TUNE sets the fundamental; the sweep
+        // rides consistently above it -- that drop is the punch.
+        const float fundamental = fit.basePitchOffset + tuneNorm * fit.basePitchSpan;
+        // RATIO-based sweep: start freq is a MULTIPLE of the fundamental, so the
+        // sweep widens dramatically as TUNE goes up (the 909 high-tune "rez" zap).
+        const float sweepAmt = fit.sweepRatio
+                             * (0.20f + pitchNorm * 0.70f)   // PITCH=0.5 -> matched depth
+                             * (1.f + acc * fit.accent.pitchAmt);
+        const float sweepRate = fit.pitchSweepFastRateBase
+                              * (0.50f + pitchDecayNorm * 1.00f);  // PITCH-DECAY=0.5 -> matched
+        const float freq = fundamental * (1.f + sweepAmt * std::exp(-sweepRate * t));
 
-        // Accent deepens the fast pitch sweep (more "thump scoop") and
-        // brightens the click; both scale linearly with latchedAccent.
-        const float pitchAmpScale   = pitchNorm * 2.f * (1.f + acc * fit.accent.pitchAmt);
-        const float pitchDecayScale = 0.5f + pitchDecayNorm;
+        phase += TWO_PI * freq * args.sampleTime;
+        if (phase > TWO_PI) phase -= TWO_PI;
 
-        const float fastSweep =
-            (fit.pitchSweepFastBase + attackNorm * fit.pitchSweepFastAttack)
-            * std::exp(-(fit.pitchSweepFastRateBase
-                         + attackNorm * fit.pitchSweepFastRateAttack)
-                       * pitchDecayScale * t)
-            * pitchAmpScale;
+        // Body: saturated triangle (the 909 "dirt") into a RESONANT 2-pole filter
+        // whose cutoff tracks the swept pitch -- the resonance "zaps" as the
+        // pitch sweeps, which is the bridged-T character missing before.
+        const float pn   = phase * (1.f / TWO_PI);             // 0..1
+        const float tri  = 4.f * std::fabs(pn - 0.5f) - 1.f;    // -1..1 triangle
+        const float clip = fit.bodyClip + driveNorm * 2.f + acc * fit.accent.driveAmt;
+        const float sat  = std::tanh(tri * clip) / std::tanh(clip);
 
-        const float slowSweep =
-            fit.pitchSweepSlowBase
-            * std::exp(-(fit.pitchSweepSlowRateBase
-                         + (1.f - decayNorm) * fit.pitchSweepSlowRateDecay) * t);
+        // Chamberlin state-variable filter, cutoff tracking freq, Q from bodyReso.
+        float fc = freq * fit.bodyFcMult;
+        const float fn = rack::math::clamp(fc * args.sampleTime, 0.f, 0.45f);  // fc/sr
+        const float fcoef = 2.f * std::sin(3.14159265f * fn);
+        const float q = 2.f - fit.bodyReso * 1.9f;             // higher reso -> lower damping
+        svfLp += fcoef * svfBp;
+        const float hp = sat - svfLp - q * svfBp;
+        svfBp += fcoef * hp;
+        svfLp = rack::math::clamp(svfLp, -2.f, 2.f);           // safety
 
-        const float freq = basePitch + fastSweep + slowSweep;
+        const float ampEnv  = std::exp(-(fit.ampDecayMin - decayNorm * fit.ampDecaySpan) * t);
+        const float bodyOut = svfLp * fit.bodyFundGain * ampEnv
+                            * (1.f + acc * fit.accent.bodyAmt);
 
-        phase    += TWO_PI * freq * args.sampleTime;
-        phaseSub += TWO_PI * (basePitch * fit.subRatio) * args.sampleTime;
-        if (phase    > TWO_PI) phase    -= TWO_PI;
-        if (phaseSub > TWO_PI) phaseSub -= TWO_PI;
+        // Click: short pulse + low-passed noise burst (the attack transient).
+        // attackNorm is the CLICK knob; ATTACK macro feeds clickRateBase.
+        const float clickEnv = std::exp(-(fit.clickRateBase
+                                          + attackNorm * fit.clickRateAttack) * t);
+        clickLp += 0.5f * (nextNoise() - clickLp);              // ~one-pole LP noise (~4 kHz)
+        const float pulse = (t < 0.002f) ? 1.f : 0.f;           // ~2 ms onset pulse
+        const float click =
+            (clickLp * (fit.clickNoiseBase + attackNorm * fit.clickNoiseAttack)
+             + pulse * fit.clickPulseGain * attackNorm)
+            * clickEnv * (1.f + acc * fit.accent.clickAmt);
 
-        const float body =
-            std::sin(phase) * fit.bodyFundGain
-          + std::sin(phase * fit.bodyHarmRatio + fit.bodyHarmPhase) * fit.bodyHarmGain
-          + std::sin(phase * 3.f) * fit.bodyThirdHarmGain;
-
-        const float subDecay = fit.subDecayBase + (1.f - decayNorm) * fit.subDecayInverse;
-        const float sub      = std::sin(phaseSub) * fit.subGain * std::exp(-subDecay * t);
-
-        const float ampEnv   = std::exp(-ampDecay * t);
-
-        const float clickRate = fit.clickRateBase + attackNorm * fit.clickRateAttack;
-        const float clickEnv  = std::exp(-clickRate * t);
-
-        const float clickGain = (1.f + acc * fit.accent.clickAmt);
-        const float clickNoise = nextNoise() * clickEnv
-                               * (fit.clickNoiseBase + attackNorm * fit.clickNoiseAttack)
-                               * clickGain;
-
-        const float chirpInstFreq = fit.clickChirpStartHz - t * fit.clickChirpRate;
-        const float clickChirp = std::sin(TWO_PI * chirpInstFreq * t) * clickEnv
-                               * (fit.clickChirpBase + attackNorm * fit.clickChirpAttack)
-                               * clickGain;
-
-        const float bodyGain = (1.f + acc * fit.accent.bodyAmt);
-        float out = ((body + sub) * bodyGain) * ampEnv + clickNoise + clickChirp;
+        float out = bodyOut + click;
 
         // Leaky DC-blocking HP.
         hpState += fit.hpCoef * (out - hpState);
         out -= hpState;
 
-        const float driveAmount =
-            fit.driveBase
-          + decayNorm  * fit.driveDecay
-          + attackNorm * fit.driveAttack
-          + driveNorm  * fit.driveExtraSpan
-          + acc        * fit.accent.driveAmt;
-        out = std::tanh(out * driveAmount);
+        out = std::tanh(out * (fit.driveBase + acc * fit.accent.driveAmt));
 
         const float levelGain = fit.outputGain * levelNorm;
         out = rack::math::clamp(out, -1.f, 1.f) * levelGain;
@@ -316,15 +332,16 @@ struct Kck : Tr909Module {
     Kck() {
         fit = KckFit::makeKick();
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-        configParam(TUNE_PARAM,        0.f, 1.f, 0.50f,  "Tune",         "%", 0.f, 100.f);
-        configParam(DECAY_PARAM,       0.f, 1.f, 0.50f,  "Decay",        "%", 0.f, 100.f);
-        configParam(PITCH_PARAM,       0.f, 1.f, 0.385f, "Pitch amount", "%", 0.f, 100.f);
-        configParam(PITCH_DECAY_PARAM, 0.f, 1.f, 0.26f,  "Pitch decay",  "%", 0.f, 100.f);
+        // Calibrated 2026-06-01: TUNE=100% + every shaping knob at noon = the TR-09 match.
+        configParam(TUNE_PARAM,        0.f, 1.f, 1.00f, "Tune",         "%", 0.f, 100.f);
+        configParam(DECAY_PARAM,       0.f, 1.f, 0.50f, "Decay",        "%", 0.f, 100.f);
+        configParam(PITCH_PARAM,       0.f, 1.f, 0.50f, "Pitch amount", "%", 0.f, 100.f);
+        configParam(PITCH_DECAY_PARAM, 0.f, 1.f, 0.50f, "Pitch decay",  "%", 0.f, 100.f);
         configParam(CLICK_PARAM,       0.f, 1.f, 0.50f, "Click",        "%", 0.f, 100.f);
-        configParam(DRIVE_PARAM,       0.f, 1.f, 0.f,   "Drive",        "%", 0.f, 100.f);
+        configParam(DRIVE_PARAM,       0.f, 1.f, 0.50f, "Drive",        "%", 0.f, 100.f);
         configParam(LEVEL_PARAM,       0.f, 1.f, 0.85f, "Level",        "%", 0.f, 100.f);
-        configParam(ATTACK_PARAM,      0.f, 1.f, 0.20f, "Attack",       "%", 0.f, 100.f);
-        configParam(TONE_PARAM,        0.f, 1.f, 0.40f, "Tone",         "%", 0.f, 100.f);
+        configParam(ATTACK_PARAM,      0.f, 1.f, 0.50f, "Attack",       "%", 0.f, 100.f);
+        configParam(TONE_PARAM,        0.f, 1.f, 0.50f, "Tone",         "%", 0.f, 100.f);
         configInput (TRIG_INPUT,           "Trigger");
         configInput (TUNE_CV_INPUT,        "Tune CV");
         configInput (DECAY_CV_INPUT,       "Decay CV");
@@ -376,17 +393,19 @@ struct Kck : Tr909Module {
         float attackNorm     = kckNormWithCV(*this, ATTACK_PARAM,      ATTACK_CV_INPUT);
         float toneNorm       = kckNormWithCV(*this, TONE_PARAM,        TONE_CV_INPUT);
 
-        // ATTACK and TONE are macros over the engine fit (defaults reproduce the
-        // original calibration): Attack scales the click onset rate (sharper
-        // transient), Tone scales body-harmonic brightness (dark -> bright).
+        // Calibration (2026-06-01 TR-09 match): the matched sound is TUNE=100%
+        // with every shaping knob at noon. CLICK/DRIVE are remapped so noon hits
+        // the matched values; ATTACK/TONE macro the click sharpness / body
+        // brightness so noon -> matched clickRate 140 / bodyFcMult 1.30.
         KckFit::Config f = fit;
-        f.clickRateBase     = 80.f + 320.f * attackNorm;
-        f.bodyHarmGain      = 0.04f + 0.40f * toneNorm;
-        f.bodyThirdHarmGain = 0.02f + 0.16f * toneNorm;
+        f.clickRateBase = 60.f + 160.f * attackNorm;          // ATTACK=0.5 -> 140
+        f.bodyFcMult    = 0.70f + 1.20f * toneNorm;           // TONE=0.5   -> 1.30
+        const float clickEff = rack::math::clamp(0.305f + clickNorm, 0.f, 1.f);  // CLICK=0.5 -> 0.805
+        const float driveEff = rack::math::clamp((driveNorm - 0.5f) * 2.f, 0.f, 1.f); // DRIVE=0.5 -> 0
 
         float out = voice.process(args, f,
                                   tuneNorm, decayNorm, pitchNorm, pitchDecayNorm,
-                                  clickNorm, driveNorm, levelNorm);
+                                  clickEff, driveEff, levelNorm);
         out *= latchedCaseGain * bus.masterVolume;
         outputs[OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(out));
     }

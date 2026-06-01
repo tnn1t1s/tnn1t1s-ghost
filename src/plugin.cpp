@@ -6,7 +6,10 @@
 // Forward declarations -- the GHOST core system (one per shipped module).
 // Lab variants and the Attenuate reference module exist in the source tree but
 // are intentionally not registered, so the browser shows only the core kit.
+// EXCEPTION: KckLab is registered as a tuning bench while the kick is being
+// dialed in to 909 fidelity; unregister before release.
 extern rack::Model* modelKck;
+extern rack::Model* modelKckLab;
 extern rack::Model* modelSnr;
 extern rack::Model* modelChhOhh;
 extern rack::Model* modelRimClap;
@@ -21,6 +24,7 @@ void init(rack::Plugin* p) {
 
     // GHOST core: six voices + the control bus.
     p->addModel(modelKck);
+    p->addModel(modelKckLab);   // tuning bench (temporary; unregister before release)
     p->addModel(modelSnr);
     p->addModel(modelChhOhh);
     p->addModel(modelRimClap);

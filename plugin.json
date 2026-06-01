@@ -21,6 +21,12 @@
       "tags": ["Drum"]
     },
     {
+      "slug": "KckLab",
+      "name": "GHOST KCK LAB",
+      "description": "Tuning bench for the kick: same engine as GHOST KCK with the internal fit parameters exposed as live controls for dialing in 909 fidelity. Temporary tuning tool.",
+      "tags": ["Drum"]
+    },
+    {
       "slug": "Snr",
       "name": "GHOST SNR",
       "description": "909-inspired snare voice. Tune/Tone/Snappy/Level surface over reset triangle VCOs, fixed binary noise, and split body/noise envelopes. Accent-aware via GHOST CTRL.",

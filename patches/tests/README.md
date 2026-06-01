@@ -1,0 +1,9 @@
+# GHOST test patches
+
+Hand-built patches that exercise a specific behavior, for ear-checking after
+changes (open in Rack and listen). Not auto-graded — these are regression
+fixtures you audition.
+
+| Patch | What it tests | Pass = you hear |
+|-------|---------------|-----------------|
+| `ohch-choke.vcv` | GHOST OHCH closed→open hi-hat choke | Closed hat runs every 16th; open hat on the offbeats (2,6,10,14) with a long decay. Each open hat is **cut short** by the next closed hat. If it *rings over* the closed stream, the choke is broken (summing). |

@@ -1,0 +1,6 @@
+# Ghost layout overrides on panelkit/data/layout.defaults.yaml (deep-merged).
+margins:
+  side_mm: 5.5
+grid:
+  default_columns: 3
+  min_gutter_mm: 2.0

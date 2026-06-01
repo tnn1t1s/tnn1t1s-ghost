@@ -1,0 +1,7 @@
+# Shared panel section fragments — DRY building blocks for every Ghost panel.
+# Reference one from a panel spec's `sections:` list with `- use: <name>`.
+# Add keys inline to override (e.g. `- use: header\n  brand: true`).
+
+header:                  # standard Ghost header: no vendor wordmark, tight top margin
+  kind: header
+  brand: false

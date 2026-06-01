@@ -8,6 +8,7 @@
 #include "embedded/Crash909Data.hpp"
 #include "embedded/Ride909Data.hpp"
 #include <cmath>
+#include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
@@ -112,6 +113,10 @@ struct CrashRide : Tr909Module {
         CRASH_TRIG_INPUT,
         RIDE_TRIG_INPUT,
         TOTAL_ACC_INPUT,
+        // Per-knob CV for the panel controls (TUNE/DECAY/LEVEL each voice).
+        // DRIVE is an internal/right-click param, so it has no CV jack.
+        CRASH_TUNE_CV_INPUT, CRASH_DECAY_CV_INPUT, CRASH_LEVEL_CV_INPUT,
+        RIDE_TUNE_CV_INPUT,  RIDE_DECAY_CV_INPUT,  RIDE_LEVEL_CV_INPUT,
         NUM_INPUTS
     };
     enum OutputId {
@@ -144,8 +149,21 @@ struct CrashRide : Tr909Module {
         configInput(CRASH_TRIG_INPUT, "Crash trigger");
         configInput(RIDE_TRIG_INPUT,  "Ride trigger");
         configInput(TOTAL_ACC_INPUT,  "Total accent (Accent A, sampled at TRIG; shared)");
+        configInput(CRASH_TUNE_CV_INPUT,  "Crash tune CV");
+        configInput(CRASH_DECAY_CV_INPUT, "Crash decay CV");
+        configInput(CRASH_LEVEL_CV_INPUT, "Crash level CV");
+        configInput(RIDE_TUNE_CV_INPUT,   "Ride tune CV");
+        configInput(RIDE_DECAY_CV_INPUT,  "Ride decay CV");
+        configInput(RIDE_LEVEL_CV_INPUT,  "Ride level CV");
         configOutput(CRASH_OUT_OUTPUT, "Crash audio");
         configOutput(RIDE_OUT_OUTPUT,  "Ride audio");
+    }
+
+    // knob + CV/10, clamped to 0..1 (DRIVE is off-panel, so no CV).
+    float normWithCV(int paramId, int inputId) {
+        return rack::math::clamp(
+            params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
+            0.f, 1.f);
     }
 
     inline float voiceProcess(const ProcessArgs& args,
@@ -185,15 +203,16 @@ struct CrashRide : Tr909Module {
             rideLatchedGain = acc.gain;
         }
 
-        const float crashTune  = rack::math::clamp(params[CRASH_TUNE_PARAM].getValue(),  0.f, 1.f);
-        const float crashDecay = rack::math::clamp(params[CRASH_DECAY_PARAM].getValue(), 0.f, 1.f);
+        // TUNE/DECAY/LEVEL take per-knob CV; DRIVE is internal/right-click (no CV).
+        const float crashTune  = normWithCV(CRASH_TUNE_PARAM,  CRASH_TUNE_CV_INPUT);
+        const float crashDecay = normWithCV(CRASH_DECAY_PARAM, CRASH_DECAY_CV_INPUT);
         const float crashDrive = rack::math::clamp(params[CRASH_DRIVE_PARAM].getValue(), 0.f, 1.f);
-        const float crashLevel = rack::math::clamp(params[CRASH_LEVEL_PARAM].getValue(), 0.f, 1.f);
+        const float crashLevel = normWithCV(CRASH_LEVEL_PARAM, CRASH_LEVEL_CV_INPUT);
 
-        const float rideTune  = rack::math::clamp(params[RIDE_TUNE_PARAM].getValue(),  0.f, 1.f);
-        const float rideDecay = rack::math::clamp(params[RIDE_DECAY_PARAM].getValue(), 0.f, 1.f);
+        const float rideTune  = normWithCV(RIDE_TUNE_PARAM,  RIDE_TUNE_CV_INPUT);
+        const float rideDecay = normWithCV(RIDE_DECAY_PARAM, RIDE_DECAY_CV_INPUT);
         const float rideDrive = rack::math::clamp(params[RIDE_DRIVE_PARAM].getValue(), 0.f, 1.f);
-        const float rideLevel = rack::math::clamp(params[RIDE_LEVEL_PARAM].getValue(), 0.f, 1.f);
+        const float rideLevel = normWithCV(RIDE_LEVEL_PARAM, RIDE_LEVEL_CV_INPUT);
 
         namespace cri = crashride_impl;
         float crashOut = voiceProcess(args, crashVoice, cri::crashAsset(),
@@ -214,71 +233,51 @@ struct CrashRide : Tr909Module {
     }
 };
 
-struct CrashRidePanel : rack::widget::Widget {
-    void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawDarkShell(
-            args.vg, box.size, "CRSHRIDE", nullptr,
-            nvgRGB(8, 8, 10),
-            nvgRGBA(230, 230, 240, 230));
-        Ghost::NineOhNine::drawDarkLabel(args.vg, 18.f, 14.f, "CRH", 6.f);
-        Ghost::NineOhNine::drawDarkLabel(args.vg, 53.f, 14.f, "RID", 6.f);
-
-        // Per-voice knob labels (above each knob).
-        nvgFontSize(args.vg, 4.5f);
-        nvgFillColor(args.vg, nvgRGBA(200, 200, 215, 200));
-        const char* rowLabels[4] = { "TUNE", "DECAY", "DRIVE", "LEVEL" };
-        const float ROWS_Y[4]    = { 22.f, 40.f, 58.f, 76.f };
-        for (int i = 0; i < 4; i++) {
-            nvgText(args.vg, mm2px(18.f), mm2px(ROWS_Y[i] - 6.5f), rowLabels[i], nullptr);
-            nvgText(args.vg, mm2px(53.f), mm2px(ROWS_Y[i] - 6.5f), rowLabels[i], nullptr);
-        }
-
-        // I/O labels.
-        nvgFontSize(args.vg, 4.5f);
-        nvgFillColor(args.vg, nvgRGBA(180, 180, 200, 180));
-        nvgText(args.vg, mm2px(18.f), mm2px(89.f),  "TRIG",   nullptr);
-        nvgText(args.vg, mm2px(53.f), mm2px(89.f),  "TRIG",   nullptr);
-        nvgText(args.vg, mm2px(18.f), mm2px(105.f), "OUT",    nullptr);
-        nvgText(args.vg, mm2px(53.f), mm2px(105.f), "OUT",    nullptr);
-        nvgText(args.vg, mm2px(35.5f),mm2px(120.f), "TACC",   nullptr);
+// Right-click slider bound directly to a module param (for off-panel DRIVE).
+struct CrashRideParamSlider : ui::Slider {
+    CrashRideParamSlider(engine::Module* m, int paramId, float widthPx = 200.f) {
+        quantity = m->paramQuantities[paramId];
+        box.size.x = widthPx;
     }
 };
 
-struct CrashRideWidget : rack::ModuleWidget {
+struct CrashRideWidget : ModuleWidget, SvgHelper<CrashRideWidget> {
     CrashRideWidget(CrashRide* module) {
         setModule(module);
+        loadPanel(asset::plugin(pluginInstance, "res/CrashRide.svg"));
 
-        auto* panel = new CrashRidePanel;
-        panel->box.size = AgentLayout::panelSize_14HP();
-        addChild(panel);
-        box.size = panel->box.size;
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        AgentLayout::addScrews_14HP(this);
+        bindParam<RoundBlackKnob>("param.crash.tune",  CrashRide::CRASH_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.crash.decay", CrashRide::CRASH_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.crash.level", CrashRide::CRASH_LEVEL_PARAM);
+        bindParam<RoundBlackKnob>("param.ride.tune",   CrashRide::RIDE_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.ride.decay",  CrashRide::RIDE_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.ride.level",  CrashRide::RIDE_LEVEL_PARAM);
 
-        const float CRH_X = 18.f;
-        const float RID_X = 53.f;
-        const float ROWS_Y[4] = { 22.f, 40.f, 58.f, 76.f };
+        bindInput<PJ301MPort>("cv.crash.tune",  CrashRide::CRASH_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.crash.decay", CrashRide::CRASH_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.crash.level", CrashRide::CRASH_LEVEL_CV_INPUT);
+        bindInput<PJ301MPort>("cv.ride.tune",   CrashRide::RIDE_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.ride.decay",  CrashRide::RIDE_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.ride.level",  CrashRide::RIDE_LEVEL_CV_INPUT);
 
-        // Crash column knobs
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(CRH_X, ROWS_Y[0])), module, CrashRide::CRASH_TUNE_PARAM));
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(CRH_X, ROWS_Y[1])), module, CrashRide::CRASH_DECAY_PARAM));
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(CRH_X, ROWS_Y[2])), module, CrashRide::CRASH_DRIVE_PARAM));
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(CRH_X, ROWS_Y[3])), module, CrashRide::CRASH_LEVEL_PARAM));
+        bindInput<PJ301MPort>("trig.crash.trig",   CrashRide::CRASH_TRIG_INPUT);
+        bindInput<PJ301MPort>("trig.ride.trig",    CrashRide::RIDE_TRIG_INPUT);
+        bindInput<PJ301MPort>("accent.main.total", CrashRide::TOTAL_ACC_INPUT);
+        bindOutput<PJ301MPort>("out.crash.audio",  CrashRide::CRASH_OUT_OUTPUT);
+        bindOutput<PJ301MPort>("out.ride.audio",   CrashRide::RIDE_OUT_OUTPUT);
+    }
 
-        // Ride column knobs
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(RID_X, ROWS_Y[0])), module, CrashRide::RIDE_TUNE_PARAM));
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(RID_X, ROWS_Y[1])), module, CrashRide::RIDE_DECAY_PARAM));
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(RID_X, ROWS_Y[2])), module, CrashRide::RIDE_DRIVE_PARAM));
-        addParam(createParamCentered<rack::RoundBlackKnob>(mm2px(Vec(RID_X, ROWS_Y[3])), module, CrashRide::RIDE_LEVEL_PARAM));
-
-        // I/O strips per voice
-        addInput(createInputCentered<rack::PJ301MPort>(mm2px(Vec(CRH_X, 95.f)), module, CrashRide::CRASH_TRIG_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(mm2px(Vec(CRH_X, 110.f)), module, CrashRide::CRASH_OUT_OUTPUT));
-        addInput(createInputCentered<rack::PJ301MPort>(mm2px(Vec(RID_X, 95.f)), module, CrashRide::RIDE_TRIG_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(mm2px(Vec(RID_X, 110.f)), module, CrashRide::RIDE_OUT_OUTPUT));
-
-        // Shared accent (centred at bottom).
-        addInput(createInputCentered<rack::PJ301MPort>(mm2px(Vec(35.5f, 124.f)), module, CrashRide::TOTAL_ACC_INPUT));
+    void appendContextMenu(Menu* menu) override {
+        if (!module) return;
+        menu->addChild(new MenuSeparator);
+        menu->addChild(createMenuLabel("Drive (internal saturation)"));
+        menu->addChild(new CrashRideParamSlider(module, CrashRide::CRASH_DRIVE_PARAM));
+        menu->addChild(new CrashRideParamSlider(module, CrashRide::RIDE_DRIVE_PARAM));
     }
 };
 

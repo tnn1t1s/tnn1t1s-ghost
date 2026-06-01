@@ -9,3 +9,9 @@ dist/
 
 # macOS
 .DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+tools/_preview/

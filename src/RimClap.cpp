@@ -7,6 +7,7 @@
 #include "ghost/signal/Audio.hpp"
 #include "embedded/Clp909Data.hpp"
 #include "embedded/Rim909Data.hpp"
+#include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
@@ -50,18 +51,27 @@ struct RomVoice {
 }
 
 struct RimClap : Tr909Module {
+    // GHOST surface: each voice is fully tunable -- TUNE (playback-rate /
+    // pitch) and LEVEL, each with a CV jack -- so the module plays as a
+    // machine rather than needing hands. IDs finalized for release.
     enum ParamId {
+        CLAP_TUNE_PARAM,
         CLAP_LEVEL_PARAM,
+        RIM_TUNE_PARAM,
         RIM_LEVEL_PARAM,
         NUM_PARAMS
     };
     // Per Roland TR-909 OM, neither RS nor CP has Accent B; they share a
     // single TOTAL_ACC_INPUT (Accent A). Each voice latches the case gain
-    // independently at its own trigger edge.
+    // independently at its own trigger edge. Per-knob CV follows the gates.
     enum InputId {
         CLAP_TRIG_INPUT,
         RIM_TRIG_INPUT,
         TOTAL_ACC_INPUT,
+        CLAP_TUNE_CV_INPUT,
+        CLAP_LEVEL_CV_INPUT,
+        RIM_TUNE_CV_INPUT,
+        RIM_LEVEL_CV_INPUT,
         NUM_INPUTS
     };
     enum OutputId {
@@ -80,13 +90,30 @@ struct RimClap : Tr909Module {
     float clapLatchedChar = 0.f;
     float rimLatchedChar  = 0.f;
 
+    // knob + CV/10, clamped to the knob's normalized range.
+    float normWithCV(int paramId, int inputId) {
+        return rack::math::clamp(
+            params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
+            0.f, 1.f);
+    }
+    // TUNE 0..1 -> playback-rate multiplier, one octave each way (matches Lab).
+    static float tuneToRate(float tuneNorm) {
+        return std::pow(2.f, (tuneNorm - 0.5f) * 2.f);
+    }
+
     RimClap() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
+        configParam(CLAP_TUNE_PARAM,  0.f, 1.f, 0.50f, "Clap tune",  "%", 0.f, 100.f);
         configParam(CLAP_LEVEL_PARAM, 0.f, 1.f, 0.90f, "Clap level", "%", 0.f, 100.f);
-        configParam(RIM_LEVEL_PARAM, 0.f, 1.f, 0.90f, "Rim level", "%", 0.f, 100.f);
+        configParam(RIM_TUNE_PARAM,   0.f, 1.f, 0.50f, "Rim tune",   "%", 0.f, 100.f);
+        configParam(RIM_LEVEL_PARAM,  0.f, 1.f, 0.90f, "Rim level",  "%", 0.f, 100.f);
         configInput(CLAP_TRIG_INPUT, "Clap trigger");
         configInput(RIM_TRIG_INPUT, "Rim trigger");
         configInput(TOTAL_ACC_INPUT, "Total accent (Accent A, sampled at TRIG; shared)");
+        configInput(CLAP_TUNE_CV_INPUT,  "Clap tune CV");
+        configInput(CLAP_LEVEL_CV_INPUT, "Clap level CV");
+        configInput(RIM_TUNE_CV_INPUT,   "Rim tune CV");
+        configInput(RIM_LEVEL_CV_INPUT,  "Rim level CV");
         configOutput(CLAP_OUT_OUTPUT, "Clap audio");
         configOutput(RIM_OUT_OUTPUT, "Rim audio");
     }
@@ -108,11 +135,13 @@ struct RimClap : Tr909Module {
             rimLatchedGain = acc.gain;
         }
 
-        float clapLevel = params[CLAP_LEVEL_PARAM].getValue();
-        float rimLevel = params[RIM_LEVEL_PARAM].getValue();
+        float clapLevel = normWithCV(CLAP_LEVEL_PARAM, CLAP_LEVEL_CV_INPUT);
+        float rimLevel  = normWithCV(RIM_LEVEL_PARAM, RIM_LEVEL_CV_INPUT);
+        float clapRate  = tuneToRate(normWithCV(CLAP_TUNE_PARAM, CLAP_TUNE_CV_INPUT));
+        float rimRate   = tuneToRate(normWithCV(RIM_TUNE_PARAM, RIM_TUNE_CV_INPUT));
 
-        float clap = clapVoice.process(rimClapClapSource(), args.sampleRate) * clapLevel;
-        float rim = rimVoice.process(rimClapRimSource(), args.sampleRate) * rimLevel;
+        float clap = clapVoice.process(rimClapClapSource(), args.sampleRate, clapRate) * clapLevel;
+        float rim = rimVoice.process(rimClapRimSource(), args.sampleRate, rimRate) * rimLevel;
         clap = Ghost::TR909::driveWithAccent(
             clap, 0.f, clapLatchedChar, RIMCLAP_ACCENT.driveAmt);
         rim = Ghost::TR909::driveWithAccent(
@@ -125,59 +154,31 @@ struct RimClap : Tr909Module {
     }
 };
 
-struct RimClapPanel : rack::widget::Widget {
-    void draw(const DrawArgs& args) override {
-        AgentLayout::drawAssetPanel(
-            args.vg, box.size, pluginInstance,
-            "res/Clp-bg.jpg",
-            nvgRGB(24, 18, 22),
-            "RIMCLAP", nvgRGB(255, 215, 155));
-
-        nvgFontSize(args.vg, 6.0f);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, nvgRGBA(255, 225, 180, 200));
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(18.f), "CLAP", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(72.f), "RIM", nullptr);
-        nvgFontSize(args.vg, 5.2f);
-        nvgText(args.vg, mm2px(AgentLayout::LEFT_COLUMN_12HP), mm2px(27.f), "TRIG", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(27.f), "LEVEL", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::RIGHT_COLUMN_12HP), mm2px(27.f), "OUT", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::LEFT_COLUMN_12HP), mm2px(81.f), "TRIG", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(81.f), "LEVEL", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::RIGHT_COLUMN_12HP), mm2px(81.f), "OUT", nullptr);
-        // Shared accent input lives between the two voices.
-        nvgFontSize(args.vg, 5.0f);
-        nvgFillColor(args.vg, nvgRGBA(255, 215, 155, 200));
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(60.f), "TACC", nullptr);
-    }
-};
-
-struct RimClapWidget : rack::ModuleWidget {
+struct RimClapWidget : ModuleWidget, SvgHelper<RimClapWidget> {
     RimClapWidget(RimClap* module) {
         setModule(module);
-        auto* panel = new RimClapPanel;
-        panel->box.size = AgentLayout::panelSize_12HP();
-        addChild(panel);
-        box.size = panel->box.size;
-        AgentLayout::addScrews_12HP(this);
+        loadPanel(asset::plugin(pluginInstance, "res/RimClap.svg"));
 
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(AgentLayout::CENTER_12HP, 41.f)), module, RimClap::CLAP_LEVEL_PARAM));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::LEFT_COLUMN_12HP, 41.f)), module, RimClap::CLAP_TRIG_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::RIGHT_COLUMN_12HP, 41.f)), module, RimClap::CLAP_OUT_OUTPUT));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(AgentLayout::CENTER_12HP, 95.f)), module, RimClap::RIM_LEVEL_PARAM));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::LEFT_COLUMN_12HP, 95.f)), module, RimClap::RIM_TRIG_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::RIGHT_COLUMN_12HP, 95.f)), module, RimClap::RIM_OUT_OUTPUT));
+        bindParam<RoundBlackKnob>("param.clap.tune",  RimClap::CLAP_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.clap.level", RimClap::CLAP_LEVEL_PARAM);
+        bindParam<RoundBlackKnob>("param.rim.tune",   RimClap::RIM_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.rim.level",  RimClap::RIM_LEVEL_PARAM);
 
-        // Shared TOTAL_ACC input centered between the two voice rows.
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::CENTER_12HP, 65.f)), module, RimClap::TOTAL_ACC_INPUT));
+        bindInput<PJ301MPort>("cv.clap.tune",  RimClap::CLAP_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.clap.level", RimClap::CLAP_LEVEL_CV_INPUT);
+        bindInput<PJ301MPort>("cv.rim.tune",   RimClap::RIM_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.rim.level",  RimClap::RIM_LEVEL_CV_INPUT);
+
+        bindInput<PJ301MPort>("trig.clap.trig",   RimClap::CLAP_TRIG_INPUT);
+        bindInput<PJ301MPort>("trig.rim.trig",    RimClap::RIM_TRIG_INPUT);
+        bindInput<PJ301MPort>("accent.main.total", RimClap::TOTAL_ACC_INPUT);
+        bindOutput<PJ301MPort>("out.clap.audio",  RimClap::CLAP_OUT_OUTPUT);
+        bindOutput<PJ301MPort>("out.rim.audio",   RimClap::RIM_OUT_OUTPUT);
     }
 };
 

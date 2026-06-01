@@ -5,6 +5,7 @@
 #include "Tr909Bus.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <cmath>
+#include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
@@ -325,48 +326,30 @@ struct SnrPanel : rack::widget::Widget {
 // Widget -- 12HP, 8-row grid
 // ---------------------------------------------------------------------------
 
-struct SnrWidget : rack::ModuleWidget {
-
+struct SnrWidget : ModuleWidget, SvgHelper<SnrWidget> {
     SnrWidget(Snr* module) {
         setModule(module);
+        loadPanel(asset::plugin(pluginInstance, "res/Snr.svg"));
 
-        auto* panel = new SnrPanel;
-        panel->box.size = AgentLayout::panelSize_12HP();
-        addChild(panel);
-        box.size = panel->box.size;
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        AgentLayout::addScrews_12HP(this);
+        bindParam<RoundBlackKnob>("param.main.tune",   Snr::TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.main.tone",   Snr::TONE_PARAM);
+        bindParam<RoundBlackKnob>("param.main.snappy", Snr::SNAPPY_PARAM);
+        bindParam<RoundBlackKnob>("param.main.level",  Snr::LEVEL_PARAM);
 
-        namespace AL = AgentLayout;
-        const float knobX = AL::LEFT_COLUMN_12HP;
-        const float jackX = AL::RIGHT_COLUMN_12HP;
-        const float* ys   = AL::ROW_Y_8;
+        bindInput<PJ301MPort>("cv.main.tune",   Snr::TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.tone",   Snr::TONE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.snappy", Snr::SNAPPY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.level",  Snr::LEVEL_CV_INPUT);
 
-        struct Row { int param; int input; };
-        Row rows[4] = {
-            {Snr::TUNE_PARAM,   Snr::TUNE_CV_INPUT},
-            {Snr::TONE_PARAM,   Snr::TONE_CV_INPUT},
-            {Snr::SNAPPY_PARAM, Snr::SNAPPY_CV_INPUT},
-            {Snr::LEVEL_PARAM,  Snr::LEVEL_CV_INPUT},
-        };
-        for (int i = 0; i < 4; i++) {
-            addParam(createParamCentered<rack::RoundBlackKnob>(
-                mm2px(Vec(knobX, ys[i])), module, rows[i].param));
-            addInput(createInputCentered<rack::PJ301MPort>(
-                mm2px(Vec(jackX, ys[i])), module, rows[i].input));
-        }
-
-        // Row 5: LACC (left) | TACC (right) -- accent gate inputs.
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(knobX, ys[5])), module, Snr::LOCAL_ACC_INPUT));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(jackX, ys[5])), module, Snr::TOTAL_ACC_INPUT));
-
-        // Row 7: TRIG | OUT
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(knobX, ys[7])), module, Snr::TRIG_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(
-            mm2px(Vec(jackX, ys[7])), module, Snr::OUT_OUTPUT));
+        bindInput<PJ301MPort>("trig.main.trig",    Snr::TRIG_INPUT);
+        bindInput<PJ301MPort>("accent.main.local", Snr::LOCAL_ACC_INPUT);
+        bindInput<PJ301MPort>("accent.main.total", Snr::TOTAL_ACC_INPUT);
+        bindOutput<PJ301MPort>("out.main.audio",   Snr::OUT_OUTPUT);
     }
 };
 

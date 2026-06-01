@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
@@ -297,11 +298,13 @@ struct Kck : Tr909Module {
     enum ParamId  {
         TUNE_PARAM, DECAY_PARAM, PITCH_PARAM, PITCH_DECAY_PARAM,
         CLICK_PARAM, DRIVE_PARAM, LEVEL_PARAM,
+        ATTACK_PARAM, TONE_PARAM,
         NUM_PARAMS
     };
     enum InputId  {
         TRIG_INPUT, TUNE_CV_INPUT, DECAY_CV_INPUT, PITCH_CV_INPUT,
         PITCH_DECAY_CV_INPUT, CLICK_CV_INPUT, DRIVE_CV_INPUT, LEVEL_CV_INPUT,
+        ATTACK_CV_INPUT, TONE_CV_INPUT,
         LOCAL_ACC_INPUT, TOTAL_ACC_INPUT,
         NUM_INPUTS
     };
@@ -320,6 +323,8 @@ struct Kck : Tr909Module {
         configParam(CLICK_PARAM,       0.f, 1.f, 0.50f, "Click",        "%", 0.f, 100.f);
         configParam(DRIVE_PARAM,       0.f, 1.f, 0.f,   "Drive",        "%", 0.f, 100.f);
         configParam(LEVEL_PARAM,       0.f, 1.f, 0.85f, "Level",        "%", 0.f, 100.f);
+        configParam(ATTACK_PARAM,      0.f, 1.f, 0.20f, "Attack",       "%", 0.f, 100.f);
+        configParam(TONE_PARAM,        0.f, 1.f, 0.40f, "Tone",         "%", 0.f, 100.f);
         configInput (TRIG_INPUT,           "Trigger");
         configInput (TUNE_CV_INPUT,        "Tune CV");
         configInput (DECAY_CV_INPUT,       "Decay CV");
@@ -328,6 +333,8 @@ struct Kck : Tr909Module {
         configInput (CLICK_CV_INPUT,       "Click CV");
         configInput (DRIVE_CV_INPUT,       "Drive CV");
         configInput (LEVEL_CV_INPUT,       "Level CV");
+        configInput (ATTACK_CV_INPUT,      "Attack CV");
+        configInput (TONE_CV_INPUT,        "Tone CV");
         configInput (LOCAL_ACC_INPUT,      "Local accent (Accent B, sampled at TRIG)");
         configInput (TOTAL_ACC_INPUT,      "Total accent (Accent A, sampled at TRIG)");
         configOutput(OUT_OUTPUT,           "Audio");
@@ -366,8 +373,18 @@ struct Kck : Tr909Module {
         float clickNorm      = kckNormWithCV(*this, CLICK_PARAM,       CLICK_CV_INPUT);
         float driveNorm      = kckNormWithCV(*this, DRIVE_PARAM,       DRIVE_CV_INPUT);
         float levelNorm      = kckNormWithCV(*this, LEVEL_PARAM,       LEVEL_CV_INPUT);
+        float attackNorm     = kckNormWithCV(*this, ATTACK_PARAM,      ATTACK_CV_INPUT);
+        float toneNorm       = kckNormWithCV(*this, TONE_PARAM,        TONE_CV_INPUT);
 
-        float out = voice.process(args, fit,
+        // ATTACK and TONE are macros over the engine fit (defaults reproduce the
+        // original calibration): Attack scales the click onset rate (sharper
+        // transient), Tone scales body-harmonic brightness (dark -> bright).
+        KckFit::Config f = fit;
+        f.clickRateBase     = 80.f + 320.f * attackNorm;
+        f.bodyHarmGain      = 0.04f + 0.40f * toneNorm;
+        f.bodyThirdHarmGain = 0.02f + 0.16f * toneNorm;
+
+        float out = voice.process(args, f,
                                   tuneNorm, decayNorm, pitchNorm, pitchDecayNorm,
                                   clickNorm, driveNorm, levelNorm);
         out *= latchedCaseGain * bus.masterVolume;
@@ -377,94 +394,43 @@ struct Kck : Tr909Module {
 
 
 // ---------------------------------------------------------------------------
-// Production widget -- 12HP, plain black background
+// Production widget -- panelkit SVG (res/Kck.svg) + SvgHelper name binding
 // ---------------------------------------------------------------------------
 
-struct KckPanel : rack::widget::Widget {
-    void draw(const DrawArgs& args) override {
-        namespace P9 = Ghost::NineOhNine;
-
-        // Solid black background.
-        nvgBeginPath(args.vg);
-        nvgRect(args.vg, 0.f, 0.f, box.size.x, box.size.y);
-        nvgFillColor(args.vg, nvgRGB(8, 8, 10));
-        nvgFill(args.vg);
-
-        // Title "KCK" centred near the top.
-        nvgFontSize(args.vg, 9.f);
-        nvgFillColor(args.vg, nvgRGBA(230, 230, 240, 230));
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(8.f), "KCK", nullptr);
-
-        // Knob labels above each pair / centred level / IO row.
-        nvgFontSize(args.vg, 5.0f);
-        nvgFillColor(args.vg, nvgRGBA(200, 200, 215, 200));
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        const float dy = -7.f;  // label offset above knob
-        nvgText(args.vg, mm2px(P9::KNOB_L_X), mm2px(P9::PAIR_Y[0][0] + dy), "TUNE",    nullptr);
-        nvgText(args.vg, mm2px(P9::KNOB_R_X), mm2px(P9::PAIR_Y[0][0] + dy), "DECAY",   nullptr);
-        nvgText(args.vg, mm2px(P9::KNOB_L_X), mm2px(P9::PAIR_Y[1][0] + dy), "PITCH",   nullptr);
-        nvgText(args.vg, mm2px(P9::KNOB_R_X), mm2px(P9::PAIR_Y[1][0] + dy), "P DECAY", nullptr);
-        nvgText(args.vg, mm2px(P9::KNOB_L_X), mm2px(P9::PAIR_Y[2][0] + dy), "CLICK",   nullptr);
-        nvgText(args.vg, mm2px(P9::KNOB_R_X), mm2px(P9::PAIR_Y[2][0] + dy), "DRIVE",   nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(P9::LEVEL_KNOB_Y + dy), "LEVEL", nullptr);
-
-        // Bottom IO row labels (4 jacks: TRIG, LACC, TACC, OUT).
-        nvgFontSize(args.vg, 4.5f);
-        nvgFillColor(args.vg, nvgRGBA(180, 180, 200, 180));
-        const float ioLabelY = P9::IO_JACK_Y - 6.f;
-        nvgText(args.vg, mm2px(8.f),  mm2px(ioLabelY), "TRIG", nullptr);
-        nvgText(args.vg, mm2px(22.f), mm2px(ioLabelY), "LACC", nullptr);
-        nvgText(args.vg, mm2px(38.f), mm2px(ioLabelY), "TACC", nullptr);
-        nvgText(args.vg, mm2px(53.f), mm2px(ioLabelY), "OUT",  nullptr);
-    }
-};
-
-struct KckWidget : rack::ModuleWidget {
+struct KckWidget : ModuleWidget, SvgHelper<KckWidget> {
     KckWidget(Kck* module) {
         setModule(module);
+        loadPanel(asset::plugin(pluginInstance, "res/Kck.svg"));
 
-        namespace P9 = Ghost::NineOhNine;
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        auto* panel = new KckPanel;
-        panel->box.size = AgentLayout::panelSize_12HP();
-        addChild(panel);
-        box.size = panel->box.size;
+        bindParam<RoundBlackKnob>("param.main.tune",        Kck::TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.main.decay",       Kck::DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.main.pitch",       Kck::PITCH_PARAM);
+        bindParam<RoundBlackKnob>("param.main.pitch-decay", Kck::PITCH_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.main.click",       Kck::CLICK_PARAM);
+        bindParam<RoundBlackKnob>("param.main.attack",      Kck::ATTACK_PARAM);
+        bindParam<RoundBlackKnob>("param.main.tone",        Kck::TONE_PARAM);
+        bindParam<RoundBlackKnob>("param.main.drive",       Kck::DRIVE_PARAM);
+        bindParam<RoundBlackKnob>("param.main.level",       Kck::LEVEL_PARAM);
 
-        AgentLayout::addScrews_12HP(this);
+        bindInput<PJ301MPort>("cv.main.tune",        Kck::TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.decay",       Kck::DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.pitch",       Kck::PITCH_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.pitch-decay", Kck::PITCH_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.click",       Kck::CLICK_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.attack",      Kck::ATTACK_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.tone",        Kck::TONE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.drive",       Kck::DRIVE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.level",       Kck::LEVEL_CV_INPUT);
 
-        struct Pair { int param; int cv; float x_mm; int row; };
-        Pair pairs[6] = {
-            {Kck::TUNE_PARAM,        Kck::TUNE_CV_INPUT,        P9::KNOB_L_X, 0},
-            {Kck::DECAY_PARAM,       Kck::DECAY_CV_INPUT,       P9::KNOB_R_X, 0},
-            {Kck::PITCH_PARAM,       Kck::PITCH_CV_INPUT,       P9::KNOB_L_X, 1},
-            {Kck::PITCH_DECAY_PARAM, Kck::PITCH_DECAY_CV_INPUT, P9::KNOB_R_X, 1},
-            {Kck::CLICK_PARAM,       Kck::CLICK_CV_INPUT,       P9::KNOB_L_X, 2},
-            {Kck::DRIVE_PARAM,       Kck::DRIVE_CV_INPUT,       P9::KNOB_R_X, 2},
-        };
-        for (auto& p : pairs) {
-            addParam(createParamCentered<rack::RoundBlackKnob>(
-                mm2px(Vec(p.x_mm, P9::PAIR_Y[p.row][0])), module, p.param));
-            addInput(createInputCentered<rack::PJ301MPort>(
-                mm2px(Vec(p.x_mm, P9::PAIR_Y[p.row][1])), module, p.cv));
-        }
-
-        addParam(createParamCentered<rack::RoundBlackKnob>(
-            mm2px(Vec(AgentLayout::CENTER_12HP, P9::LEVEL_KNOB_Y)),
-            module, Kck::LEVEL_PARAM));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::CENTER_12HP, P9::LEVEL_JACK_Y)),
-            module, Kck::LEVEL_CV_INPUT));
-
-        // 4 jacks across the IO row: TRIG, LACC, TACC, OUT.
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(8.f,  P9::IO_JACK_Y)), module, Kck::TRIG_INPUT));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(22.f, P9::IO_JACK_Y)), module, Kck::LOCAL_ACC_INPUT));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(38.f, P9::IO_JACK_Y)), module, Kck::TOTAL_ACC_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(
-            mm2px(Vec(53.f, P9::IO_JACK_Y)), module, Kck::OUT_OUTPUT));
+        bindInput<PJ301MPort>("trig.main.trig",     Kck::TRIG_INPUT);
+        bindInput<PJ301MPort>("accent.main.local",  Kck::LOCAL_ACC_INPUT);
+        bindInput<PJ301MPort>("accent.main.total",  Kck::TOTAL_ACC_INPUT);
+        bindOutput<PJ301MPort>("out.main.audio",    Kck::OUT_OUTPUT);
     }
 };
 

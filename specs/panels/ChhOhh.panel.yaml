@@ -1,0 +1,27 @@
+# GHOST OHCH — combined 909 hi-hats (closed + open). Each voice TUNE/DECAY/LEVEL
+# + CV; DRIVE is a right-click param. Edit + re-run `python -m panelkit render ChhOhh`.
+module: ChhOhh
+name: GHOST OHCH
+hp: 16
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_grid          # 2 voices (cols) x TUNE/DECAY/LEVEL (rows); voice in the label
+    columns: 2
+    params:
+      - { label: CLOSED TUNE,  param: param.closed.tune,  cv: cv.closed.tune }
+      - { label: OPEN TUNE,    param: param.open.tune,    cv: cv.open.tune }
+      - { label: CLOSED DECAY, param: param.closed.decay, cv: cv.closed.decay }
+      - { label: OPEN DECAY,   param: param.open.decay,   cv: cv.open.decay }
+      - { label: CLOSED LEVEL, param: param.closed.level, cv: cv.closed.level }
+      - { label: OPEN LEVEL,   param: param.open.level,   cv: cv.open.level }
+
+  - kind: io_row              # triggers, accents (LOCAL is closed-only), outputs
+    cells:
+      - { label: TRIG,  sub: CLSD, id: trig.closed.trig }
+      - { label: TRIG,  sub: OPEN, id: trig.open.trig }
+      - { label: LOCAL, id: accent.closed.local }
+      - { label: TOTAL, id: accent.main.total }
+      - { label: OUT,   sub: CLSD, id: out.closed.audio }
+      - { label: OUT,   sub: OPEN, id: out.open.audio }

@@ -1,0 +1,24 @@
+# GHOST RIMCLAP — dual ROM voice (clap + rim), each fully tunable.
+# Edit + re-run `python -m panelkit render RimClap`.
+module: RimClap
+name: GHOST RIMCLAP
+hp: 14
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_grid          # 2 voices (cols) x TUNE/LEVEL (rows); each cell = dial + CV
+    columns: 2                 # voice identity lives in the label (CLAP / RIM), 909-style,
+    params:                    # so the grid aligns row-for-row with the single voices
+      - { label: CLAP TUNE,  param: param.clap.tune,  cv: cv.clap.tune }
+      - { label: RIM TUNE,   param: param.rim.tune,   cv: cv.rim.tune }
+      - { label: CLAP LEVEL, param: param.clap.level, cv: cv.clap.level }
+      - { label: RIM LEVEL,  param: param.rim.level,  cv: cv.rim.level }
+
+  - kind: io_row              # inputs left, shared accent centre, outputs right
+    cells:
+      - { label: TRIG,  sub: CLAP, id: trig.clap.trig }
+      - { label: TRIG,  sub: RIM,  id: trig.rim.trig }
+      - { label: TOTAL, id: accent.main.total }
+      - { label: OUT,   sub: CLAP, id: out.clap.audio }
+      - { label: OUT,   sub: RIM,  id: out.rim.audio }

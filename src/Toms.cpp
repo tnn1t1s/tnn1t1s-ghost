@@ -5,6 +5,7 @@
 #include "Tr909Bus.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <cmath>
+#include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
@@ -380,10 +381,12 @@ rack::Model* modelTomLab = createModel<TomLab, TomLabWidget>("TomLab");
 // ---------------------------------------------------------------------------
 
 struct Toms : Tr909Module {
+    // GHOST surface: three toms as a small drum sub-system -- each voice fully
+    // tunable (TUNE/DECAY/LEVEL) with per-knob CV. IDs finalized for release.
     enum ParamId  {
-        LOW_LEVEL_PARAM,
-        MID_LEVEL_PARAM,
-        HIGH_LEVEL_PARAM,
+        LOW_TUNE_PARAM,  LOW_DECAY_PARAM,  LOW_LEVEL_PARAM,
+        MID_TUNE_PARAM,  MID_DECAY_PARAM,  MID_LEVEL_PARAM,
+        HIGH_TUNE_PARAM, HIGH_DECAY_PARAM, HIGH_LEVEL_PARAM,
         NUM_PARAMS
     };
     // Per Roland TR-909 OM, all three toms have Accent B. The shared
@@ -395,6 +398,9 @@ struct Toms : Tr909Module {
         HIGH_TRIG_INPUT,
         LOCAL_ACC_INPUT,
         TOTAL_ACC_INPUT,
+        LOW_TUNE_CV_INPUT,  LOW_DECAY_CV_INPUT,  LOW_LEVEL_CV_INPUT,
+        MID_TUNE_CV_INPUT,  MID_DECAY_CV_INPUT,  MID_LEVEL_CV_INPUT,
+        HIGH_TUNE_CV_INPUT, HIGH_DECAY_CV_INPUT, HIGH_LEVEL_CV_INPUT,
         NUM_INPUTS
     };
     enum OutputId {
@@ -412,14 +418,29 @@ struct Toms : Tr909Module {
 
     Toms() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
+        configParam(LOW_TUNE_PARAM,   0.f, 1.f, 0.50f, "Low tune",   "%", 0.f, 100.f);
+        configParam(LOW_DECAY_PARAM,  0.f, 1.f, 0.45f, "Low decay",  "%", 0.f, 100.f);
         configParam(LOW_LEVEL_PARAM,  0.f, 1.f, 0.85f, "Low level",  "%", 0.f, 100.f);
+        configParam(MID_TUNE_PARAM,   0.f, 1.f, 0.50f, "Mid tune",   "%", 0.f, 100.f);
+        configParam(MID_DECAY_PARAM,  0.f, 1.f, 0.45f, "Mid decay",  "%", 0.f, 100.f);
         configParam(MID_LEVEL_PARAM,  0.f, 1.f, 0.85f, "Mid level",  "%", 0.f, 100.f);
+        configParam(HIGH_TUNE_PARAM,  0.f, 1.f, 0.50f, "High tune",  "%", 0.f, 100.f);
+        configParam(HIGH_DECAY_PARAM, 0.f, 1.f, 0.45f, "High decay", "%", 0.f, 100.f);
         configParam(HIGH_LEVEL_PARAM, 0.f, 1.f, 0.85f, "High level", "%", 0.f, 100.f);
         configInput(LOW_TRIG_INPUT,   "Low trigger");
         configInput(MID_TRIG_INPUT,   "Mid trigger");
         configInput(HIGH_TRIG_INPUT,  "High trigger");
         configInput(LOCAL_ACC_INPUT,  "Local accent (Accent B, sampled at TRIG; shared)");
         configInput(TOTAL_ACC_INPUT,  "Total accent (Accent A, sampled at TRIG; shared)");
+        configInput(LOW_TUNE_CV_INPUT,   "Low tune CV");
+        configInput(LOW_DECAY_CV_INPUT,  "Low decay CV");
+        configInput(LOW_LEVEL_CV_INPUT,  "Low level CV");
+        configInput(MID_TUNE_CV_INPUT,   "Mid tune CV");
+        configInput(MID_DECAY_CV_INPUT,  "Mid decay CV");
+        configInput(MID_LEVEL_CV_INPUT,  "Mid level CV");
+        configInput(HIGH_TUNE_CV_INPUT,  "High tune CV");
+        configInput(HIGH_DECAY_CV_INPUT, "High decay CV");
+        configInput(HIGH_LEVEL_CV_INPUT, "High level CV");
         configOutput(LOW_OUT_OUTPUT,  "Low audio");
         configOutput(MID_OUT_OUTPUT,  "Mid audio");
         configOutput(HIGH_OUT_OUTPUT, "High audio");
@@ -427,6 +448,13 @@ struct Toms : Tr909Module {
         lowFit  = TomFit::makeLowTom();
         midFit  = TomFit::makeMidTom();
         highFit = TomFit::makeHighTom();
+    }
+
+    // knob + CV/10, clamped to 0..1.
+    float normWithCV(int paramId, int inputId) {
+        return rack::math::clamp(
+            params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
+            0.f, 1.f);
     }
 
     void process(const ProcessArgs& args) override {
@@ -445,80 +473,66 @@ struct Toms : Tr909Module {
             high.fire(); auto a = sampleAcc(); highGain = a.gain; highChar = a.charStrength;
         }
 
-        const float TUNE = 0.5f, DECAY = 0.45f;
-        const float lowLevel  = params[LOW_LEVEL_PARAM].getValue();
-        const float midLevel  = params[MID_LEVEL_PARAM].getValue();
-        const float highLevel = params[HIGH_LEVEL_PARAM].getValue();
-
         const float master = bus.masterVolume;
         outputs[LOW_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(
-            low.process(args, lowFit, TUNE, DECAY, lowLevel, lowChar) * lowGain * master));
+            low.process(args, lowFit,
+                        normWithCV(LOW_TUNE_PARAM,  LOW_TUNE_CV_INPUT),
+                        normWithCV(LOW_DECAY_PARAM, LOW_DECAY_CV_INPUT),
+                        normWithCV(LOW_LEVEL_PARAM, LOW_LEVEL_CV_INPUT),
+                        lowChar) * lowGain * master));
         outputs[MID_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(
-            mid.process(args, midFit, TUNE, DECAY, midLevel, midChar) * midGain * master));
+            mid.process(args, midFit,
+                        normWithCV(MID_TUNE_PARAM,  MID_TUNE_CV_INPUT),
+                        normWithCV(MID_DECAY_PARAM, MID_DECAY_CV_INPUT),
+                        normWithCV(MID_LEVEL_PARAM, MID_LEVEL_CV_INPUT),
+                        midChar) * midGain * master));
         outputs[HIGH_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(
-            high.process(args, highFit, TUNE, DECAY, highLevel, highChar) * highGain * master));
+            high.process(args, highFit,
+                         normWithCV(HIGH_TUNE_PARAM,  HIGH_TUNE_CV_INPUT),
+                         normWithCV(HIGH_DECAY_PARAM, HIGH_DECAY_CV_INPUT),
+                         normWithCV(HIGH_LEVEL_PARAM, HIGH_LEVEL_CV_INPUT),
+                         highChar) * highGain * master));
     }
 };
 
-struct TomsPanel : rack::widget::Widget {
-    void draw(const DrawArgs& args) override {
-        AgentLayout::drawAssetPanel(
-            args.vg, box.size, pluginInstance,
-            "res/Toms-bg.jpg",                     // optional asset; falls back to fill
-            nvgRGB(22, 18, 20),
-            "TOMS", nvgRGB(255, 200, 160));
-
-        nvgFontSize(args.vg, 6.0f);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, nvgRGBA(255, 220, 180, 200));
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(20.f), "LOW",  nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(54.f), "MID",  nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(88.f), "HIGH", nullptr);
-
-        nvgFontSize(args.vg, 5.0f);
-        nvgFillColor(args.vg, nvgRGBA(255, 220, 180, 160));
-        for (float y : { 30.f, 64.f, 98.f }) {
-            nvgText(args.vg, mm2px(AgentLayout::LEFT_COLUMN_12HP),  mm2px(y), "TRIG",  nullptr);
-            nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP),       mm2px(y), "LEVEL", nullptr);
-            nvgText(args.vg, mm2px(AgentLayout::RIGHT_COLUMN_12HP), mm2px(y), "OUT",   nullptr);
-        }
-
-        nvgText(args.vg, mm2px(AgentLayout::LEFT_COLUMN_12HP),  mm2px(112.f), "LACC", nullptr);
-        nvgText(args.vg, mm2px(AgentLayout::RIGHT_COLUMN_12HP), mm2px(112.f), "TACC", nullptr);
-    }
-};
-
-struct TomsWidget : rack::ModuleWidget {
+struct TomsWidget : ModuleWidget, SvgHelper<TomsWidget> {
     TomsWidget(Toms* module) {
         setModule(module);
-        auto* panel = new TomsPanel;
-        panel->box.size = AgentLayout::panelSize_12HP();
-        addChild(panel);
-        box.size = panel->box.size;
-        AgentLayout::addScrews_12HP(this);
+        loadPanel(asset::plugin(pluginInstance, "res/Toms.svg"));
 
-        struct Row { float y; int trig; int level; int out; };
-        Row rows[3] = {
-            { 38.f, Toms::LOW_TRIG_INPUT,  Toms::LOW_LEVEL_PARAM,  Toms::LOW_OUT_OUTPUT  },
-            { 72.f, Toms::MID_TRIG_INPUT,  Toms::MID_LEVEL_PARAM,  Toms::MID_OUT_OUTPUT  },
-            {106.f, Toms::HIGH_TRIG_INPUT, Toms::HIGH_LEVEL_PARAM, Toms::HIGH_OUT_OUTPUT },
-        };
-        for (auto& r : rows) {
-            addInput(createInputCentered<rack::PJ301MPort>(
-                mm2px(Vec(AgentLayout::LEFT_COLUMN_12HP, r.y)), module, r.trig));
-            addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-                mm2px(Vec(AgentLayout::CENTER_12HP, r.y)), module, r.level));
-            addOutput(createOutputCentered<rack::PJ301MPort>(
-                mm2px(Vec(AgentLayout::RIGHT_COLUMN_12HP, r.y)), module, r.out));
-        }
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        // Shared accent inputs at the bottom of the panel.
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::LEFT_COLUMN_12HP,  120.f)),
-            module, Toms::LOCAL_ACC_INPUT));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(AgentLayout::RIGHT_COLUMN_12HP, 120.f)),
-            module, Toms::TOTAL_ACC_INPUT));
+        bindParam<RoundBlackKnob>("param.low.tune",   Toms::LOW_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.low.decay",  Toms::LOW_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.low.level",  Toms::LOW_LEVEL_PARAM);
+        bindParam<RoundBlackKnob>("param.mid.tune",   Toms::MID_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.mid.decay",  Toms::MID_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.mid.level",  Toms::MID_LEVEL_PARAM);
+        bindParam<RoundBlackKnob>("param.high.tune",  Toms::HIGH_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.high.decay", Toms::HIGH_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.high.level", Toms::HIGH_LEVEL_PARAM);
+
+        bindInput<PJ301MPort>("cv.low.tune",   Toms::LOW_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.low.decay",  Toms::LOW_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.low.level",  Toms::LOW_LEVEL_CV_INPUT);
+        bindInput<PJ301MPort>("cv.mid.tune",   Toms::MID_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.mid.decay",  Toms::MID_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.mid.level",  Toms::MID_LEVEL_CV_INPUT);
+        bindInput<PJ301MPort>("cv.high.tune",  Toms::HIGH_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.high.decay", Toms::HIGH_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.high.level", Toms::HIGH_LEVEL_CV_INPUT);
+
+        bindInput<PJ301MPort>("trig.low.trig",     Toms::LOW_TRIG_INPUT);
+        bindInput<PJ301MPort>("trig.mid.trig",     Toms::MID_TRIG_INPUT);
+        bindInput<PJ301MPort>("trig.high.trig",    Toms::HIGH_TRIG_INPUT);
+        bindInput<PJ301MPort>("accent.main.local", Toms::LOCAL_ACC_INPUT);
+        bindInput<PJ301MPort>("accent.main.total", Toms::TOTAL_ACC_INPUT);
+        bindOutput<PJ301MPort>("out.low.audio",   Toms::LOW_OUT_OUTPUT);
+        bindOutput<PJ301MPort>("out.mid.audio",   Toms::MID_OUT_OUTPUT);
+        bindOutput<PJ301MPort>("out.high.audio",  Toms::HIGH_OUT_OUTPUT);
     }
 };
 

@@ -1,0 +1,17 @@
+# GHOST ATTN — pass-through attenuator. Declarative panel spec (no coordinates).
+# Edit this file + re-run `python -m panelkit render Attenuate` to update layout.
+module: Attenuate
+name: GHOST ATTN
+hp: 10
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_rows          # [dial | label | CV jack] rows, centred in the param band
+    rows:
+      - { label: SCALE, param: param.main.scale, cv: cv.main.scale }
+
+  - kind: io_row              # [jack, label] cells in a row under the bottom chevron
+    cells:
+      - { label: IN,  id: in.main.signal }
+      - { label: OUT, id: out.main.signal }

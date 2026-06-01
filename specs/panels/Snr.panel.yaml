@@ -1,0 +1,23 @@
+# GHOST SNR — 909-inspired snare voice. Declarative panel spec (no coordinates).
+# Edit + re-run `python -m panelkit render Snr`.
+module: Snr
+name: GHOST SNR
+hp: 12
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_grid          # 2x2: each cell = [label above] / [dial + small CV jack]
+    columns: 2
+    params:
+      - { label: TUNE,   param: param.main.tune,   cv: cv.main.tune }
+      - { label: TONE,   param: param.main.tone,   cv: cv.main.tone }
+      - { label: SNAPPY, param: param.main.snappy, cv: cv.main.snappy }
+      - { label: LEVEL,  param: param.main.level,  cv: cv.main.level }
+
+  - kind: io_row              # single label below each jack
+    cells:
+      - { label: TRIG,  id: trig.main.trig }
+      - { label: LOCAL, id: accent.main.local }
+      - { label: TOTAL, id: accent.main.total }
+      - { label: SNR,   id: out.main.audio }

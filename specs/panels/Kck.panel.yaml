@@ -1,0 +1,28 @@
+# GHOST KCK — 909-inspired kick voice. Declarative panel spec (no coordinates).
+# Edit + re-run `python -m panelkit render Kck`.
+module: Kck
+name: GHOST KCK
+hp: 16
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_grid          # 3x3: each cell = [label above] / [dial + small CV jack]
+    columns: 3
+    params:
+      - { label: TUNE,        param: param.main.tune,        cv: cv.main.tune }
+      - { label: DECAY,       param: param.main.decay,       cv: cv.main.decay }
+      - { label: PITCH,       param: param.main.pitch,       cv: cv.main.pitch }
+      - { label: PITCH DECAY, param: param.main.pitch-decay, cv: cv.main.pitch-decay }
+      - { label: CLICK,       param: param.main.click,       cv: cv.main.click }
+      - { label: ATTACK,      param: param.main.attack,      cv: cv.main.attack }
+      - { label: TONE,        param: param.main.tone,        cv: cv.main.tone }
+      - { label: DRIVE,       param: param.main.drive,       cv: cv.main.drive }
+      - { label: LEVEL,       param: param.main.level,       cv: cv.main.level }
+
+  - kind: io_row              # single label below each jack
+    cells:
+      - { label: TRIG,  id: trig.main.trig }
+      - { label: LOCAL, id: accent.main.local }
+      - { label: TOTAL, id: accent.main.total }
+      - { label: KCK,   id: out.main.audio }

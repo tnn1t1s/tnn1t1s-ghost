@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "panelkit"
+version = "0.1.0"
+description = "Deterministic, test-first VCV Rack panel generation toolkit"
+requires-python = ">=3.12"
+dependencies = ["fonttools>=4.63", "pyyaml>=6"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-env"]
+
+[project.scripts]
+panelkit = "panelkit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["panelkit*"]
+
+[tool.setuptools.package-data]
+panelkit = ["data/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+env = ["PYTHONHASHSEED=0"]

@@ -9,7 +9,10 @@
 # so the plugin builds out of the box on this machine.
 RACK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))../vcv-rack/vendor/rack-sdk)
 
+FLAGS += -Ivendor/svghelper
+
 SOURCES += src/plugin.cpp
+SOURCES += src/Attenuate.cpp
 SOURCES += src/Tr909Ctrl.cpp
 SOURCES += src/Kck.cpp
 SOURCES += src/Snr.cpp

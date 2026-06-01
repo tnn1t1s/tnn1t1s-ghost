@@ -8,6 +8,7 @@
 #include "embedded/Chh909Data.hpp"
 #include "embedded/Ohh909Data.hpp"
 #include <cmath>
+#include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
@@ -79,6 +80,10 @@ struct ChhOhh : Tr909Module {
         CHH_TRIG_INPUT, OHH_TRIG_INPUT,
         LOCAL_ACC_INPUT,   // CH only (Accent B); Roland: OH has no Accent B
         TOTAL_ACC_INPUT,   // shared by both voices (Accent A)
+        // Per-knob CV for the panel controls (TUNE/DECAY/LEVEL each voice).
+        // DRIVE is an internal/right-click param, so it has no CV jack.
+        CHH_TUNE_CV_INPUT, CHH_DECAY_CV_INPUT, CHH_LEVEL_CV_INPUT,
+        OHH_TUNE_CV_INPUT, OHH_DECAY_CV_INPUT, OHH_LEVEL_CV_INPUT,
         NUM_INPUTS
     };
     enum OutputId {
@@ -120,8 +125,21 @@ struct ChhOhh : Tr909Module {
         configInput(OHH_TRIG_INPUT,  "Open trigger");
         configInput(LOCAL_ACC_INPUT, "Local accent (Accent B; CH only)");
         configInput(TOTAL_ACC_INPUT, "Total accent (Accent A; shared)");
+        configInput(CHH_TUNE_CV_INPUT,  "Closed tune CV");
+        configInput(CHH_DECAY_CV_INPUT, "Closed decay CV");
+        configInput(CHH_LEVEL_CV_INPUT, "Closed level CV");
+        configInput(OHH_TUNE_CV_INPUT,  "Open tune CV");
+        configInput(OHH_DECAY_CV_INPUT, "Open decay CV");
+        configInput(OHH_LEVEL_CV_INPUT, "Open level CV");
         configOutput(CHH_OUT_OUTPUT, "Closed audio");
         configOutput(OHH_OUT_OUTPUT, "Open audio");
+    }
+
+    // knob + CV/10, clamped to 0..1 (DRIVE is off-panel, so no CV).
+    float normWithCV(int paramId, int inputId) {
+        return rack::math::clamp(
+            params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
+            0.f, 1.f);
     }
 
     void process(const ProcessArgs& args) override {
@@ -151,17 +169,17 @@ struct ChhOhh : Tr909Module {
             ohhLatchedGain = acc.gain;
         }
 
-        // -- Read knobs once per frame for both voices ----------------
-        // The combined module doesn't expose per-knob CV (panel space),
-        // so we read params directly. Per-voice CV is a follow-up if needed.
-        float chhTune  = rack::math::clamp(params[CHH_TUNE_PARAM].getValue(),  0.f, 1.f);
-        float chhDecay = rack::math::clamp(params[CHH_DECAY_PARAM].getValue(), 0.f, 1.f);
+        // -- Read controls once per frame for both voices -------------
+        // TUNE/DECAY/LEVEL take per-knob CV; DRIVE is an internal/right-click
+        // param (no panel knob, no CV) so it reads the param directly.
+        float chhTune  = normWithCV(CHH_TUNE_PARAM,  CHH_TUNE_CV_INPUT);
+        float chhDecay = normWithCV(CHH_DECAY_PARAM, CHH_DECAY_CV_INPUT);
         float chhDrive = rack::math::clamp(params[CHH_DRIVE_PARAM].getValue(), 0.f, 1.f);
-        float chhLevel = rack::math::clamp(params[CHH_LEVEL_PARAM].getValue(), 0.f, 1.f);
-        float ohhTune  = rack::math::clamp(params[OHH_TUNE_PARAM].getValue(),  0.f, 1.f);
-        float ohhDecay = rack::math::clamp(params[OHH_DECAY_PARAM].getValue(), 0.f, 1.f);
+        float chhLevel = normWithCV(CHH_LEVEL_PARAM, CHH_LEVEL_CV_INPUT);
+        float ohhTune  = normWithCV(OHH_TUNE_PARAM,  OHH_TUNE_CV_INPUT);
+        float ohhDecay = normWithCV(OHH_DECAY_PARAM, OHH_DECAY_CV_INPUT);
         float ohhDrive = rack::math::clamp(params[OHH_DRIVE_PARAM].getValue(), 0.f, 1.f);
-        float ohhLevel = rack::math::clamp(params[OHH_LEVEL_PARAM].getValue(), 0.f, 1.f);
+        float ohhLevel = normWithCV(OHH_LEVEL_PARAM, OHH_LEVEL_CV_INPUT);
 
         // -- CH DSP ----------------------------------------------------
         float chhRate    = std::pow(2.f, (chhTune - 0.5f) * 2.f * CHH_TUNE_OCTAVES);
@@ -209,114 +227,52 @@ struct ChhOhh : Tr909Module {
 // Mirrors CrashRide's structure.
 // ---------------------------------------------------------------------------
 
-struct ChhOhhPanel : rack::widget::Widget {
-    void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawDarkShell(
-            args.vg, box.size, "OHCH", nullptr,
-            nvgRGB(8, 8, 10),
-            nvgRGBA(220, 235, 240, 220));
-
-        const float cx = box.size.x * 0.5f;
-
-        // Section dividers: horizontal hairlines mark the boundary between
-        // the CLOSED and OPEN sections, and between OPEN and the shared
-        // TACC zone. Mirrors the way the original 909 panel groups CH
-        // and OH as visually separate strips.
-        auto hLine = [&](float y) { Ghost::NineOhNine::drawDarkDivider(args.vg, box.size, y); };
-        hLine(60.f);   // CLOSED  ─┤
-        hLine(110.f);  // OPEN    ─┤  shared zone below
-
-        // Section labels.
-        nvgFontSize(args.vg, 6.f);
-        nvgFillColor(args.vg, nvgRGBA(220, 235, 240, 220));
-        nvgText(args.vg, cx, mm2px(18.f), "CLOSED", nullptr);
-        nvgText(args.vg, cx, mm2px(68.f), "OPEN",   nullptr);
-
-        // Knob and jack labels.
-        const float xs[4] = {12.f, 28.f, 44.f, 60.f};
-        const char* knobs[4] = {"TUNE", "DECAY", "DRIVE", "LEVEL"};
-        nvgFontSize(args.vg, 4.5f);
-        nvgFillColor(args.vg, nvgRGBA(200, 220, 230, 180));
-        for (int v = 0; v < 2; v++) {
-            float yKnob = (v == 0) ? 28.f : 78.f;
-            for (int i = 0; i < 4; i++) {
-                nvgText(args.vg, mm2px(xs[i]), mm2px(yKnob - 6.f), knobs[i], nullptr);
-            }
-        }
-
-        // CLOSED IO row: TRIG | LACC | OUT (LACC is CH-only per Roland OM).
-        const float chIoY = 48.f;
-        nvgText(args.vg, mm2px(xs[0]), mm2px(chIoY - 6.f), "TRIG", nullptr);
-        nvgText(args.vg, cx,           mm2px(chIoY - 6.f), "LACC", nullptr);
-        nvgText(args.vg, mm2px(xs[3]), mm2px(chIoY - 6.f), "OUT",  nullptr);
-
-        // OPEN IO row: TRIG | OUT only -- OH has no Accent B.
-        const float ohIoY = 98.f;
-        nvgText(args.vg, mm2px(xs[0]), mm2px(ohIoY - 6.f), "TRIG", nullptr);
-        nvgText(args.vg, mm2px(xs[3]), mm2px(ohIoY - 6.f), "OUT",  nullptr);
-
-        // Shared TACC at the bottom (applies to both voices). Centered
-        // above the jack at y=121 so it reads as belonging to neither
-        // section -- it is the rail shared by CLOSED and OPEN.
-        nvgFontSize(args.vg, 5.f);
-        nvgFillColor(args.vg, nvgRGBA(220, 235, 240, 200));
-        nvgText(args.vg, cx, mm2px(115.f), "TACC", nullptr);
-        nvgFontSize(args.vg, 3.6f);
-        nvgFillColor(args.vg, nvgRGBA(160, 180, 195, 160));
-        nvgText(args.vg, cx, mm2px(118.5f), "(shared)", nullptr);
+// Right-click slider bound directly to a module param (for off-panel DRIVE).
+struct ChhOhhParamSlider : ui::Slider {
+    ChhOhhParamSlider(engine::Module* m, int paramId, float widthPx = 200.f) {
+        quantity = m->paramQuantities[paramId];
+        box.size.x = widthPx;
     }
 };
 
-struct ChhOhhWidget : rack::ModuleWidget {
+struct ChhOhhWidget : ModuleWidget, SvgHelper<ChhOhhWidget> {
     ChhOhhWidget(ChhOhh* module) {
         setModule(module);
+        loadPanel(asset::plugin(pluginInstance, "res/ChhOhh.svg"));
 
-        auto* panel = new ChhOhhPanel;
-        panel->box.size = AgentLayout::panelSize_14HP();
-        addChild(panel);
-        box.size = panel->box.size;
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        AgentLayout::addScrews_14HP(this);
+        bindParam<RoundBlackKnob>("param.closed.tune",  ChhOhh::CHH_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.closed.decay", ChhOhh::CHH_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.closed.level", ChhOhh::CHH_LEVEL_PARAM);
+        bindParam<RoundBlackKnob>("param.open.tune",    ChhOhh::OHH_TUNE_PARAM);
+        bindParam<RoundBlackKnob>("param.open.decay",   ChhOhh::OHH_DECAY_PARAM);
+        bindParam<RoundBlackKnob>("param.open.level",   ChhOhh::OHH_LEVEL_PARAM);
 
-        const float xs[4] = {12.f, 28.f, 44.f, 60.f};
-        const float cx_mm = 14.f * 5.08f * 0.5f;  // 14HP center (~35.56mm)
+        bindInput<PJ301MPort>("cv.closed.tune",  ChhOhh::CHH_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.closed.decay", ChhOhh::CHH_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.closed.level", ChhOhh::CHH_LEVEL_CV_INPUT);
+        bindInput<PJ301MPort>("cv.open.tune",    ChhOhh::OHH_TUNE_CV_INPUT);
+        bindInput<PJ301MPort>("cv.open.decay",   ChhOhh::OHH_DECAY_CV_INPUT);
+        bindInput<PJ301MPort>("cv.open.level",   ChhOhh::OHH_LEVEL_CV_INPUT);
 
-        // CLOSED voice (top section): knobs at y=30, IO row at y=48 with
-        // TRIG | LACC | OUT. LACC sits inside this section because Accent B
-        // is CH-only per Roland TR-909 OM.
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[0], 30.f)), module, ChhOhh::CHH_TUNE_PARAM));
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[1], 30.f)), module, ChhOhh::CHH_DECAY_PARAM));
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[2], 30.f)), module, ChhOhh::CHH_DRIVE_PARAM));
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[3], 30.f)), module, ChhOhh::CHH_LEVEL_PARAM));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(xs[0], 48.f)), module, ChhOhh::CHH_TRIG_INPUT));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(cx_mm, 48.f)), module, ChhOhh::LOCAL_ACC_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(
-            mm2px(Vec(xs[3], 48.f)), module, ChhOhh::CHH_OUT_OUTPUT));
+        bindInput<PJ301MPort>("trig.closed.trig",   ChhOhh::CHH_TRIG_INPUT);
+        bindInput<PJ301MPort>("trig.open.trig",     ChhOhh::OHH_TRIG_INPUT);
+        bindInput<PJ301MPort>("accent.closed.local", ChhOhh::LOCAL_ACC_INPUT);
+        bindInput<PJ301MPort>("accent.main.total",   ChhOhh::TOTAL_ACC_INPUT);
+        bindOutput<PJ301MPort>("out.closed.audio",  ChhOhh::CHH_OUT_OUTPUT);
+        bindOutput<PJ301MPort>("out.open.audio",    ChhOhh::OHH_OUT_OUTPUT);
+    }
 
-        // OPEN voice (middle section): knobs at y=80, IO row at y=98 with
-        // TRIG | OUT only. OH has no Accent B per Roland OM.
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[0], 80.f)), module, ChhOhh::OHH_TUNE_PARAM));
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[1], 80.f)), module, ChhOhh::OHH_DECAY_PARAM));
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[2], 80.f)), module, ChhOhh::OHH_DRIVE_PARAM));
-        addParam(createParamCentered<rack::RoundSmallBlackKnob>(
-            mm2px(Vec(xs[3], 80.f)), module, ChhOhh::OHH_LEVEL_PARAM));
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(xs[0], 98.f)), module, ChhOhh::OHH_TRIG_INPUT));
-        addOutput(createOutputCentered<rack::PJ301MPort>(
-            mm2px(Vec(xs[3], 98.f)), module, ChhOhh::OHH_OUT_OUTPUT));
-
-        // Shared zone (below the OPEN divider): TACC applies to both voices.
-        addInput(createInputCentered<rack::PJ301MPort>(
-            mm2px(Vec(cx_mm, 121.f)), module, ChhOhh::TOTAL_ACC_INPUT));
+    void appendContextMenu(Menu* menu) override {
+        if (!module) return;
+        menu->addChild(new MenuSeparator);
+        menu->addChild(createMenuLabel("Drive (internal saturation)"));
+        menu->addChild(new ChhOhhParamSlider(module, ChhOhh::CHH_DRIVE_PARAM));
+        menu->addChild(new ChhOhhParamSlider(module, ChhOhh::OHH_DRIVE_PARAM));
     }
 };
 

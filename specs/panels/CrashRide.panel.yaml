@@ -1,0 +1,26 @@
+# GHOST CRSHRIDE — crash + ride cymbals. Each voice TUNE/DECAY/LEVEL + CV;
+# DRIVE is a right-click param. Edit + re-run `python -m panelkit render CrashRide`.
+module: CrashRide
+name: GHOST CRSHRIDE
+hp: 16
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_grid          # 2 voices (cols) x TUNE/DECAY/LEVEL (rows); voice in the label
+    columns: 2
+    params:
+      - { label: CRASH TUNE,  param: param.crash.tune,  cv: cv.crash.tune }
+      - { label: RIDE TUNE,   param: param.ride.tune,   cv: cv.ride.tune }
+      - { label: CRASH DECAY, param: param.crash.decay, cv: cv.crash.decay }
+      - { label: RIDE DECAY,  param: param.ride.decay,  cv: cv.ride.decay }
+      - { label: CRASH LEVEL, param: param.crash.level, cv: cv.crash.level }
+      - { label: RIDE LEVEL,  param: param.ride.level,  cv: cv.ride.level }
+
+  - kind: io_row              # triggers, shared accent centre, outputs (TOTAL only)
+    cells:
+      - { label: TRIG,  sub: CRASH, id: trig.crash.trig }
+      - { label: TRIG,  sub: RIDE,  id: trig.ride.trig }
+      - { label: TOTAL, id: accent.main.total }
+      - { label: OUT,   sub: CRASH, id: out.crash.audio }
+      - { label: OUT,   sub: RIDE,  id: out.ride.audio }

@@ -1,0 +1,16 @@
+# GHOST CTRL — global controller / expander. Broadcasts DEFAULT / ACCENT A /
+# ACCENT B / MASTER to adjacent Ghost voices via the bus. Each knob has CV.
+# No trigger or audio jacks. Edit + re-run `python -m panelkit render Tr909Ctrl`.
+module: Tr909Ctrl
+name: GHOST CTRL
+hp: 8
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: param_grid          # 3 controls in one column = 3 rows, so they align
+    columns: 1                 # row-for-row with the voices' knob grid beside it
+    params:
+      - { label: ACCENT A, param: param.main.accent-a, cv: cv.main.accent-a }
+      - { label: ACCENT B, param: param.main.accent-b, cv: cv.main.accent-b }
+      - { label: MASTER,   param: param.main.master,   cv: cv.main.master }

@@ -1,6 +1,7 @@
 # 0001 — GHOST OHCH allows closed+open hi-hat on the same step
 
 **Status:** Accepted (2026-06-01)
+**Issue:** [#14](https://github.com/tnn1t1s/tnn1t1s-ghost/issues/14)
 
 ## Context
 

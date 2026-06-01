@@ -34,7 +34,6 @@ DEMOS = {
         L.CLAP_TRACK:   [5, 13],
         L.CHH_TRACK:    [1, 5, 9, 13],
         L.OHH_TRACK:    [3, 7, 11, 15],
-        L.ACCENT_TRACK: [1],
     }),
     "02-detroit": dict(bpm=130, grid={
         L.KICK_TRACK:   [1, 5, 9, 13],
@@ -42,7 +41,6 @@ DEMOS = {
         L.CHH_TRACK:    [2, 4, 6, 8, 10, 12, 14, 16],
         L.OHH_TRACK:    [3, 7, 11, 15],
         L.RIM_TRACK:    [4, 12],
-        L.ACCENT_TRACK: [1, 5, 9, 13],
     }),
     "03-chicago-jack": dict(bpm=120, grid={      # swing TODO
         L.KICK_TRACK:   [1, 5, 9, 13],
@@ -50,7 +48,6 @@ DEMOS = {
         L.CHH_TRACK:    [1, 3, 5, 7, 9, 11, 13, 15],
         L.OHH_TRACK:    [3, 7, 11, 15],
         L.RIM_TRACK:    [7, 15],
-        L.ACCENT_TRACK: [1],
     }),
     "04-hypnotic": dict(bpm=140, grid={
         L.KICK_TRACK:    [1, 5, 9, 13],
@@ -58,7 +55,6 @@ DEMOS = {
         L.RIM_TRACK:     [5, 13],
         L.TOM_LO_TRACK:  [7, 15],
         L.OHH_TRACK:     [15],
-        L.ACCENT_TRACK:  [1, 9],
     }),
     "05-tribal": dict(bpm=135, grid={
         L.KICK_TRACK:    [1, 5, 9, 13],
@@ -68,7 +64,6 @@ DEMOS = {
         L.RIDE_TRACK:    [1, 3, 5, 7, 9, 11, 13, 15],
         L.CHH_TRACK:     [1, 3, 5, 7, 9, 11, 13, 15],
         L.RIM_TRACK:     [6, 12],
-        L.ACCENT_TRACK:  [1],
     }),
     "06-filter-house": dict(bpm=123, grid={    # filter house; swing TODO
         L.KICK_TRACK:    [1, 5, 9, 13],
@@ -77,7 +72,6 @@ DEMOS = {
         L.OHH_TRACK:     [3, 7, 11, 15],
         L.RIM_TRACK:     [3, 7, 11, 15],
         L.TOM_MID_TRACK: [3, 10, 14],
-        L.ACCENT_TRACK:  [1],
     }),
     "07-minimal": dict(bpm=130, grid={           # minimal techno; swing TODO
         L.KICK_TRACK:   [1, 5, 9, 13],
@@ -85,14 +79,12 @@ DEMOS = {
         L.CHH_TRACK:    [3, 11],
         L.OHH_TRACK:    [15],
         L.CLAP_TRACK:   [13],
-        L.ACCENT_TRACK: [1],
     }),
     "08-electro-88": dict(bpm=128, grid={        # electro / electro; broken kick
         L.KICK_TRACK:   [1, 2, 4, 7, 11, 15, 16],
         L.CLAP_TRACK:   [5, 13],
         L.CHH_TRACK:    [3, 6, 9, 13, 14],
         L.TOM_LO_TRACK: [8, 11, 15],
-        L.ACCENT_TRACK: [1],
     }),
 }
 
@@ -122,6 +114,11 @@ def build(name, bpm, grid):
     L.reset_routing(data)
     set_tempo(data, bpm)
     patterns = {track: bars(steps) for track, steps in grid.items()}
+    # Accent every kick: with the kick's 10% un-accented floor, an accent only on
+    # some kicks would drop the rest to near-silence and break a steady pattern.
+    # So the accent lane mirrors the kick lane (what almost everyone does anyway);
+    # genuine kick dynamics live in the dedicated Multi-level multi-level patch.
+    patterns[L.ACCENT_TRACK] = list(patterns[L.KICK_TRACK])
     L.assemble_gmix(data, patterns)
     L.save_vcv(data, os.path.join(DEMODIR, f"{name}.vcv"))
 

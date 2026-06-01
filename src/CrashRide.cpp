@@ -93,10 +93,8 @@ static const Ghost::TR909::RomVoiceConfig RIDE_ROM_CFG  = { 1.00f, 1.00f, 16 };
 // (sit at full max). The drive boosts below are stylistic Ghost
 // additions, not circuit reproductions. AccentCharacter member order:
 // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-static const Ghost::TR909::AccentCharacter CRASH_ACCENT =
-    { 0.f, 0.f, 0.f, 0.08f, 0.f, 0.f, 0.f, 0.f, 0.f };
-static const Ghost::TR909::AccentCharacter RIDE_ACCENT =
-    { 0.f, 0.f, 0.f, 0.08f, 0.f, 0.f, 0.f, 0.f, 0.f };
+static const Ghost::TR909::AccentCharacter CRASH_ACCENT = Ghost::TR909::Accent::driveOnly();
+static const Ghost::TR909::AccentCharacter RIDE_ACCENT  = Ghost::TR909::Accent::driveOnly();
 
 } // namespace crashride_impl
 
@@ -130,7 +128,7 @@ struct CrashRide : Tr909Module {
     Ghost::TR909::RomVoice crashVoice;
     Ghost::TR909::RomVoice rideVoice;
     int dbgBitDepth = 16;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float crashLatchedGain = 1.f;
     float rideLatchedGain  = 1.f;
     float crashLatchedChar = 0.f;
@@ -308,7 +306,7 @@ struct CrashRideLab : Tr909Module {
     rack::dsp::SchmittTrigger rideTrigger;
     Ghost::TR909::RomVoice crashVoice;
     Ghost::TR909::RomVoice rideVoice;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float crashLatchedGain = 1.f;
     float rideLatchedGain = 1.f;
     float crashLatchedChar = 0.f;

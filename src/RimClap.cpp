@@ -17,8 +17,7 @@ namespace {
 // (sit at full max). The drive boost below is a stylistic Ghost
 // addition, not a circuit reproduction. AccentCharacter member order:
 // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-static const Ghost::TR909::AccentCharacter RIMCLAP_ACCENT =
-    { 0.f, 0.f, 0.f, 0.10f, 0.f, 0.f, 0.f, 0.f, 0.f };
+static const Ghost::TR909::AccentCharacter RIMCLAP_ACCENT = Ghost::TR909::Accent::driveOnly();
 static const std::vector<float>& rimClapClapSource() {
     static const std::vector<float> sample =
         Ghost::TR909::decodeEmbeddedF32(clp909_f32, clp909_f32_len);
@@ -85,9 +84,7 @@ struct RimClap : Tr909Module {
     RomVoice clapVoice;
     RomVoice rimVoice;
     // Un-accented = normal (0 dB); accent adds a gentle ~+3 dB on top (909-style).
-    Ghost::TR909::AccentMix accentMix = []{
-        auto m = Ghost::TR909::neutralMix(); m.globalDb = 3.f; m.bothDb = 3.f; return m;
-    }();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float clapLatchedGain = 1.f;
     float rimLatchedGain  = 1.f;
     float clapLatchedChar = 0.f;
@@ -214,9 +211,7 @@ struct RimClapLab : Tr909Module {
     RomVoice clapVoice;
     RomVoice rimVoice;
     // Un-accented = normal (0 dB); accent adds a gentle ~+3 dB on top (909-style).
-    Ghost::TR909::AccentMix accentMix = []{
-        auto m = Ghost::TR909::neutralMix(); m.globalDb = 3.f; m.bothDb = 3.f; return m;
-    }();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float clapLatchedGain = 1.f;
     float rimLatchedGain = 1.f;
     float clapLatchedChar = 0.f;

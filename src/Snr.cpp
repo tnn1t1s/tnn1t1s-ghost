@@ -112,9 +112,7 @@ struct Config {
     // timbral accent on the original 909 (gates noise and tone VCAs);
     // noiseAmt is the audible signature. AccentCharacter member order is
     // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-    Ghost::TR909::AccentCharacter accent =
-        { 0.f, 0.f, 0.f, 0.08f, 0.12f, 0.f, 0.f, 0.f, 0.f };
-    //  body, pitch, click, drive, noise, snap, decay, brightness, bend
+    Ghost::TR909::AccentCharacter accent = Ghost::TR909::Accent::snare();  // shared policy
 };
 
 static inline const Config& defaults() {
@@ -147,7 +145,7 @@ struct Snr : Tr909Module {
     // Default to a neutral mix until Snr accent is ear-tuned; keeps the
     // existing 909-snare voicing audibly unchanged when no controller is
     // wired or accent gates fire.
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float latchedCaseGain = 1.f;
     float latchedCharStrength = 0.f;
 
@@ -385,7 +383,7 @@ struct SnrLab : Tr909Module {
     enum OutputId { OUT_OUTPUT, NUM_OUTPUTS };
 
     dsp::SchmittTrigger trigger;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float latchedCaseGain = 1.f;
     float latchedCharStrength = 0.f;
 

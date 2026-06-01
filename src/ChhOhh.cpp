@@ -51,10 +51,8 @@ static constexpr float CHOKE_DECAY_SEC   = 0.005f;
 // stylistic Ghost additions, not circuit reproductions.
 // AccentCharacter member order: body, pitch, click, drive, noise, snap,
 // decay, brightness, bend.
-static const Ghost::TR909::AccentCharacter CHH_ACCENT =
-    { 0.f, 0.f, 0.f, 0.08f, 0.f, 0.f, 0.f, 0.f, 0.f };
-static const Ghost::TR909::AccentCharacter OHH_ACCENT =
-    { 0.f, 0.f, 0.f, 0.08f, 0.f, 0.f, 0.f, 0.f, 0.f };
+static const Ghost::TR909::AccentCharacter CHH_ACCENT = Ghost::TR909::Accent::driveOnly();
+static const Ghost::TR909::AccentCharacter OHH_ACCENT = Ghost::TR909::Accent::driveOnly();
 
 static const std::vector<float>& chhSource() {
     static const std::vector<float> sample =
@@ -103,7 +101,7 @@ struct ChhOhh : Tr909Module {
     float ohhEnv       = 0.f;
     bool  ohhChokeActive = false;
 
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float chhLatchedGain = 1.f;
     float ohhLatchedGain = 1.f;
     float chhLatchedChar = 0.f;
@@ -312,7 +310,7 @@ struct ChhOhhLab : Tr909Module {
     float ohhSamplePos = 1e9f;
     float ohhEnv = 0.f;
     bool ohhChokeActive = false;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float chhLatchedGain = 1.f;
     float ohhLatchedGain = 1.f;
     float chhLatchedChar = 0.f;

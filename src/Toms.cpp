@@ -91,9 +91,7 @@ struct Config {
     // accent on the original 909; the Ghost default keeps a small
     // body/click/drive boost as a stylistic add. AccentCharacter member
     // order is body, pitch, click, drive, noise, snap, decay, brightness, bend.
-    Ghost::TR909::AccentCharacter accent =
-        { 0.10f, 0.f, 0.15f, 0.08f, 0.f, 0.f, 0.f, 0.f, 0.f };
-    //   body, pitch, click, drive, noise, snap, decay, brightness, bend
+    Ghost::TR909::AccentCharacter accent = Ghost::TR909::Accent::toms();  // shared policy
 };
 
 // baseHz calibrated against TR-909 references at tune050-decay050:
@@ -229,7 +227,7 @@ struct TomLab : Tr909Module {
 
     TomVoice voice;
     TomFit::Config fit;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float latchedCaseGain = 1.f;
     float voiceCharStrength = 0.f;
 
@@ -436,7 +434,7 @@ struct Toms : Tr909Module {
 
     TomVoice low, mid, high;
     TomFit::Config lowFit, midFit, highFit;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
     float lowGain = 1.f, midGain = 1.f, highGain = 1.f;
     float lowChar = 0.f, midChar = 0.f, highChar = 0.f;
 

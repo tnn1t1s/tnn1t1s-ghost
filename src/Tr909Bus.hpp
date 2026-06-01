@@ -171,6 +171,19 @@ namespace Accent {
     inline AccentCharacter toms()  { return AccentCharacter{kBody,0,kClick,kDrive*0.8f,0,0,0,0,0}; }
     // Un-accented stays at normal level; an accented hit adds +kGainDb on top.
     inline AccentMix gentleMix() { AccentMix m = neutralMix(); m.globalDb = kGainDb; m.bothDb = kGainDb; return m; }
+
+    // Kick: pronounced 909-style accent ladder, specified as linear LEVELS
+    // (at full CTRL amount each tier's gain == its target):
+    //   no accent (ghost)   10%  -> -20.0 dB   (low floor: ghost kicks barely there)
+    //   Accent B (local)    60%  ->  -4.44 dB  (moving Accent B swings 10->60%, ~16 dB)
+    //   Accent A (global)  100%  ->   0 dB     (the ceiling)
+    //   both               100%  ->   0 dB     (capped at Accent A, never hotter)
+    // 20*log10(level) for each. Big spread so accents read like a real TR-909.
+    inline AccentMix kickMix() {
+        AccentMix m;
+        m.ghostDb = -20.0f; m.localDb = -4.44f; m.globalDb = 0.f; m.bothDb = 0.f;
+        return m;
+    }
 }
 
 /**

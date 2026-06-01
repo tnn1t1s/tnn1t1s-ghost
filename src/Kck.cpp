@@ -155,10 +155,10 @@ struct Config {
     // Accent application -- two orthogonal axes, see Tr909Bus.hpp.
     //
     // accentMix decides the LEVEL relationship across the four cases
-    // (ghost / global / local / both) in dB. Defaults are the project's
-    // modest tuning starting point, not a verified hardware-faithful
-    // setup. Tune per-voice as research and ear evaluations land.
-    Ghost::TR909::AccentMix accentMix;
+    // (ghost / global / local / both) in dB. Wide spread for pronounced,
+    // 909-style accent dynamics + multi-level multi-level kick rolls;
+    // ghost stays -6 dB so steady patterns / the -6 dBFS calibration hold.
+    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::kickMix();
 
     // Per-DSP-stage CHARACTER weights, applied multiplicatively at
     // fire-time when the hit is accented (any accent gate fired).

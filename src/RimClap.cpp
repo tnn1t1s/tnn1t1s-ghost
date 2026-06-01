@@ -84,7 +84,10 @@ struct RimClap : Tr909Module {
     dsp::SchmittTrigger rimTrigger;
     RomVoice clapVoice;
     RomVoice rimVoice;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    // Un-accented = normal (0 dB); accent adds a gentle ~+3 dB on top (909-style).
+    Ghost::TR909::AccentMix accentMix = []{
+        auto m = Ghost::TR909::neutralMix(); m.globalDb = 3.f; m.bothDb = 3.f; return m;
+    }();
     float clapLatchedGain = 1.f;
     float rimLatchedGain  = 1.f;
     float clapLatchedChar = 0.f;
@@ -210,7 +213,10 @@ struct RimClapLab : Tr909Module {
     dsp::SchmittTrigger rimTrigger;
     RomVoice clapVoice;
     RomVoice rimVoice;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::neutralMix();
+    // Un-accented = normal (0 dB); accent adds a gentle ~+3 dB on top (909-style).
+    Ghost::TR909::AccentMix accentMix = []{
+        auto m = Ghost::TR909::neutralMix(); m.globalDb = 3.f; m.bothDb = 3.f; return m;
+    }();
     float clapLatchedGain = 1.f;
     float rimLatchedGain = 1.f;
     float clapLatchedChar = 0.f;

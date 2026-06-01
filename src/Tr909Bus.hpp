@@ -184,20 +184,26 @@ inline float resolveAccentGain(bool totalGate, bool localGate,
                                const AccentMix& mix) {
     const bool effectiveTotal = totalGate && (bus.accentAAmount > 0.f);
     const bool effectiveLocal = localGate && (bus.accentBAmount > 0.f);
+    const float ghost = dbToLinear(mix.ghostDb) * bus.ghostAmount;
     if (!effectiveTotal && !effectiveLocal) {
-        return dbToLinear(mix.ghostDb) * bus.ghostAmount;
+        return ghost;
     }
 
-    const float gA    = dbToLinear(mix.globalDb);
-    const float gB    = dbToLinear(mix.localDb);
-    const float gBoth = dbToLinear(mix.bothDb);
+    // Accent is a boost ADDED on top of the un-accented level, scaled by the
+    // CTRL amounts -- so the accented hit never dips below normal and never
+    // jumps in from silence. Matches the TR-909, where accent just adds a bit
+    // of gain on top (gentle), rather than replacing the level outright.
+    const float ghostLin = dbToLinear(mix.ghostDb);
+    const float dA    = dbToLinear(mix.globalDb) - ghostLin;   // boost delta vs ghost
+    const float dB    = dbToLinear(mix.localDb)  - ghostLin;
+    const float dBoth = dbToLinear(mix.bothDb)   - ghostLin;
     const float amtA  = bus.accentAAmount;
     const float amtB  = bus.accentBAmount;
 
-    float gain = 0.f;
-    if (effectiveTotal)                 gain += amtA * gA;
-    if (effectiveLocal)                 gain += amtB * gB;
-    if (effectiveTotal && effectiveLocal) gain += amtA * amtB * (gBoth - gA - gB);
+    float gain = ghost;
+    if (effectiveTotal)                   gain += amtA * dA;
+    if (effectiveLocal)                   gain += amtB * dB;
+    if (effectiveTotal && effectiveLocal) gain += amtA * amtB * (dBoth - dA - dB);
     return gain;
 }
 

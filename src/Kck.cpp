@@ -167,8 +167,11 @@ struct Config {
     // Note: there is intentionally NO level field here. Level on / across
     // accent cases is governed by AccentMix dB; a per-voice level boost
     // here would double-count with the shared abstraction.
+    // TR-09 accent is gentle: a little drive + a touch of click, NO pitch/body
+    // deepening (pitch>0 turned the accent into a wild resonant sweep). The
+    // "gain" part of the accent comes from the AccentMix level, not here.
     Ghost::TR909::AccentCharacter accent =
-        { 0.80f, 0.80f, 0.50f, 0.60f, 0.f, 0.f, 0.f, 0.f, 0.f };
+        { 0.0f, 0.0f, 0.15f, 0.20f, 0.f, 0.f, 0.f, 0.f, 0.f };
     //    body, pitch, click, drive, noise, snap, decay, brightness, bend
 };
 

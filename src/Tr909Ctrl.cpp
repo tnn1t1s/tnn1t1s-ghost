@@ -45,9 +45,9 @@ struct Tr909Ctrl : Tr909Module {
 
     Tr909Ctrl() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-        configParam(ACCENT_A_PARAM,   0.f, 1.f, 1.f, "Accent A amount", "%", 0.f, 100.f);
-        configParam(ACCENT_B_PARAM,   0.f, 1.f, 1.f, "Accent B amount", "%", 0.f, 100.f);
-        configParam(MASTER_VOL_PARAM, 0.f, 1.f, 1.f, "Master volume",   "%", 0.f, 100.f);
+        configParam(ACCENT_A_PARAM,   0.f, 1.f, 0.5f, "Accent A amount", "%", 0.f, 100.f);
+        configParam(ACCENT_B_PARAM,   0.f, 1.f, 0.5f, "Accent B amount", "%", 0.f, 100.f);
+        configParam(MASTER_VOL_PARAM, 0.f, 1.f, 0.5f, "Master volume",   "%", 0.f, 100.f);
         configInput(ACCENT_A_CV_INPUT,   "Accent A amount CV");
         configInput(ACCENT_B_CV_INPUT,   "Accent B amount CV");
         configInput(MASTER_VOL_CV_INPUT, "Master volume CV");

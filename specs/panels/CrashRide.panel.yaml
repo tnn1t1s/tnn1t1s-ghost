@@ -2,7 +2,7 @@
 # DRIVE is a right-click param. Edit + re-run `python -m panelkit render CrashRide`.
 module: CrashRide
 name: GHOST CRSHRIDE
-hp: 16
+hp: 12
 
 sections:
   - use: header               # shared Ghost header (specs/fragments.yaml)

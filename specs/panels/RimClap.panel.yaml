@@ -2,7 +2,7 @@
 # Edit + re-run `python -m panelkit render RimClap`.
 module: RimClap
 name: GHOST RIMCLAP
-hp: 14
+hp: 12
 
 sections:
   - use: header               # shared Ghost header (specs/fragments.yaml)

@@ -2,7 +2,7 @@
 # + CV; DRIVE is a right-click param. Edit + re-run `python -m panelkit render ChhOhh`.
 module: ChhOhh
 name: GHOST OHCH
-hp: 16
+hp: 14
 
 sections:
   - use: header               # shared Ghost header (specs/fragments.yaml)

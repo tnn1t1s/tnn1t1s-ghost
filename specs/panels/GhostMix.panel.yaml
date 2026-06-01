@@ -1,0 +1,28 @@
+# GHOST MIX — dedicated 909-kit summing mixer: one labeled input per voice with
+# a mute switch, summed to a single MIX output. Levels live on the voices, so
+# the mixer is a dumb unity summer (no faders). Edit + re-run
+# `python -m panelkit render GhostMix`.
+module: GhostMix
+name: GHOST MIX
+hp: 12
+
+sections:
+  - use: header               # shared Ghost header (specs/fragments.yaml)
+
+  - kind: mixer               # 10 channel strips: [input jack | mute switch], label above
+    columns: 2
+    cells:
+      - { label: KICK,    id: in.kick,   mute: mute.kick }
+      - { label: RIM,     id: in.rim,    mute: mute.rim }
+      - { label: CLAP,    id: in.clap,   mute: mute.clap }
+      - { label: TOM LO,  id: in.tomlo,  mute: mute.tomlo }
+      - { label: TOM MID, id: in.tommid, mute: mute.tommid }
+      - { label: TOM HI,  id: in.tomhi,  mute: mute.tomhi }
+      - { label: CHH,     id: in.chh,    mute: mute.chh }
+      - { label: OHH,     id: in.ohh,    mute: mute.ohh }
+      - { label: CRASH,   id: in.crash,  mute: mute.crash }
+      - { label: RIDE,    id: in.ride,   mute: mute.ride }
+
+  - kind: io_row              # master mix output
+    cells:
+      - { label: MIX, id: out.main.mix }

@@ -9,7 +9,8 @@ from __future__ import annotations
 import math
 
 from .. import units
-from ..components import control_row, header, io_cell, pair_width, param_cell
+from ..components import (control_row, header, io_cell, mixer_cell, pair_width,
+                          param_cell)
 from ..config.footprints import Footprint
 from ..config.layout import LayoutConfig
 from ..config.theme import Theme
@@ -78,6 +79,27 @@ def build_panel(spec: PanelSpec, theme: Theme, layout: LayoutConfig,
                 r, c = divmod(i, cols)
                 els.append(param_cell(col_cxs[c], row_ys[r], knob, port, theme,
                                       fontbook, layout, p.label, p.param, p.cv))
+
+        elif sec.kind == "mixer":
+            cols = sec.columns
+            top = header_bottom + layout.grid.param_band_pad_mm
+            bot = layout.io.chevron_y_mm - layout.grid.param_band_pad_mm
+            n = len(sec.cells)
+            n_rows = math.ceil(n / cols)
+            row_ys = cell_centers(top, bot, n_rows)
+            # column centres: a channel strip is ~16mm wide (jack + switch), so
+            # inset the columns by half that to keep both inside the side margins.
+            cw_half = 8.0
+            lo, hi = side + cw_half, W - side - cw_half
+            col_cxs = ([lo + (hi - lo) * i / (cols - 1) for i in range(cols)]
+                       if cols > 1 else [W / 2])
+            for c in range(1, cols):                      # dividers between columns
+                x = (col_cxs[c - 1] + col_cxs[c]) / 2
+                els.append(dotted_vline(x, top - 2, bot + 2, theme.color("frame")))
+            for i, cell in enumerate(sec.cells):
+                r, c = divmod(i, cols)
+                els.append(mixer_cell(col_cxs[c], row_ys[r], port, theme, fontbook,
+                                      layout, cell.label, cell.id, cell.mute))
 
         elif sec.kind == "io_row":
             els.append(chevron_rule(cx, chev_half, layout.io.chevron_y_mm, theme))

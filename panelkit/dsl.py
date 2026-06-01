@@ -37,6 +37,7 @@ class Cell:
     label: str
     id: str
     sub: str | None = None
+    mute: str | None = None    # mixer: anchor id for the channel's mute switch
 
 
 @dataclass

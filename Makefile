@@ -20,6 +20,7 @@ SOURCES += src/ChhOhh.cpp
 SOURCES += src/RimClap.cpp
 SOURCES += src/Toms.cpp
 SOURCES += src/CrashRide.cpp
+SOURCES += src/GhostMix.cpp
 
 DISTRIBUTABLES += res
 

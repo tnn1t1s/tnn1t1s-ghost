@@ -93,6 +93,23 @@ def header(panel_w, name, theme, fontbook, layout, show_brand=True):
     return els, ghost_y
 
 
+def mixer_cell(colcx, y, jack_fp, theme, fontbook, layout, text, in_id, mute_id,
+               jack_dx=4.0, mute_dx=4.5):
+    """Mixer channel strip: instrument label above an [input jack | mute switch]
+    pair, centred on `colcx` at height y. The mute switch is a live CKSS widget
+    that draws itself, so only an anchor is emitted for it (no painted art)."""
+    g = group()
+    jr = jack_fp.visual_r
+    jack_c = Vec(colcx - jack_dx, y)
+    mute_c = Vec(colcx + mute_dx, y)
+    g.append(jack(jack_c, jack_fp, theme))
+    g.append(anchor(jack_c, in_id))
+    g.append(anchor(mute_c, mute_id))
+    ly = y - jr - layout.grid.label_clearance_mm
+    g.append(label(colcx, ly, text, fontbook.role("label"), theme.color("label")))
+    return g
+
+
 def io_cell(cx, y, theme, fontbook, jack_fp, label_text, jack_id, label_gap_mm, sub=None):
     """Reusable I/O tuple. Labels stack *below* the jack so they never collide
     with the chevron rule above: [jack, role below, (voice sub below that)]."""

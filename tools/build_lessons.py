@@ -40,6 +40,8 @@ ACCENT_TRACK, KICK_TRACK, CLAP_TRACK, RIM_TRACK = 1, 2, 7, 8
 TOM_HI_TRACK, TOM_MID_TRACK, TOM_LO_TRACK = 4, 5, 6
 # Hats on the Hora's hat lanes: out13=closed (CHH), out14=open (OHH)
 CHH_TRACK, OHH_TRACK = 11, 12
+# Cymbals: lane guess (likely to be corrected against the Hora's named lanes)
+CRASH_TRACK, RIDE_TRACK = 9, 10
 def out_of(track): return track + 2          # Hora: output id = track + 2
 
 # voice I/O ids
@@ -50,10 +52,18 @@ TM_LO_TRIG, TM_MID_TRIG, TM_HI_TRIG, TM_TOTAL_ACC = 0, 1, 2, 4
 TM_LO_OUT, TM_MID_OUT, TM_HI_OUT = 0, 1, 2
 HH_CHH_TRIG, HH_OHH_TRIG, HH_TOTAL_ACC = 0, 1, 3
 HH_CHH_OUT, HH_OHH_OUT = 0, 1
+CR_CRASH_TRIG, CR_RIDE_TRIG, CR_TOTAL_ACC = 0, 1, 2
+CR_CRASH_OUT, CR_RIDE_OUT = 0, 1
 CLOCK_OUT, HORA_CLOCK_IN = 1, 2
 
 TOMS_ID = 9101000000000007
 CHHOHH_ID = 9101000000000008
+CRASHRIDE_ID = 9101000000000009
+TOMSUB_ID = 9300000000000002
+GHOSTMIX_ID = 9101000000000010
+# GHOST MIX fixed input channels (one per voice)
+GM = dict(kick=0, rim=1, clap=2, tomlo=3, tommid=4, tomhi=5,
+          chh=6, ohh=7, crash=8, ride=9)
 
 # patterns (32-step page)
 QUARTERS  = [0, 4, 8, 12, 16, 20, 24, 28]    # four-on-floor / metronome
@@ -76,10 +86,16 @@ HATS = {
     CHH_TRACK: [2, 6, 10],
     OHH_TRACK: [14],
 }
+# lesson 06 cymbals: ride on every 8th note, crash on the 2nd whole note.
+CYMBALS = {
+    RIDE_TRACK:  list(range(0, 32, 2)),
+    CRASH_TRACK: [16],
+}
 
 # top-row layout: CTRL + voices must be contiguous for the accent bus
-ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20, "ChhOhh": 14}
-ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap", "Toms", "ChhOhh"]
+ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20,
+           "ChhOhh": 14, "CrashRide": 12}
+ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap", "Toms", "ChhOhh", "CrashRide"]
 
 
 def load_base():
@@ -165,12 +181,80 @@ def add_chhohh(data):
                                 model="ChhOhh", version="2.0.0", pos=[56, 0]))
 
 
-def assemble(data, patterns, has_kick, has_clap, has_toms=False, has_hats=False):
+def add_crashride(data):
+    """Inject a GHOST CrashRide module on the contiguous CTRL row."""
+    data["modules"].append(dict(id=CRASHRIDE_ID, plugin="tnn1t1s-ghost",
+                                model="CrashRide", version="2.0.0", pos=[70, 0]))
+
+
+def add_tom_submix(data):
+    """Inject a unity sub-mixer so the 3 toms collapse to one main channel."""
+    data["modules"].append(dict(id=TOMSUB_ID, plugin="Bogaudio",
+                                model="Bogaudio-UMix", pos=[60, 1]))
+
+
+def add_ghostmix(data):
+    """Inject GHOST MIX (the in-the-box 10-input kit mixer)."""
+    data["modules"].append(dict(id=GHOSTMIX_ID, plugin="tnn1t1s-ghost",
+                                model="GhostMix", version="2.0.0", pos=[24, 1]))
+
+
+def assemble_gmix(data, patterns):
+    """Full kit through GHOST MIX: one labeled input per voice, no sub-mixer."""
+    hd = by_model(data, "Drumsequencer")["data"]
+    h  = by_model(data, "Drumsequencer")["id"]
+    rc = by_model(data, "RimClap")["id"]
+    k  = by_model(data, "Kck")["id"]
+    t  = by_model(data, "Toms")["id"]
+    hh = by_model(data, "ChhOhh")["id"]
+    cr = by_model(data, "CrashRide")["id"]
+    au = by_model(data, "AudioInterface2")["id"]
+    gm = GHOSTMIX_ID
+    for track, steps in patterns.items():
+        set_track(hd, track, steps)
+
+    A = out_of(ACCENT_TRACK)
+    # triggers + shared accent into every voice's TOTAL_ACC
+    cable(data, h, out_of(KICK_TRACK),    k,  KCK_TRIG, "#c91847")
+    cable(data, h, A,                     k,  KCK_TOTAL_ACC, "#f3b0c2")
+    cable(data, h, out_of(RIM_TRACK),     rc, RC_RIM_TRIG, "#3398dc")
+    cable(data, h, out_of(CLAP_TRACK),    rc, RC_CLAP_TRIG, "#f9c130")
+    cable(data, h, A,                     rc, RC_TOTAL_ACC, "#f3b0c2")
+    cable(data, h, out_of(TOM_HI_TRACK),  t,  TM_HI_TRIG, "#7a4ec2")
+    cable(data, h, out_of(TOM_MID_TRACK), t,  TM_MID_TRIG, "#7a4ec2")
+    cable(data, h, out_of(TOM_LO_TRACK),  t,  TM_LO_TRIG, "#7a4ec2")
+    cable(data, h, A,                     t,  TM_TOTAL_ACC, "#f3b0c2")
+    cable(data, h, out_of(CHH_TRACK),     hh, HH_CHH_TRIG, "#2aa198")
+    cable(data, h, out_of(OHH_TRACK),     hh, HH_OHH_TRIG, "#2aa198")
+    cable(data, h, A,                     hh, HH_TOTAL_ACC, "#f3b0c2")
+    cable(data, h, out_of(CRASH_TRACK),   cr, CR_CRASH_TRIG, "#b58900")
+    cable(data, h, out_of(RIDE_TRACK),    cr, CR_RIDE_TRIG, "#b58900")
+    cable(data, h, A,                     cr, CR_TOTAL_ACC, "#f3b0c2")
+    # audio -> GHOST MIX fixed channels
+    cable(data, k,  0,            gm, GM["kick"])
+    cable(data, rc, RC_RIM_OUT,   gm, GM["rim"])
+    cable(data, rc, RC_CLAP_OUT,  gm, GM["clap"])
+    cable(data, t,  TM_LO_OUT,    gm, GM["tomlo"])
+    cable(data, t,  TM_MID_OUT,   gm, GM["tommid"])
+    cable(data, t,  TM_HI_OUT,    gm, GM["tomhi"])
+    cable(data, hh, HH_CHH_OUT,   gm, GM["chh"])
+    cable(data, hh, HH_OHH_OUT,   gm, GM["ohh"])
+    cable(data, cr, CR_CRASH_OUT, gm, GM["crash"])
+    cable(data, cr, CR_RIDE_OUT,  gm, GM["ride"])
+    cable(data, gm, 0, au, 0, "#d8d8d8")
+    cable(data, gm, 0, au, 1, "#d8d8d8")
+    pack_ctrl_row(data)
+
+
+def assemble(data, patterns, has_kick, has_clap, has_toms=False, has_hats=False,
+             has_cymbals=False):
     hd = by_model(data, "Drumsequencer")["data"]
     h = by_model(data, "Drumsequencer")["id"]
     ctrl = by_model(data, "Tr909Ctrl")["id"]  # noqa: kept for clarity / future use
     rc = by_model(data, "RimClap")["id"]
-    um = by_model(data, "Bogaudio-UMix")["id"]
+    # the donor's UMix is the master mix; a second UMix (TOMSUB_ID) may be a sub
+    um = next(m["id"] for m in data["modules"]
+              if m["model"] == "Bogaudio-UMix" and m["id"] != TOMSUB_ID)
     au = by_model(data, "AudioInterface2")["id"]
 
     for track, steps in patterns.items():
@@ -198,9 +282,24 @@ def assemble(data, patterns, has_kick, has_clap, has_toms=False, has_hats=False)
         cable(data, h, out_of(TOM_MID_TRACK), t, TM_MID_TRIG, "#7a4ec2")   # out7 -> MID
         cable(data, h, out_of(TOM_LO_TRACK),  t, TM_LO_TRIG,  "#7a4ec2")   # out8 -> LOW
         cable(data, h, out_of(ACCENT_TRACK),  t, TM_TOTAL_ACC, "#f3b0c2")
-        cable(data, t, TM_LO_OUT,  um, 3)
-        cable(data, t, TM_MID_OUT, um, 4)
-        cable(data, t, TM_HI_OUT,  um, 5)
+        if has_cymbals:
+            # collapse toms through a sub-mixer to free main channels 4/5
+            cable(data, t, TM_LO_OUT,  TOMSUB_ID, 0)
+            cable(data, t, TM_MID_OUT, TOMSUB_ID, 1)
+            cable(data, t, TM_HI_OUT,  TOMSUB_ID, 2)
+            cable(data, TOMSUB_ID, 0, um, 3)
+        else:
+            cable(data, t, TM_LO_OUT,  um, 3)
+            cable(data, t, TM_MID_OUT, um, 4)
+            cable(data, t, TM_HI_OUT,  um, 5)
+    # cymbals (crash + ride, shared accent) -> main channels 4/5
+    if has_cymbals:
+        cr = by_model(data, "CrashRide")["id"]
+        cable(data, h, out_of(CRASH_TRACK), cr, CR_CRASH_TRIG, "#b58900")
+        cable(data, h, out_of(RIDE_TRACK),  cr, CR_RIDE_TRIG,  "#b58900")
+        cable(data, h, out_of(ACCENT_TRACK), cr, CR_TOTAL_ACC, "#f3b0c2")
+        cable(data, cr, CR_CRASH_OUT, um, 4)
+        cable(data, cr, CR_RIDE_OUT,  um, 5)
     # hats (closed + open, shared accent)
     if has_hats:
         hh = by_model(data, "ChhOhh")["id"]
@@ -263,9 +362,26 @@ def build_05():
     save_vcv(data, os.path.join(LDIR, "05-add-hats.vcv"))
 
 
+def build_06():
+    data = load_base()
+    drop_module(data, "Bogaudio-UMix")          # GHOST MIX replaces the UMix
+    add_toms(data)
+    add_chhohh(data)
+    add_crashride(data)
+    add_ghostmix(data)
+    reset_routing(data)
+    patterns = dict(GROOVE)
+    patterns.update(TOMS)
+    patterns.update(HATS)
+    patterns.update(CYMBALS)
+    assemble_gmix(data, patterns)
+    save_vcv(data, os.path.join(LDIR, "06-add-cymbals.vcv"))
+
+
 if __name__ == "__main__":
     build_01()
     build_02()
     build_03()
     build_04()
     build_05()
+    build_06()

@@ -61,6 +61,12 @@
       "name": "GHOST CTRL",
       "description": "Global state controller for the Ghost drum system. DEFAULT, ACCENT A, ACCENT B, and MASTER controls are broadcast to adjacent Ghost voices via the expander path. Hit-time events such as trigger and local/total accent gates are patched directly to each voice. Use GHOST CTRL to make the separate voices behave like one instrument.",
       "tags": ["Controller", "Utility"]
+    },
+    {
+      "slug": "GhostMix",
+      "name": "GHOST MIX",
+      "description": "Dedicated summing mixer for the Ghost drum kit. Ten labeled inputs (Kick, Rim, Clap, Tom Lo/Mid/Hi, Closed Hat, Open Hat, Crash, Ride), each with a mute switch, summed to one MIX output. Per-voice level lives on the voices, so the mixer is a clean unity summer -- the whole kit on one master mix point, in the box.",
+      "tags": ["Mixer", "Utility"]
     }
   ]
 }

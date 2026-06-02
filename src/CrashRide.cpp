@@ -157,6 +157,17 @@ struct CrashRide : GhostModule {
         configOutput(RIDE_OUT_OUTPUT,  "Ride audio");
     }
 
+    /// Return both voices to silence on Rack "Initialize" / first load (reset
+    /// triggers + ROM voices, drop latched accent gains and chars).
+    void onReset() override {
+        crashTrigger.reset();
+        rideTrigger.reset();
+        crashVoice.sourcePos = rideVoice.sourcePos = 1e9f;
+        crashVoice.env = rideVoice.env = 0.f;
+        crashLatchedGain = rideLatchedGain = 1.f;
+        crashLatchedChar = rideLatchedChar = 0.f;
+    }
+
     // knob + CV/10, clamped to 0..1 (DRIVE is off-panel, so no CV).
     float normWithCV(int paramId, int inputId) {
         return rack::math::clamp(

@@ -118,6 +118,16 @@ struct RimClap : GhostModule {
         configOutput(RIM_OUT_OUTPUT, "Rim audio");
     }
 
+    /// Return both voices to silence and a clean state on Rack "Initialize" /
+    /// first load (park read heads, drop the accent latches).
+    void onReset() override {
+        clapTrigger.reset();
+        rimTrigger.reset();
+        clapVoice.pos = rimVoice.pos = 1e9f;
+        clapLatchedGain = rimLatchedGain = 1.f;
+        clapLatchedChar = rimLatchedChar = 0.f;
+    }
+
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (clapTrigger.process(inputs[CLAP_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {

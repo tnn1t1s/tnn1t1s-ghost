@@ -2,6 +2,7 @@
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
 #include "GhostPanel.hpp"
+#include "GhostVoice.hpp"
 #include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <cmath>
@@ -65,6 +66,8 @@ struct SnrSVF {
         float v2 = ic2 + a2 * ic1 + a3 * v3;
         ic1 = 2.f * v1 - ic1;
         ic2 = 2.f * v2 - ic2;
+        if (std::abs(ic1) < Ghost::kDenormalFloor) ic1 = 0.f;   // denormal safety
+        if (std::abs(ic2) < Ghost::kDenormalFloor) ic2 = 0.f;   // denormal safety
         lpf = v2;
         hpf = x - k * v1 - v2;
     }
@@ -119,12 +122,6 @@ static inline const Config& defaults() {
     static const Config cfg;
     return cfg;
 }
-
-static Config current = defaults();
-
-static inline void reset() {
-    current = defaults();
-}
 }  // namespace SnrFit
 
 
@@ -142,6 +139,9 @@ struct Snr : GhostModule {
     enum OutputId { OUT_OUTPUT, NUM_OUTPUTS };
 
     dsp::SchmittTrigger trigger;
+    // Per-instance fit config: each Snr owns its own copy so multiple
+    // instances never share or race a file-scope static.
+    SnrFit::Config fit = SnrFit::defaults();
     // Default to a neutral mix until Snr accent is ear-tuned; keeps the
     // existing 909-snare voicing audibly unchanged when no controller is
     // wired or accent gates fire.
@@ -185,6 +185,23 @@ struct Snr : GhostModule {
         configOutput(OUT_OUTPUT,        "Audio");
     }
 
+    /// Return the snare to silence and a clean state on Rack "Initialize" /
+    /// first load (zero envelopes, phases, filters, and accent latches).
+    void onReset() override {
+        trigger.reset();
+        phase1 = phase2 = 0.f;
+        bodyEnv1 = bodyEnv2 = 0.f;
+        noiseLowEnv = noiseHighEnv = 0.f;
+        bendEnv = 0.f;
+        attackEnv = 1.f;
+        clickEnv = 0.f;
+        bodyLP = 0.f;
+        lpNoise.reset();
+        hpNoise.reset();
+        latchedCaseGain = 1.f;
+        latchedCharStrength = 0.f;
+    }
+
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -213,7 +230,7 @@ struct Snr : GhostModule {
         float tone_norm    = snrNormWithCV(*this, TONE_PARAM,   TONE_CV_INPUT);
         float snap_norm    = snrNormWithCV(*this, SNAPPY_PARAM, SNAPPY_CV_INPUT);
         float level_norm   = snrNormWithCV(*this, LEVEL_PARAM,  LEVEL_CV_INPUT);
-        const SnrFit::Config& fit = SnrFit::current;
+        const SnrFit::Config& fit = this->fit;
 
         float tune_oct = (tune_norm - 0.5f) * 2.f * SNR_TUNE_OCT_RANGE;
         float scale    = std::pow(2.f, tune_oct);
@@ -238,6 +255,7 @@ struct Snr : GhostModule {
         float bodyRaw = tri1 * bodyEnv1 * fit.body1Gain + tri2 * bodyEnv2 * fit.body2Gain;
         float bodyLpAlpha = 1.f - std::exp(-2.f * float(M_PI) * fit.bodyLpHz * args.sampleTime);
         bodyLP += (bodyRaw - bodyLP) * bodyLpAlpha;
+        if (std::abs(bodyLP) < Ghost::kDenormalFloor) bodyLP = 0.f;   // denormal safety
         float body = std::tanh(bodyLP * fit.bodyDrive);
 
         // --- noise: fixed binary source, split into low/high branches ----
@@ -266,12 +284,18 @@ struct Snr : GhostModule {
 
         // --- envelope decays --------------------------------------------
         bodyEnv1 *= std::exp(-args.sampleTime / fit.body1TauSec);
+        if (bodyEnv1 < Ghost::kDenormalFloor) bodyEnv1 = 0.f;   // denormal safety
         bodyEnv2 *= std::exp(-args.sampleTime / fit.body2TauSec);
+        if (bodyEnv2 < Ghost::kDenormalFloor) bodyEnv2 = 0.f;   // denormal safety
         noiseLowEnv *= std::exp(-args.sampleTime / noiseLowTau);
+        if (noiseLowEnv < Ghost::kDenormalFloor) noiseLowEnv = 0.f;   // denormal safety
         noiseHighEnv *= std::exp(-args.sampleTime / noiseHighTau);
+        if (noiseHighEnv < Ghost::kDenormalFloor) noiseHighEnv = 0.f;   // denormal safety
         bendEnv *= std::exp(-args.sampleTime / fit.bendTauSec);
+        if (bendEnv < Ghost::kDenormalFloor) bendEnv = 0.f;   // denormal safety
         attackEnv += (1.f - attackEnv) * (1.f - std::exp(-args.sampleTime / fit.attackTauSec));
         clickEnv *= std::exp(-args.sampleTime / fit.clickTauSec);
+        if (clickEnv < Ghost::kDenormalFloor) clickEnv = 0.f;   // denormal safety
 
         float mix = body + lowNoise + highNoise + click;
         mix = std::tanh(mix * Ghost::accentAdd(
@@ -496,6 +520,7 @@ struct SnrLab : GhostModule {
         float bodyRaw = tri1 * bodyEnv1 * fit.body1Gain + tri2 * bodyEnv2 * fit.body2Gain;
         float bodyLpAlpha = 1.f - std::exp(-2.f * float(M_PI) * fit.bodyLpHz * args.sampleTime);
         bodyLP += (bodyRaw - bodyLP) * bodyLpAlpha;
+        if (std::abs(bodyLP) < Ghost::kDenormalFloor) bodyLP = 0.f;   // denormal safety
         float body = std::tanh(bodyLP * fit.bodyDrive);
 
         noisePhase += fit.noiseClockHz * args.sampleTime;
@@ -522,12 +547,18 @@ struct SnrLab : GhostModule {
         prevNoise = noiseValue;
 
         bodyEnv1 *= std::exp(-args.sampleTime / fit.body1TauSec);
+        if (bodyEnv1 < Ghost::kDenormalFloor) bodyEnv1 = 0.f;   // denormal safety
         bodyEnv2 *= std::exp(-args.sampleTime / fit.body2TauSec);
+        if (bodyEnv2 < Ghost::kDenormalFloor) bodyEnv2 = 0.f;   // denormal safety
         noiseLowEnv *= std::exp(-args.sampleTime / noiseLowTau);
+        if (noiseLowEnv < Ghost::kDenormalFloor) noiseLowEnv = 0.f;   // denormal safety
         noiseHighEnv *= std::exp(-args.sampleTime / noiseHighTau);
+        if (noiseHighEnv < Ghost::kDenormalFloor) noiseHighEnv = 0.f;   // denormal safety
         bendEnv *= std::exp(-args.sampleTime / fit.bendTauSec);
+        if (bendEnv < Ghost::kDenormalFloor) bendEnv = 0.f;   // denormal safety
         attackEnv += (1.f - attackEnv) * (1.f - std::exp(-args.sampleTime / fit.attackTauSec));
         clickEnv *= std::exp(-args.sampleTime / fit.clickTauSec);
+        if (clickEnv < Ghost::kDenormalFloor) clickEnv = 0.f;   // denormal safety
 
         float mix = body + lowNoise + highNoise + click;
         mix = std::tanh(mix * Ghost::accentAdd(

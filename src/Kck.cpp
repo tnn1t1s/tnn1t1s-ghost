@@ -3,6 +3,7 @@
 #include "PanelLayout.hpp"
 #include "GhostPanel.hpp"
 #include "GhostBus.hpp"
+#include "GhostVoice.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <algorithm>
 #include <cmath>
@@ -269,6 +270,8 @@ struct KckVoice {
         const float hp = sat - svfLp - q * svfBp;
         svfBp += fcoef * hp;
         svfLp = rack::math::clamp(svfLp, -2.f, 2.f);           // safety
+        if (std::abs(svfLp) < Ghost::kDenormalFloor) svfLp = 0.f;   // denormal safety
+        if (std::abs(svfBp) < Ghost::kDenormalFloor) svfBp = 0.f;   // denormal safety
 
         const float ampEnv  = std::exp(-(fit.ampDecayMin - decayNorm * fit.ampDecaySpan) * t);
         const float bodyOut = svfLp * fit.bodyFundGain * ampEnv
@@ -289,6 +292,7 @@ struct KckVoice {
 
         // Leaky DC-blocking HP.
         hpState += fit.hpCoef * (out - hpState);
+        if (std::abs(hpState) < Ghost::kDenormalFloor) hpState = 0.f;   // denormal safety
         out -= hpState;
 
         out = std::tanh(out * (fit.driveBase + acc * fit.accent.driveAmt));
@@ -363,6 +367,20 @@ struct Kck : GhostModule {
     // the duration of the hit so knob movements during a hit don't shift
     // its level mid-flight.
     float latchedCaseGain = 1.f;
+
+    /// Return the voice to silence and clean latched state on Rack "Initialize" /
+    /// first load (reset trigger, park DSP/filter/envelope state, drop accent latches).
+    void onReset() override {
+        voice.trigger.reset();
+        voice.phase = voice.phaseSub = 0.f;
+        voice.t = 0.f;
+        voice.active = false;
+        voice.hpState = 0.f;
+        voice.bodyLp = voice.clickLp = 0.f;
+        voice.svfLp = voice.svfBp = 0.f;
+        voice.latchedAccent = 0.f;
+        latchedCaseGain = 1.f;
+    }
 
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);

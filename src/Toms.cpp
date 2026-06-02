@@ -3,6 +3,7 @@
 #include "PanelLayout.hpp"
 #include "GhostPanel.hpp"
 #include "GhostBus.hpp"
+#include "GhostVoice.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <cmath>
 #include "SvgHelper.hpp"
@@ -145,13 +146,15 @@ struct TomVoice {
         if (!active) return 0.f;
 
         const float tunedFreq = fit.baseHz * (fit.tuneOffset + tuneNorm * fit.tuneSpan);
-        const float pitchEnv  = std::exp(-fit.pitchBendRate * t);
+        float pitchEnv  = std::exp(-fit.pitchBendRate * t);
+        if (pitchEnv < Ghost::kDenormalFloor) pitchEnv = 0.f;   // denormal safety
         const float freq1     = tunedFreq
                               + pitchEnv * (fit.pitchBendBase + fit.baseHz * fit.pitchBendBaseScale);
         const float freq2     = freq1 * fit.osc2Ratio;
         const float freq3     = freq1 * fit.osc3Ratio;
         const float envRate   = fit.envRateMin + (1.f - decayNorm) * fit.envRateSpan;
-        const float env       = std::exp(-envRate * t);
+        float env       = std::exp(-envRate * t);
+        if (env < Ghost::kDenormalFloor) env = 0.f;   // denormal safety
 
         const float click = (sampleCount < (int)fit.clickLengthSamples)
             ? (Ghost::accentScale(
@@ -167,7 +170,9 @@ struct TomVoice {
         phase3 -= std::floor(phase3);
 
         // Short white-noise burst (909 tom noise circuit), own fast envelope.
-        const float noise = nextNoise() * std::exp(-fit.noiseDecayRate * t)
+        float noiseEnv = std::exp(-fit.noiseDecayRate * t);
+        if (noiseEnv < Ghost::kDenormalFloor) noiseEnv = 0.f;   // denormal safety
+        const float noise = nextNoise() * noiseEnv
                           * Ghost::accentScale(fit.noiseGain, accentNorm, fit.accent.noiseAmt);
 
         float out = ((tomTriangle(phase1) * fit.osc1Gain
@@ -179,6 +184,7 @@ struct TomVoice {
 
         // Leaky DC-blocking HP: y = x - LP(x).
         hpState += fit.hpCoef * (out - hpState);
+        if (std::abs(hpState) < Ghost::kDenormalFloor) hpState = 0.f;   // denormal safety
         out -= hpState;
 
         const float driveGain = Ghost::accentAdd(
@@ -470,6 +476,22 @@ struct Toms : GhostModule {
         lowFit  = TomFit::makeLowTom();
         midFit  = TomFit::makeMidTom();
         highFit = TomFit::makeHighTom();
+    }
+
+    /// Return all three toms to silence on Rack "Initialize" / first load
+    /// (clear triggers, park each voice's DSP state, drop accent latches).
+    void onReset() override {
+        for (TomVoice* v : {&low, &mid, &high}) {
+            v->trigger.reset();
+            v->phase1 = v->phase2 = v->phase3 = 0.f;
+            v->t = 0.f;
+            v->sampleCount = 0;
+            v->hpState = 0.f;
+            v->rngState = 1u;
+            v->active = false;
+        }
+        lowGain = midGain = highGain = 1.f;
+        lowChar = midChar = highChar = 0.f;
     }
 
     // knob + CV/10, clamped to 0..1.

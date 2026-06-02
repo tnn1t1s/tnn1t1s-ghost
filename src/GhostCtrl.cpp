@@ -59,12 +59,14 @@ struct GhostCtrl : GhostModule {
         configInput(MASTER_VOL_CV_INPUT, "Master volume CV");
     }
 
+    /// Sum a knob value with its CV input (0.1 V/unit) clamped to [0, 1].
     static inline float knobPlusCV(rack::Module& self, int paramId, int cvInputId) {
         float v = self.params[paramId].getValue()
                 + self.inputs[cvInputId].getNormalVoltage(0.f) * 0.1f;
         return rack::math::clamp(v, 0.f, 1.f);
     }
 
+    /// Broadcast the accent, master, ghost and range controls onto the bus.
     void process(const ProcessArgs& args) override {
         currentBus.ghostAmount       = 1.f;  // fixed full ghost level (no panel control)
         currentBus.accentAAmount     = knobPlusCV(*this, ACCENT_A_PARAM,   ACCENT_A_CV_INPUT);
@@ -81,6 +83,7 @@ struct GhostCtrl : GhostModule {
 // Panel -- 8 HP, solid black, 4 vertical knob+CV pairs
 // ---------------------------------------------------------------------------
 
+/// Panel widget: binds the accent/master knobs, CV inputs and range switch.
 struct GhostCtrlWidget : ModuleWidget, SvgHelper<GhostCtrlWidget> {
     GhostCtrlWidget(GhostCtrl* module) {
         setModule(module);

@@ -9,6 +9,7 @@ using namespace rack;
 
 extern Plugin* pluginInstance;
 
+/// Reference pass-through attenuator: OUT = IN * SCALE (knob + CV).
 struct Attenuate : Module {
     enum ParamId  { SCALE_PARAM, NUM_PARAMS };
     enum InputId  { IN_INPUT, SCALE_CV_INPUT, NUM_INPUTS };
@@ -22,6 +23,7 @@ struct Attenuate : Module {
         configOutput(OUT_OUTPUT, "Signal");
     }
 
+    /// Scale the input by the knob plus CV (0.1 V/unit), clamped to [0, 1].
     void process(const ProcessArgs& args) override {
         float scale = params[SCALE_PARAM].getValue()
                       + inputs[SCALE_CV_INPUT].getVoltage() * 0.1f;
@@ -30,6 +32,7 @@ struct Attenuate : Module {
     }
 };
 
+/// Panel widget: binds the scale knob, scale CV, signal in and signal out.
 struct AttenuateWidget : ModuleWidget, SvgHelper<AttenuateWidget> {
     AttenuateWidget(Attenuate* module) {
         setModule(module);

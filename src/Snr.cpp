@@ -33,28 +33,34 @@ extern Plugin* pluginInstance;
  *   Outputs: OUT=0
  */
 
-static constexpr float SNR_TUNE_OCT_RANGE    = 0.75f;
-static constexpr float SNR_TONE_MIN_SEC      = 0.018f;
-static constexpr float SNR_NOISE_HIGH_Q      = 0.78f;
-static constexpr float SNR_NOISE_LOW_Q       = 0.82f;
-static constexpr float SNR_CV_SCALE          = 0.1f;
+static constexpr float kSnrTuneOctRange = 0.75f;
+static constexpr float kSnrToneMinSec   = 0.018f;
+static constexpr float kSnrNoiseHighQ   = 0.78f;
+static constexpr float kSnrNoiseLowQ    = 0.82f;
+static constexpr float kSnrCvScale      = 0.1f;
 
+/// Read a 0..1 param and fold in its CV input (scaled by kSnrCvScale), clamped
+/// to [0, 1]. Used for the four front-panel controls.
 static inline float snrNormWithCV(rack::Module& self, int paramId, int inputId) {
     float norm = self.params[paramId].getValue()
-               + self.inputs[inputId].getVoltage() * SNR_CV_SCALE;
+               + self.inputs[inputId].getVoltage() * kSnrCvScale;
     return rack::math::clamp(norm, 0.f, 1.f);
 }
 
+/// Unipolar-phase (0..1) triangle wave in [-1, 1], peaking at phase 0.5.
 static inline float snrTriangle(float phase) {
     return 1.f - 4.f * std::fabs(phase - 0.5f);
 }
 
-// TPT SVF used for the snare-noise branches.
+/// Zero-delay-feedback (TPT) state-variable filter; exposes simultaneous low-
+/// and high-pass outputs (lpf, hpf) for the snare-noise branches.
 struct SnrSVF {
     float ic1 = 0.f, ic2 = 0.f;
     float lpf = 0.f;
     float hpf = 0.f;
     void reset() { ic1 = ic2 = lpf = hpf = 0.f; }
+    /// Advance the filter by one sample. x is input; fHz the cutoff in Hz;
+    /// sampleRate in Hz; Q the resonance. Updates lpf/hpf members in place.
     void process(float x, float fHz, float sampleRate, float Q) {
         float g = std::tan(float(M_PI) * fHz / sampleRate);
         float k = 1.f / Q;
@@ -74,6 +80,9 @@ struct SnrSVF {
 };
 
 namespace SnrFit {
+/// Fitted internal voicing constants for the snare (oscillator base
+/// frequencies in Hz, decay time-constants in seconds, gains, and accent
+/// policy). Production Snr uses the defaults; SnrLab overrides a curated subset.
 struct Config {
     float osc1BaseHz = 157.655031f;
     float osc2BaseHz = 332.641481f;
@@ -118,6 +127,7 @@ struct Config {
     Ghost::AccentCharacter accent = Ghost::Accent::snare();  // shared policy
 };
 
+/// Shared immutable default fit config (constructed once on first use).
 static inline const Config& defaults() {
     static const Config cfg;
     return cfg;
@@ -125,6 +135,8 @@ static inline const Config& defaults() {
 }  // namespace SnrFit
 
 
+/// Production 909-style snare voice. Front-panel surface is Tune/Tone/Snappy/
+/// Level (plus CV and accent inputs); all voicing is fixed from SnrFit defaults.
 struct Snr : GhostModule {
 
     enum ParamId  {
@@ -169,6 +181,7 @@ struct Snr : GhostModule {
     SnrSVF lpNoise;
     SnrSVF hpNoise;
 
+    /// Configure the four params, CV/accent inputs, and audio output.
     Snr() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
         configParam(TUNE_PARAM,   0.f, 1.f, 0.50f, "Tune",   "%", 0.f, 100.f);
@@ -202,6 +215,9 @@ struct Snr : GhostModule {
         latchedCharStrength = 0.f;
     }
 
+    /// Synthesize one sample: on a rising TRIG, latch accent and reset all
+    /// envelopes/phases; then sum the two-triangle body, low/high noise
+    /// branches, and transient click into the soft-clipped, level-scaled output.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -232,12 +248,12 @@ struct Snr : GhostModule {
         float level_norm   = snrNormWithCV(*this, LEVEL_PARAM,  LEVEL_CV_INPUT);
         const SnrFit::Config& fit = this->fit;
 
-        float tune_oct = (tune_norm - 0.5f) * 2.f * SNR_TUNE_OCT_RANGE;
+        float tune_oct = (tune_norm - 0.5f) * 2.f * kSnrTuneOctRange;
         float scale    = std::pow(2.f, tune_oct);
         float bendOct  = bendEnv * fit.bendMaxOct;
         float f1       = fit.osc1BaseHz * scale * std::pow(2.f, bendOct);
         float f2       = fit.osc2BaseHz * scale * std::pow(2.f, bendOct * fit.osc2BendRatio);
-        float toneTau  = SNR_TONE_MIN_SEC + tone_norm * (fit.toneMaxSec - SNR_TONE_MIN_SEC);
+        float toneTau  = kSnrToneMinSec + tone_norm * (fit.toneMaxSec - kSnrToneMinSec);
         float snapShape = std::pow(1.f - snap_norm, fit.snappyShapePower);
         float noiseLowTau = toneTau
                           * (fit.lowNoiseSnappyTauMinScale + snapShape * fit.lowNoiseSnappyTauDelta);
@@ -267,8 +283,8 @@ struct Snr : GhostModule {
             noiseShift = (noiseShift >> 1) | (newBit << 15);
             noiseValue = (noiseShift & 1u) ? 1.f : -1.f;
         }
-        lpNoise.process(noiseValue, fit.noiseLpHz, args.sampleRate, SNR_NOISE_LOW_Q);
-        hpNoise.process(noiseValue, fit.noiseHpHz, args.sampleRate, SNR_NOISE_HIGH_Q);
+        lpNoise.process(noiseValue, fit.noiseLpHz, args.sampleRate, kSnrNoiseLowQ);
+        hpNoise.process(noiseValue, fit.noiseHpHz, args.sampleRate, kSnrNoiseHighQ);
         float lowNoiseGain = fit.lowNoiseGain
                            * (fit.lowNoiseToneBase + tone_norm * fit.lowNoiseToneSpan)
                            * (1.f + snapShape * fit.lowNoiseSnappyGainDelta);
@@ -314,6 +330,8 @@ struct Snr : GhostModule {
 // Panel
 // ---------------------------------------------------------------------------
 
+/// Background panel for the production Snr: asset image plus the four control
+/// labels and the two accent-input labels.
 struct SnrPanel : rack::widget::Widget {
     void draw(const DrawArgs& args) override {
         AgentLayout::drawAssetPanel(
@@ -325,20 +343,20 @@ struct SnrPanel : rack::widget::Widget {
         static const char* const LABELS[] = {
             "TUNE", "TONE", "SNAP", "LEVEL",
         };
-        const float* ys = AgentLayout::ROW_Y_8;
+        const float* ys = AgentLayout::kRowY8;
         nvgFontSize(args.vg, 5.5f);
         nvgFillColor(args.vg, nvgRGBA(255, 190, 180, 180));
         nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
         for (int i = 0; i < 4; i++) {
-            nvgText(args.vg, mm2px(AgentLayout::CENTER_12HP), mm2px(ys[i]),
+            nvgText(args.vg, mm2px(AgentLayout::kCenter12Hp), mm2px(ys[i]),
                     LABELS[i], NULL);
         }
         // Accent input row labels (column-anchored, like the IO row).
         nvgFontSize(args.vg, 4.5f);
         nvgFillColor(args.vg, nvgRGBA(255, 190, 180, 160));
-        nvgText(args.vg, mm2px(AgentLayout::LEFT_COLUMN_12HP),
+        nvgText(args.vg, mm2px(AgentLayout::kLeftColumn12Hp),
                 mm2px(ys[5] - 6.f), "LACC", NULL);
-        nvgText(args.vg, mm2px(AgentLayout::RIGHT_COLUMN_12HP),
+        nvgText(args.vg, mm2px(AgentLayout::kRightColumn12Hp),
                 mm2px(ys[5] - 6.f), "TACC", NULL);
     }
 };
@@ -348,6 +366,7 @@ struct SnrPanel : rack::widget::Widget {
 // Widget -- 12HP, 8-row grid
 // ---------------------------------------------------------------------------
 
+/// Production Snr module widget: 12HP, 8-row grid wiring knobs/ports to the SVG.
 struct SnrWidget : ModuleWidget, SvgHelper<SnrWidget> {
     SnrWidget(Snr* module) {
         setModule(module);
@@ -431,6 +450,8 @@ struct SnrLab : GhostModule {
     SnrSVF lpNoise;
     SnrSVF hpNoise;
 
+    /// Configure the 909 surface plus the curated fit-term knobs (ranges and
+    /// defaults sourced from SnrFit defaults), trig/accent inputs, and output.
     SnrLab() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
         configParam(TUNE_PARAM,               0.f, 1.f, 0.50f, "Tune", "%", 0.f, 100.f);
@@ -453,6 +474,8 @@ struct SnrLab : GhostModule {
         configOutput(OUT_OUTPUT,       "Audio");
     }
 
+    /// Same synthesis as Snr::process, but each frame starts from SnrFit
+    /// defaults and overrides the promoted lab knobs before computing the voice.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -498,12 +521,12 @@ struct SnrLab : GhostModule {
         float snap_norm = rack::math::clamp(params[SNAPPY_PARAM].getValue(), 0.f, 1.f);
         float level_norm = rack::math::clamp(params[LEVEL_PARAM].getValue(), 0.f, 1.f);
 
-        float tune_oct = (tune_norm - 0.5f) * 2.f * SNR_TUNE_OCT_RANGE;
+        float tune_oct = (tune_norm - 0.5f) * 2.f * kSnrTuneOctRange;
         float scale = std::pow(2.f, tune_oct);
         float bendOct = bendEnv * fit.bendMaxOct;
         float f1 = fit.osc1BaseHz * scale * std::pow(2.f, bendOct);
         float f2 = fit.osc2BaseHz * scale * std::pow(2.f, bendOct * fit.osc2BendRatio);
-        float toneTau = SNR_TONE_MIN_SEC + tone_norm * (fit.toneMaxSec - SNR_TONE_MIN_SEC);
+        float toneTau = kSnrToneMinSec + tone_norm * (fit.toneMaxSec - kSnrToneMinSec);
         float snapShape = std::pow(1.f - snap_norm, fit.snappyShapePower);
         float noiseLowTau = toneTau
                           * (fit.lowNoiseSnappyTauMinScale + snapShape * fit.lowNoiseSnappyTauDelta);
@@ -531,8 +554,8 @@ struct SnrLab : GhostModule {
             noiseShift = (noiseShift >> 1) | (newBit << 15);
             noiseValue = (noiseShift & 1u) ? 1.f : -1.f;
         }
-        lpNoise.process(noiseValue, fit.noiseLpHz, args.sampleRate, SNR_NOISE_LOW_Q);
-        hpNoise.process(noiseValue, fit.noiseHpHz, args.sampleRate, SNR_NOISE_HIGH_Q);
+        lpNoise.process(noiseValue, fit.noiseLpHz, args.sampleRate, kSnrNoiseLowQ);
+        hpNoise.process(noiseValue, fit.noiseHpHz, args.sampleRate, kSnrNoiseHighQ);
         float lowNoiseGain = fit.lowNoiseGain
                            * (fit.lowNoiseToneBase + tone_norm * fit.lowNoiseToneSpan)
                            * (1.f + snapShape * fit.lowNoiseSnappyGainDelta);
@@ -572,8 +595,11 @@ struct SnrLab : GhostModule {
     }
 };
 
+/// A single positioned text label (mm coordinates) on the SnrLab panel.
 struct SnrLabLabelCell { float xMm, yMm; const char* text; };
 
+/// Background panel for SnrLab: draws the lab shell and a list of positioned
+/// control labels supplied by the widget.
 struct SnrLabPanel : rack::widget::Widget {
     std::vector<SnrLabLabelCell> labels;
 
@@ -594,7 +620,10 @@ struct SnrLabPanel : rack::widget::Widget {
     }
 };
 
+/// SnrLab module widget: 18HP expert surface laying out the curated fit knobs
+/// on a 5x3 grid plus the trig/accent inputs and audio output.
 struct SnrLabWidget : rack::ModuleWidget {
+    /// Add a small knob at (xMm, yMm) and register its label 6mm above it.
     void addLabeledKnob(rack::engine::Module* module, int paramId,
                         float xMm, float yMm, const char* label, SnrLabPanel* panel) {
         addParam(createParamCentered<rack::RoundSmallBlackKnob>(

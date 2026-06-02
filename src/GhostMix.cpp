@@ -16,18 +16,19 @@ using namespace rack;
 
 extern Plugin* pluginInstance;
 
+/// Ten-input unity summing mixer for the 909 kit, one input per voice.
 struct GhostMix : Module {
-    static const int N = 10;
-    enum ParamId  { MUTE_PARAM, NUM_PARAMS = MUTE_PARAM + N };
-    enum InputId  { IN_INPUT,   NUM_INPUTS = IN_INPUT + N };
+    static const int kNumChannels = 10;
+    enum ParamId  { MUTE_PARAM, NUM_PARAMS = MUTE_PARAM + kNumChannels };
+    enum InputId  { IN_INPUT,   NUM_INPUTS = IN_INPUT + kNumChannels };
     enum OutputId { MIX_OUTPUT, NUM_OUTPUTS };
 
     GhostMix() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-        static const char* names[N] = {
+        static const char* names[kNumChannels] = {
             "Kick", "Rim", "Clap", "Tom low", "Tom mid", "Tom high",
             "Closed hat", "Open hat", "Crash", "Ride"};
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < kNumChannels; i++) {
             configSwitch(MUTE_PARAM + i, 0.f, 1.f, 0.f,
                          std::string(names[i]) + " mute", {"On", "Muted"});
             configInput(IN_INPUT + i, names[i]);
@@ -35,9 +36,10 @@ struct GhostMix : Module {
         configOutput(MIX_OUTPUT, "Mix");
     }
 
+    /// Sum unmuted inputs into the mix output, with NaN guard and ±10V clamp.
     void process(const ProcessArgs& args) override {
         float sum = 0.f;
-        for (int i = 0; i < N; i++)
+        for (int i = 0; i < kNumChannels; i++)
             if (params[MUTE_PARAM + i].getValue() < 0.5f)   // 0 = on, 1 = muted
                 sum += inputs[IN_INPUT + i].getVoltage();
         // NaN guard + ±10 V safety clamp: a unity sum of 10 voices can run hot,
@@ -47,6 +49,7 @@ struct GhostMix : Module {
     }
 };
 
+/// Panel widget: binds the ten input jacks, mute switches and mix output.
 struct GhostMixWidget : ModuleWidget, SvgHelper<GhostMixWidget> {
     GhostMixWidget(GhostMix* module) {
         setModule(module);
@@ -57,13 +60,13 @@ struct GhostMixWidget : ModuleWidget, SvgHelper<GhostMixWidget> {
         addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        static const char* in_ids[GhostMix::N] = {
+        static const char* in_ids[GhostMix::kNumChannels] = {
             "in.kick", "in.rim", "in.clap", "in.tomlo", "in.tommid",
             "in.tomhi", "in.chh", "in.ohh", "in.crash", "in.ride"};
-        static const char* mute_ids[GhostMix::N] = {
+        static const char* mute_ids[GhostMix::kNumChannels] = {
             "mute.kick", "mute.rim", "mute.clap", "mute.tomlo", "mute.tommid",
             "mute.tomhi", "mute.chh", "mute.ohh", "mute.crash", "mute.ride"};
-        for (int i = 0; i < GhostMix::N; i++) {
+        for (int i = 0; i < GhostMix::kNumChannels; i++) {
             bindInput<PJ301MPort>(in_ids[i], GhostMix::IN_INPUT + i);
             bindParam<CKSS>(mute_ids[i], GhostMix::MUTE_PARAM + i);
         }

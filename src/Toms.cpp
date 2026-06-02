@@ -44,6 +44,9 @@ extern Plugin* pluginInstance;
 
 namespace TomFit {
 
+/// Full set of internal tom-engine model parameters (pitch, envelope, mix,
+/// noise, click, drive). One Config per voice; only baseHz differs across the
+/// three toms. Exposed for the voice_lab fitting workflow.
 struct Config {
     // Pitch
     float baseHz             = 100.f;
@@ -108,10 +111,13 @@ inline Config makeHighTom() { Config c; c.baseHz = 126.3f; return c; }
 
 namespace {
 
+/// Naive triangle wave from a normalised phase in [0,1); returns [-1,1].
 static inline float tomTriangle(float phase) {
     return 1.f - 4.f * std::fabs(phase - 0.5f);
 }
 
+/// One mono tom voice: holds the per-trigger DSP state (oscillator phases,
+/// time-since-trigger, HP filter state, noise RNG) and renders one sample.
 struct TomVoice {
     dsp::SchmittTrigger trigger;
     float phase1 = 0.f;
@@ -123,6 +129,7 @@ struct TomVoice {
     bool  active = false;
     uint32_t rngState = 1u;
 
+    /// Start a new one-shot: reset phases, time, filter and noise seed, activate.
     void fire() {
         phase1 = phase2 = phase3 = 0.f;
         t = 0.f;
@@ -132,11 +139,16 @@ struct TomVoice {
         active = true;
     }
 
+    /// One sample of white noise in [-1,1) from a fast LCG (no allocation).
     inline float nextNoise() {
         rngState = rngState * 1664525u + 1013904223u;
         return ((rngState >> 8) & 0xFFFFFFu) * (2.f / 16777216.f) - 1.f;
     }
 
+    /// Render one sample of the active one-shot. tuneNorm/decayNorm/levelNorm
+    /// are knob values in [0,1]; accentNorm is the latched accent character
+    /// strength. Returns the voice output in [-1,1] (pre case-gain/master);
+    /// returns 0 when inactive.
     float process(const rack::Module::ProcessArgs& args,
                   const TomFit::Config& fit,
                   float tuneNorm,
@@ -215,6 +227,8 @@ struct TomVoice {
 // the values back into TomFit::makeXxxTom().
 // ---------------------------------------------------------------------------
 
+/// Single-voice expert/fitting module: the production tom engine with all 17
+/// internal TomFit parameters exposed as knobs (defaults = LowTom). See banner.
 struct TomLab : GhostModule {
     enum ParamId {
         TUNE_PARAM, DECAY_PARAM, LEVEL_PARAM,
@@ -268,6 +282,8 @@ struct TomLab : GhostModule {
         configOutput(OUT_OUTPUT,       "Audio");
     }
 
+    /// Copy all fit knobs into the engine config, fire on a trigger edge
+    /// (latching accent), then render and write the audio output.
     void process(const ProcessArgs& args) override {
         // Live-copy every fit knob into the engine config.
         fit.baseHz             = params[BASE_HZ_PARAM].getValue();
@@ -308,12 +324,15 @@ struct TomLab : GhostModule {
     }
 };
 
+/// One knob/port caption on the TomLab panel: text at a mm position.
 struct TomLabLabelCell {
     float xMm;
     float yMm;
     const char* text;
 };
 
+/// Procedurally-drawn TomLab background: the lab shell plus all knob/port
+/// captions (no SVG; this is the expert surface).
 struct TomLabPanel : rack::widget::Widget {
     std::vector<TomLabLabelCell> labels;
 
@@ -334,7 +353,10 @@ struct TomLabPanel : rack::widget::Widget {
     }
 };
 
+/// Module widget for TomLab: lays the 16-knob grid plus trigger/accent/out
+/// ports on the procedural panel.
 struct TomLabWidget : rack::ModuleWidget {
+    /// Add a centred small knob at (xMm,yMm) and register its caption just below.
     void addLabeledKnob(rack::engine::Module* module, int paramId,
                         float xMm, float yMm,
                         const char* label, TomLabPanel* panel) {
@@ -353,8 +375,8 @@ struct TomLabWidget : rack::ModuleWidget {
 
         AgentLayout::addScrews_18HP(this);
 
-        const float COLS_X[4] = { 14.f, 37.f, 60.f, 83.f };
-        const float ROWS_Y[4] = { 24.f, 47.f, 70.f, 93.f };
+        const float kColsX[4] = { 14.f, 37.f, 60.f, 83.f };
+        const float kRowsY[4] = { 24.f, 47.f, 70.f, 93.f };
 
         struct Cell { int param; const char* label; };
         Cell cells[16] = {
@@ -378,7 +400,7 @@ struct TomLabWidget : rack::ModuleWidget {
         for (int i = 0; i < 16; i++) {
             int r = i / 4;
             int c = i % 4;
-            addLabeledKnob(module, cells[i].param, COLS_X[c], ROWS_Y[r], cells[i].label, panel);
+            addLabeledKnob(module, cells[i].param, kColsX[c], kRowsY[r], cells[i].label, panel);
         }
 
         addInput(createInputCentered<rack::PJ301MPort>(
@@ -408,6 +430,8 @@ rack::Model* modelTomLab = createModel<TomLab, TomLabWidget>("TomLab");
 // from TomFit. Use TomLab if you want to sweep internal voicing parameters.
 // ---------------------------------------------------------------------------
 
+/// Production 3-voice tom kit (Low/Mid/High) in one module: per-voice
+/// TUNE/DECAY/LEVEL with CV plus a shared accent input. See banner.
 struct Toms : GhostModule {
     // GHOST surface: three toms as a small drum sub-system -- each voice fully
     // tunable (TUNE/DECAY/LEVEL) with per-knob CV. IDs finalized for release.
@@ -494,13 +518,16 @@ struct Toms : GhostModule {
         lowChar = midChar = highChar = 0.f;
     }
 
-    // knob + CV/10, clamped to 0..1.
+    /// Knob value plus CV input scaled by 1/10 V, clamped to [0,1].
     float normWithCV(int paramId, int inputId) {
         return rack::math::clamp(
             params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
             0.f, 1.f);
     }
 
+    /// Fire any voice whose trigger edged this sample (latching its accent),
+    /// then render all three voices to their separate outputs scaled by the
+    /// per-voice case gain and the shared master volume.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         auto sampleAcc = [&]() {
@@ -539,6 +566,8 @@ struct Toms : GhostModule {
     }
 };
 
+/// Module widget for the production Toms: binds the SVG panel's knobs, CV,
+/// trigger, accent and audio-out ports to their param/port ids.
 struct TomsWidget : ModuleWidget, SvgHelper<TomsWidget> {
     TomsWidget(Toms* module) {
         setModule(module);

@@ -41,26 +41,29 @@ namespace crashride_impl {
 
 // Per-voice playable ranges. Source PCM rate is shared via
 // Ghost::kEmbeddedPcmSampleRate.
-static constexpr float CRASH_TUNE_OCTAVES  = 0.8f;
-static constexpr float CRASH_DECAY_MIN_SEC = 0.25f;
-static constexpr float CRASH_DECAY_MAX_SEC = 3.80f;
+static constexpr float kCrashTuneOctaves = 0.8f;
+static constexpr float kCrashDecayMinSec = 0.25f;
+static constexpr float kCrashDecayMaxSec = 3.80f;
 
-static constexpr float RIDE_TUNE_OCTAVES   = 0.7f;
-static constexpr float RIDE_DECAY_MIN_SEC  = 0.12f;
-static constexpr float RIDE_DECAY_MAX_SEC  = 4.80f;
+static constexpr float kRideTuneOctaves  = 0.7f;
+static constexpr float kRideDecayMinSec  = 0.12f;
+static constexpr float kRideDecayMaxSec  = 4.80f;
 
+/// Embedded crash PCM, decoded once and cached.
 static const std::vector<float>& crashSource() {
     static const std::vector<float> sample =
         Ghost::decodeEmbeddedF32(ghostCrash_f32, ghostCrash_f32_len);
     return sample;
 }
 
+/// Embedded ride PCM, decoded once and cached.
 static const std::vector<float>& rideSource() {
     static const std::vector<float> sample =
         Ghost::decodeEmbeddedF32(ghostRide_f32, ghostRide_f32_len);
     return sample;
 }
 
+/// Crash ROM asset (source + sample-rate config), built once and cached.
 static const Ghost::RomAsset& crashAsset() {
     static const Ghost::RomAsset asset =
         Ghost::makeRomAsset(crashSource(),
@@ -68,6 +71,7 @@ static const Ghost::RomAsset& crashAsset() {
     return asset;
 }
 
+/// Ride ROM asset (source + sample-rate config), built once and cached.
 static const Ghost::RomAsset& rideAsset() {
     static const Ghost::RomAsset asset =
         Ghost::makeRomAsset(rideSource(),
@@ -87,17 +91,19 @@ static const Ghost::RomAsset& rideAsset() {
 //                researching ROMpler bit-crush character.
 // Values are 1:1 with the standalone Crash and Ride modules so the per-voice
 // outputs of CrashRide are audibly identical to those of the standalones.
-static const Ghost::RomVoiceConfig CRASH_ROM_CFG = { 0.98f, 1.00f, 16 };
-static const Ghost::RomVoiceConfig RIDE_ROM_CFG  = { 1.00f, 1.00f, 16 };
+static const Ghost::RomVoiceConfig kCrashRomCfg = { 0.98f, 1.00f, 16 };
+static const Ghost::RomVoiceConfig kRideRomCfg  = { 1.00f, 1.00f, 16 };
 // Per the 909 reference doc, RD and CY have NO accent on the original 909
 // (sit at full max). The drive boosts below are stylistic Ghost
 // additions, not circuit reproductions. AccentCharacter member order:
 // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-static const Ghost::AccentCharacter CRASH_ACCENT = Ghost::Accent::driveOnly();
-static const Ghost::AccentCharacter RIDE_ACCENT  = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter kCrashAccent = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter kRideAccent  = Ghost::Accent::driveOnly();
 
 } // namespace crashride_impl
 
+/// 909-style crash + ride cymbal pair in one module: two independent ROM-PCM
+/// voices (tune / decay / drive / level each) sharing one accent input.
 struct CrashRide : GhostModule {
     enum ParamId {
         CRASH_TUNE_PARAM, CRASH_DECAY_PARAM, CRASH_DRIVE_PARAM, CRASH_LEVEL_PARAM,
@@ -127,7 +133,6 @@ struct CrashRide : GhostModule {
     rack::dsp::SchmittTrigger rideTrigger;
     Ghost::RomVoice crashVoice;
     Ghost::RomVoice rideVoice;
-    int dbgBitDepth = 16;
     Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float crashLatchedGain = 1.f;
     float rideLatchedGain  = 1.f;
@@ -168,13 +173,18 @@ struct CrashRide : GhostModule {
         crashLatchedChar = rideLatchedChar = 0.f;
     }
 
-    // knob + CV/10, clamped to 0..1 (DRIVE is off-panel, so no CV).
+    /// Knob value plus CV/10 for that control, clamped to 0..1. Returns the
+    /// effective normalized control value (DRIVE is off-panel, so no CV).
     float normWithCV(int paramId, int inputId) {
         return rack::math::clamp(
             params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
             0.f, 1.f);
     }
 
+    /// Render one cymbal voice for this sample: rate-scaled ROM playback over
+    /// [tuneNorm/decayNorm] mapped through [tuneOctaves, decayMin..decayMax sec],
+    /// then post-ROM gain, accent-aware drive, and the LEVEL trim. Returns the
+    /// voice sample in internal (pre-master) signal units.
     inline float voiceProcess(const ProcessArgs& args,
                               Ghost::RomVoice& voice,
                               const Ghost::RomAsset& asset,
@@ -187,7 +197,6 @@ struct CrashRide : GhostModule {
         float playbackRate = std::pow(2.f, (tuneNorm - 0.5f) * 2.f * tuneOctaves);
         float decaySec = decayMin + decayNorm * (decayMax - decayMin);
         Ghost::RomVoiceConfig romCfg = baseCfg;
-        romCfg.bitDepth = dbgBitDepth;
         float raw = voice.process(args, asset, playbackRate, decaySec, decayNorm, romCfg);
         float out = raw * postGain;
         out = Ghost::driveWithAccent(out, driveNorm, charStrength, accentDriveAmt);
@@ -195,6 +204,9 @@ struct CrashRide : GhostModule {
         return out;
     }
 
+    /// Per-sample: latch the shared accent at each voice's trigger edge, read
+    /// knob+CV controls, render both voices, then apply latched accent gain and
+    /// master volume to the two outputs.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (crashTrigger.process(inputs[CRASH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -226,14 +238,14 @@ struct CrashRide : GhostModule {
         namespace cri = crashride_impl;
         float crashOut = voiceProcess(args, crashVoice, cri::crashAsset(),
                                       crashTune, crashDecay, crashDrive, crashLevel,
-                                      crashLatchedChar, cri::CRASH_ACCENT.driveAmt,
-                                      cri::CRASH_TUNE_OCTAVES, cri::CRASH_DECAY_MIN_SEC, cri::CRASH_DECAY_MAX_SEC,
-                                      cri::CRASH_ROM_CFG, 1.04f);
+                                      crashLatchedChar, cri::kCrashAccent.driveAmt,
+                                      cri::kCrashTuneOctaves, cri::kCrashDecayMinSec, cri::kCrashDecayMaxSec,
+                                      cri::kCrashRomCfg, 1.04f);
         float rideOut  = voiceProcess(args, rideVoice, cri::rideAsset(),
                                       rideTune, rideDecay, rideDrive, rideLevel,
-                                      rideLatchedChar, cri::RIDE_ACCENT.driveAmt,
-                                      cri::RIDE_TUNE_OCTAVES, cri::RIDE_DECAY_MIN_SEC, cri::RIDE_DECAY_MAX_SEC,
-                                      cri::RIDE_ROM_CFG, 1.02f);
+                                      rideLatchedChar, cri::kRideAccent.driveAmt,
+                                      cri::kRideTuneOctaves, cri::kRideDecayMinSec, cri::kRideDecayMaxSec,
+                                      cri::kRideRomCfg, 1.02f);
 
         crashOut *= crashLatchedGain * bus.masterVolume;
         rideOut  *= rideLatchedGain  * bus.masterVolume;
@@ -242,7 +254,8 @@ struct CrashRide : GhostModule {
     }
 };
 
-// Right-click slider bound directly to a module param (for off-panel DRIVE).
+/// Right-click context-menu slider bound directly to a module param (used to
+/// expose the off-panel DRIVE controls).
 struct CrashRideParamSlider : ui::Slider {
     CrashRideParamSlider(engine::Module* m, int paramId, float widthPx = 200.f) {
         quantity = m->paramQuantities[paramId];
@@ -250,6 +263,8 @@ struct CrashRideParamSlider : ui::Slider {
     }
 };
 
+/// Panel widget for CrashRide: SVG-driven knob/jack layout plus a context menu
+/// exposing the two off-panel DRIVE params.
 struct CrashRideWidget : ModuleWidget, SvgHelper<CrashRideWidget> {
     CrashRideWidget(CrashRide* module) {
         setModule(module);
@@ -300,6 +315,8 @@ rack::Model* modelCrashRide = createModel<CrashRide, CrashRideWidget>("CrashRide
 // the same tune / decay / drive / level surface as the main module.
 // ---------------------------------------------------------------------------
 
+/// Expert/bench variant of CrashRide that adds a per-voice ROM bit-depth knob
+/// on top of the same tune / decay / drive / level surface (unregistered Lab).
 struct CrashRideLab : GhostModule {
     enum ParamId {
         CRASH_TUNE_PARAM, CRASH_DECAY_PARAM, CRASH_DRIVE_PARAM, CRASH_LEVEL_PARAM, CRASH_BITS_PARAM,
@@ -342,6 +359,9 @@ struct CrashRideLab : GhostModule {
         configOutput(RIDE_OUT_OUTPUT,  "Ride audio");
     }
 
+    /// Render one cymbal voice for this sample, as in CrashRide but with an
+    /// explicit per-voice bitDepth (1..16) overriding the base config. Returns
+    /// the voice sample in internal (pre-master) signal units.
     inline float voiceProcess(const ProcessArgs& args,
                               Ghost::RomVoice& voice,
                               const Ghost::RomAsset& asset,
@@ -365,6 +385,8 @@ struct CrashRideLab : GhostModule {
         return out;
     }
 
+    /// Per-sample render of both Lab voices, identical to CrashRide::process
+    /// but driving each voice's bit-depth knob into voiceProcess.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (crashTrigger.process(inputs[CRASH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -388,9 +410,9 @@ struct CrashRideLab : GhostModule {
             rack::math::clamp(params[CRASH_DRIVE_PARAM].getValue(), 0.f, 1.f),
             rack::math::clamp(params[CRASH_LEVEL_PARAM].getValue(), 0.f, 1.f),
             int(std::round(params[CRASH_BITS_PARAM].getValue())),
-            crashLatchedChar, cri::CRASH_ACCENT.driveAmt,
-            cri::CRASH_TUNE_OCTAVES, cri::CRASH_DECAY_MIN_SEC, cri::CRASH_DECAY_MAX_SEC,
-            cri::CRASH_ROM_CFG, 1.04f);
+            crashLatchedChar, cri::kCrashAccent.driveAmt,
+            cri::kCrashTuneOctaves, cri::kCrashDecayMinSec, cri::kCrashDecayMaxSec,
+            cri::kCrashRomCfg, 1.04f);
         float rideOut = voiceProcess(
             args, rideVoice, cri::rideAsset(),
             rack::math::clamp(params[RIDE_TUNE_PARAM].getValue(), 0.f, 1.f),
@@ -398,9 +420,9 @@ struct CrashRideLab : GhostModule {
             rack::math::clamp(params[RIDE_DRIVE_PARAM].getValue(), 0.f, 1.f),
             rack::math::clamp(params[RIDE_LEVEL_PARAM].getValue(), 0.f, 1.f),
             int(std::round(params[RIDE_BITS_PARAM].getValue())),
-            rideLatchedChar, cri::RIDE_ACCENT.driveAmt,
-            cri::RIDE_TUNE_OCTAVES, cri::RIDE_DECAY_MIN_SEC, cri::RIDE_DECAY_MAX_SEC,
-            cri::RIDE_ROM_CFG, 1.02f);
+            rideLatchedChar, cri::kRideAccent.driveAmt,
+            cri::kRideTuneOctaves, cri::kRideDecayMinSec, cri::kRideDecayMaxSec,
+            cri::kRideRomCfg, 1.02f);
 
         crashOut *= crashLatchedGain * bus.masterVolume;
         rideOut *= rideLatchedGain * bus.masterVolume;
@@ -409,8 +431,11 @@ struct CrashRideLab : GhostModule {
     }
 };
 
+/// One text label on the Lab panel, positioned in millimetres.
 struct CrashRideLabLabelCell { float xMm, yMm; const char* text; };
 
+/// Procedurally drawn Lab panel: shared "Lab shell" art plus the collected
+/// per-control text labels.
 struct CrashRideLabPanel : rack::widget::Widget {
     std::vector<CrashRideLabLabelCell> labels;
 
@@ -428,7 +453,11 @@ struct CrashRideLabPanel : rack::widget::Widget {
     }
 };
 
+/// Panel widget for CrashRideLab: lays out the mirrored crash/ride knob grid
+/// (with BITS), trigger/accent inputs, and per-voice outputs on the 18HP panel.
 struct CrashRideLabWidget : rack::ModuleWidget {
+    /// Add a centered small knob for paramId at (xMm, yMm) and register its
+    /// text label just above it on the panel.
     void addLabeledKnob(rack::engine::Module* module, int paramId,
                         float xMm, float yMm, const char* label, CrashRideLabPanel* panel) {
         addParam(createParamCentered<rack::RoundSmallBlackKnob>(

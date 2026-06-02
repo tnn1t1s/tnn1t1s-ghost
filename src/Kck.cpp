@@ -62,6 +62,9 @@ extern Plugin* pluginInstance;
 
 namespace KckFit {
 
+/// All tunable model constants for the kick engine (Hz, 1/tau decay rates,
+/// gains, filter coefficients, accent policy). One instance is the full voice
+/// recipe; KckLab exposes a curated subset as live knobs.
 struct Config {
     // Pitch range (calibrated against the reference machine BD ref tune050-attack050-decay050 = 49.8 Hz).
     // basePitch midpoint 45 Hz; FFT measurement adds ~5 Hz from slow-sweep residual.
@@ -179,15 +182,20 @@ inline Config makeKick() { return Config{}; }
 
 namespace {
 
-static constexpr float TWO_PI   = 6.28318530717958647692f;
-static constexpr float CV_SCALE = 0.1f;
+static constexpr float kTwoPi   = 6.28318530717958647692f;
+static constexpr float kCvScale = 0.1f;
 
+/// Read a normalized (0..1) param value plus its CV input (0.1 per volt),
+/// clamped to [0, 1]. Used for the playable knobs on production Kck.
 static inline float kckNormWithCV(rack::Module& self, int paramId, int inputId) {
     float norm = self.params[paramId].getValue()
-               + self.inputs[inputId].getVoltage() * CV_SCALE;
+               + self.inputs[inputId].getVoltage() * kCvScale;
     return rack::math::clamp(norm, 0.f, 1.f);
 }
 
+/// One-shot 909-style kick voice: pitch-swept saturated-triangle body through a
+/// resonant SVF, plus a click transient, HP-blocked and saturated. Stateless
+/// config arrives per-call via KckFit::Config; per-hit accent is latched at fire().
 struct KckVoice {
     dsp::SchmittTrigger trigger;
     float phase    = 0.f;
@@ -205,6 +213,8 @@ struct KckVoice {
     // Per #73 design: sample-at-trig, no decay over the envelope.
     float latchedAccent = 0.f;
 
+    /// Retrigger the voice: reset phase/filter/envelope state to the hit start
+    /// and latch the accent strength (clamped 0..1) for the whole hit.
     void fire(float accentStrength) {
         phase = phaseSub = 0.f;
         bodyLp = clickLp = 0.f;
@@ -217,12 +227,16 @@ struct KckVoice {
     }
     void fire() { fire(0.f); }
 
+    /// Next white-noise sample in [-1, 1) from a per-voice LCG (deterministic).
     inline float nextNoise() {
         // Numerical Recipes LCG; map upper bits to [-1, 1).
         rngState = rngState * 1664525u + 1013904223u;
         return ((rngState >> 8) & 0xFFFFFFu) * (2.f / 16777216.f) - 1.f;
     }
 
+    /// Render one sample. Takes the engine config and the seven normalized
+    /// (0..1) control values; returns the kick output in audio-normalized units
+    /// (pre master/accent gain). Returns 0 while the voice is inactive.
     float process(const rack::Module::ProcessArgs& args,
                   const KckFit::Config& fit,
                   float tuneNorm,
@@ -250,13 +264,13 @@ struct KckVoice {
                               * (0.50f + pitchDecayNorm * 1.00f);  // PITCH-DECAY=0.5 -> matched
         const float freq = fundamental * (1.f + sweepAmt * std::exp(-sweepRate * t));
 
-        phase += TWO_PI * freq * args.sampleTime;
-        if (phase > TWO_PI) phase -= TWO_PI;
+        phase += kTwoPi * freq * args.sampleTime;
+        if (phase > kTwoPi) phase -= kTwoPi;
 
         // Body: saturated triangle (the 909 "dirt") into a RESONANT 2-pole filter
         // whose cutoff tracks the swept pitch -- the resonance "zaps" as the
         // pitch sweeps, which is the bridged-T character missing before.
-        const float pn   = phase * (1.f / TWO_PI);             // 0..1
+        const float pn   = phase * (1.f / kTwoPi);             // 0..1
         const float tri  = 4.f * std::fabs(pn - 0.5f) - 1.f;    // -1..1 triangle
         const float clip = fit.bodyClip + driveNorm * 2.f + acc * fit.accent.driveAmt;
         const float sat  = std::tanh(tri * clip) / std::tanh(clip);
@@ -314,6 +328,8 @@ struct KckVoice {
 // Kck -- production module
 // ---------------------------------------------------------------------------
 
+/// Production kick module: seven playable knobs (+ ATTACK/TONE macros) over a
+/// single KckVoice, with bus master volume and the two-axis accent system.
 struct Kck : GhostModule {
     enum ParamId  {
         TUNE_PARAM, DECAY_PARAM, PITCH_PARAM, PITCH_DECAY_PARAM,
@@ -333,6 +349,7 @@ struct Kck : GhostModule {
     KckVoice voice;
     KckFit::Config fit;
 
+    /// Configure params/inputs/outputs and load the default kick recipe.
     Kck() {
         fit = KckFit::makeKick();
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -382,6 +399,9 @@ struct Kck : GhostModule {
         latchedCaseGain = 1.f;
     }
 
+    /// Per-sample: latch accent on a TRIG rising edge, map the playable knobs
+    /// (with CV) into a per-frame config, run the voice, and apply per-case
+    /// accent gain and bus master volume to the output.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
 
@@ -434,6 +454,7 @@ struct Kck : GhostModule {
 // Production widget -- panelkit SVG (res/Kck.svg) + SvgHelper name binding
 // ---------------------------------------------------------------------------
 
+/// Production panel widget: binds knobs/ports to the res/Kck.svg layout by name.
 struct KckWidget : ModuleWidget, SvgHelper<KckWidget> {
     KckWidget(Kck* module) {
         setModule(module);
@@ -483,6 +504,9 @@ rack::Model* modelKck = createModel<Kck, KckWidget>("Kck");
 // sounds right, copy the values back into KckFit::makeKick().
 // ---------------------------------------------------------------------------
 
+/// Expert/fitting variant of Kck: same KckVoice engine, but exposes a curated
+/// set of KckFit constants as live knobs (each with its own CV input) so a
+/// sound can be hand-fit before its values are copied back into makeKick().
 struct KckLab : GhostModule {
     float latchedCaseGain = 1.f;
 
@@ -523,6 +547,8 @@ struct KckLab : GhostModule {
     KckVoice voice;
     KckFit::Config fit;
 
+    /// Configure the playable knobs plus the exposed fit-constant knobs and
+    /// their per-knob CV inputs (each with engineering-unit ranges).
     KckLab() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
         // Playable
@@ -592,7 +618,8 @@ struct KckLab : GhostModule {
         configOutput(OUT_OUTPUT,   "Audio");
     }
 
-    // Read knob value plus CV (0.1 of param range per volt), clamped to range.
+    /// Read a knob value plus its CV (0.1 of the param's range per volt),
+    /// clamped to the param's [min, max]. Returns an engineering-unit value.
     inline float readWithCV(int paramId, int cvInputId) {
         rack::engine::ParamQuantity* q = paramQuantities[paramId];
         float range = q->maxValue - q->minValue;
@@ -601,6 +628,9 @@ struct KckLab : GhostModule {
         return rack::math::clamp(v, q->minValue, q->maxValue);
     }
 
+    /// Per-sample: live-copy every exposed fit knob (with CV) into the engine
+    /// config, latch accent on a TRIG edge, run the voice, and apply per-case
+    /// accent gain and bus master volume.
     void process(const ProcessArgs& args) override {
         // Live-copy fit knobs (with CV) into engine config every frame.
         fit.basePitchOffset          = readWithCV(BASE_PITCH_OFFSET_PARAM, BASE_PITCH_OFFSET_CV);
@@ -654,8 +684,10 @@ struct KckLab : GhostModule {
 };
 
 
+/// A single panel text label at a millimeter position.
 struct KckLabLabelCell { float xMm, yMm; const char* text; };
 
+/// KckLab background panel: draws the lab shell plus all knob/port labels.
 struct KckLabPanel : rack::widget::Widget {
     std::vector<KckLabLabelCell> labels;
 
@@ -674,7 +706,10 @@ struct KckLabPanel : rack::widget::Widget {
     }
 };
 
+/// KckLab panel widget: lays out the 16 curated knobs on a 4x4 grid plus the
+/// trig/accent/output ports, registering each label with the panel.
 struct KckLabWidget : rack::ModuleWidget {
+    /// Add a centered knob at (xMm, yMm) and push its text label just above it.
     void addLabeledKnob(rack::engine::Module* module, int paramId,
                         float xMm, float yMm,
                         const char* label, KckLabPanel* panel) {
@@ -693,8 +728,8 @@ struct KckLabWidget : rack::ModuleWidget {
 
         AgentLayout::addScrews_18HP(this);
 
-        const float COLS_X[4] = { 14.f, 37.f, 60.f, 83.f };
-        const float ROWS_Y[4] = { 24.f, 47.f, 70.f, 93.f };
+        const float kColsX[4] = { 14.f, 37.f, 60.f, 83.f };
+        const float kRowsY[4] = { 24.f, 47.f, 70.f, 93.f };
 
         struct Cell { int param; const char* label; };
         // Deliberately capped at 16 controls so every 909 Lab module can share
@@ -721,7 +756,7 @@ struct KckLabWidget : rack::ModuleWidget {
         for (int i = 0; i < 16; i++) {
             int r = i / 4;
             int c = i % 4;
-            addLabeledKnob(module, cells[i].param, COLS_X[c], ROWS_Y[r], cells[i].label, panel);
+            addLabeledKnob(module, cells[i].param, kColsX[c], kRowsY[r], cells[i].label, panel);
         }
 
         panel->labels.push_back({18.f, 117.5f, "TRIG"});

@@ -17,19 +17,24 @@ namespace {
 // (sit at full max). The drive boost below is a stylistic Ghost
 // addition, not a circuit reproduction. AccentCharacter member order:
 // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-static const Ghost::AccentCharacter RIMCLAP_ACCENT = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter kRimClapAccent = Ghost::Accent::driveOnly();
+
+/// Decoded embedded clap sample (lazily decoded once, shared by all instances).
 static const std::vector<float>& rimClapClapSource() {
     static const std::vector<float> sample =
         Ghost::decodeEmbeddedF32(ghostClap_f32, ghostClap_f32_len);
     return sample;
 }
 
+/// Decoded embedded rim sample (lazily decoded once, shared by all instances).
 static const std::vector<float>& rimClapRimSource() {
     static const std::vector<float> sample =
         Ghost::decodeEmbeddedF32(ghostRim_f32, ghostRim_f32_len);
     return sample;
 }
 
+/// One-shot ROM sample player: rewinds on trigger, then advances a read head
+/// through a PCM sample with playback-rate resampling and optional bit reduction.
 struct RomVoice {
     float pos = 1e9f;
 
@@ -37,6 +42,10 @@ struct RomVoice {
         pos = 0.f;
     }
 
+    /// Advance the read head one frame and return the next output sample.
+    /// `sample` is the source PCM; `sampleRate` is the engine rate (Hz);
+    /// `playbackRate` scales pitch/speed (1 = original); `bitDepth` sets
+    /// quantization (16 = transparent). Returns 0 once the sample is exhausted.
     float process(const std::vector<float>& sample, float sampleRate,
                   float playbackRate = 1.f, int bitDepth = 16) {
         if (pos >= float(sample.size() - 1)) {
@@ -49,6 +58,9 @@ struct RomVoice {
 };
 }
 
+/// Combined rim-shot + hand-clap voice (909-style): two ROM sample players with
+/// per-voice TUNE/LEVEL knobs and CV, sharing one accent input. The shipped
+/// minimal surface; see RimClapLab for the expert variant.
 struct RimClap : GhostModule {
     // GHOST surface: each voice is fully tunable -- TUNE (playback-rate /
     // pitch) and LEVEL, each with a CV jack -- so the module plays as a
@@ -90,13 +102,14 @@ struct RimClap : GhostModule {
     float clapLatchedChar = 0.f;
     float rimLatchedChar  = 0.f;
 
-    // knob + CV/10, clamped to the knob's normalized range.
+    /// knob + CV/10, clamped to the knob's normalized 0..1 range.
     float normWithCV(int paramId, int inputId) {
         return rack::math::clamp(
             params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
             0.f, 1.f);
     }
-    // TUNE 0..1 -> playback-rate multiplier, one octave each way (matches Lab).
+    /// Map a TUNE knob position (0..1) to a playback-rate multiplier, one octave
+    /// each way (matches Lab).
     static float tuneToRate(float tuneNorm) {
         return std::pow(2.f, (tuneNorm - 0.5f) * 2.f);
     }
@@ -128,6 +141,8 @@ struct RimClap : GhostModule {
         clapLatchedChar = rimLatchedChar = 0.f;
     }
 
+    /// Per-sample DSP: latch accent at each voice's trigger edge, then play both
+    /// ROM voices with TUNE/LEVEL (+ CV) and accent drive into the two outputs.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (clapTrigger.process(inputs[CLAP_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -153,9 +168,9 @@ struct RimClap : GhostModule {
         float clap = clapVoice.process(rimClapClapSource(), args.sampleRate, clapRate) * clapLevel;
         float rim = rimVoice.process(rimClapRimSource(), args.sampleRate, rimRate) * rimLevel;
         clap = Ghost::driveWithAccent(
-            clap, 0.f, clapLatchedChar, RIMCLAP_ACCENT.driveAmt);
+            clap, 0.f, clapLatchedChar, kRimClapAccent.driveAmt);
         rim = Ghost::driveWithAccent(
-            rim, 0.f, rimLatchedChar, RIMCLAP_ACCENT.driveAmt);
+            rim, 0.f, rimLatchedChar, kRimClapAccent.driveAmt);
         clap *= clapLatchedGain * bus.masterVolume;
         rim  *= rimLatchedGain  * bus.masterVolume;
 
@@ -164,6 +179,7 @@ struct RimClap : GhostModule {
     }
 };
 
+/// Panel widget for RimClap: binds knobs/jacks to the SVG by anchor name.
 struct RimClapWidget : ModuleWidget, SvgHelper<RimClapWidget> {
     RimClapWidget(RimClap* module) {
         setModule(module);
@@ -203,6 +219,8 @@ rack::Model* modelRimClap = createModel<RimClap, RimClapWidget>("RimClap");
 // without inventing analog controls that the current engine does not have.
 // ---------------------------------------------------------------------------
 
+/// Expert/performance variant of RimClap: adds per-voice ROM bit-depth control
+/// alongside TUNE/LEVEL. Unregistered bench surface, not shipped in the browser.
 struct RimClapLab : GhostModule {
     enum ParamId {
         CLAP_TUNE_PARAM, CLAP_BITS_PARAM, CLAP_LEVEL_PARAM,
@@ -242,6 +260,8 @@ struct RimClapLab : GhostModule {
         configOutput(RIM_OUT_OUTPUT,  "Rim audio");
     }
 
+    /// Per-sample DSP: like RimClap, plus per-voice bit-depth reduction driven by
+    /// the BITS knobs.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (clapTrigger.process(inputs[CLAP_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -267,9 +287,9 @@ struct RimClapLab : GhostModule {
         float clap = clapVoice.process(rimClapClapSource(), args.sampleRate, clapRate, clapBits) * clapLevel;
         float rim = rimVoice.process(rimClapRimSource(), args.sampleRate, rimRate, rimBits) * rimLevel;
         clap = Ghost::driveWithAccent(
-            clap, 0.f, clapLatchedChar, RIMCLAP_ACCENT.driveAmt);
+            clap, 0.f, clapLatchedChar, kRimClapAccent.driveAmt);
         rim = Ghost::driveWithAccent(
-            rim, 0.f, rimLatchedChar, RIMCLAP_ACCENT.driveAmt);
+            rim, 0.f, rimLatchedChar, kRimClapAccent.driveAmt);
         clap *= clapLatchedGain * bus.masterVolume;
         rim *= rimLatchedGain * bus.masterVolume;
 
@@ -278,8 +298,10 @@ struct RimClapLab : GhostModule {
     }
 };
 
+/// One text label drawn on the Lab panel, positioned in millimetres.
 struct RimClapLabLabelCell { float xMm, yMm; const char* text; };
 
+/// Hand-drawn panel for the Lab variant: renders the lab shell plus its labels.
 struct RimClapLabPanel : rack::widget::Widget {
     std::vector<RimClapLabLabelCell> labels;
 
@@ -300,7 +322,11 @@ struct RimClapLabPanel : rack::widget::Widget {
     }
 };
 
+/// Panel widget for the Lab variant: places knobs/jacks at explicit mm
+/// coordinates and registers their labels on the panel.
 struct RimClapLabWidget : rack::ModuleWidget {
+    /// Add a small knob for `paramId` at (`xMm`,`yMm`) mm and register its label
+    /// just above it on `panel`.
     void addLabeledKnob(rack::engine::Module* module, int paramId,
                         float xMm, float yMm, const char* label, RimClapLabPanel* panel) {
         addParam(createParamCentered<rack::RoundSmallBlackKnob>(

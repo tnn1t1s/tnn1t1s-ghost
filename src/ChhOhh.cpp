@@ -35,15 +35,15 @@ extern Plugin* pluginInstance;
 
 namespace {
 
-static constexpr float CHH_TUNE_OCTAVES  = 1.0f;
-static constexpr float CHH_DECAY_MIN_SEC = 0.010f;
-static constexpr float CHH_DECAY_MAX_SEC = 0.16f;
+static constexpr float kChhTuneOctaves  = 1.0f;
+static constexpr float kChhDecayMinSec = 0.010f;
+static constexpr float kChhDecayMaxSec = 0.16f;
 
-static constexpr float OHH_TUNE_OCTAVES  = 1.0f;
-static constexpr float OHH_DECAY_MIN_SEC = 0.006f;
-static constexpr float OHH_DECAY_MAX_SEC = 3.20f;
+static constexpr float kOhhTuneOctaves  = 1.0f;
+static constexpr float kOhhDecayMinSec = 0.006f;
+static constexpr float kOhhDecayMaxSec = 3.20f;
 
-static constexpr float CHOKE_DECAY_SEC   = 0.005f;
+static constexpr float kChokeDecaySec   = 0.005f;
 
 // Per-DSP-stage accent character. CH and OH both have a small drive boost
 // on accented hits; per the 909 reference doc, CH has level-only accent on
@@ -51,15 +51,17 @@ static constexpr float CHOKE_DECAY_SEC   = 0.005f;
 // stylistic Ghost additions, not circuit reproductions.
 // AccentCharacter member order: body, pitch, click, drive, noise, snap,
 // decay, brightness, bend.
-static const Ghost::AccentCharacter CHH_ACCENT = Ghost::Accent::driveOnly();
-static const Ghost::AccentCharacter OHH_ACCENT = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter kChhAccent = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter kOhhAccent = Ghost::Accent::driveOnly();
 
+/// Decode and cache the embedded closed-hat PCM sample (lazy, one-time).
 static const std::vector<float>& chhSource() {
     static const std::vector<float> sample =
         Ghost::decodeEmbeddedF32(ghostChh_f32, ghostChh_f32_len);
     return sample;
 }
 
+/// Decode and cache the embedded open-hat PCM sample (lazy, one-time).
 static const std::vector<float>& ohhSource() {
     static const std::vector<float> sample =
         Ghost::decodeEmbeddedF32(ghostOhh_f32, ghostOhh_f32_len);
@@ -68,6 +70,8 @@ static const std::vector<float>& ohhSource() {
 
 } // namespace
 
+/// Production combined closed + open hi-hat voice. Both hats share one module
+/// so the CH-mutes-OH choke is internal state; CH carries Accent B, OH Accent A.
 struct ChhOhh : GhostModule {
     enum ParamId {
         CHH_TUNE_PARAM,  CHH_DECAY_PARAM,  CHH_DRIVE_PARAM,  CHH_LEVEL_PARAM,
@@ -107,8 +111,6 @@ struct ChhOhh : GhostModule {
     float chhLatchedChar = 0.f;
     float ohhLatchedChar = 0.f;
 
-    int dbgBitDepth = 16;
-
     ChhOhh() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
         configParam(CHH_TUNE_PARAM,  0.f, 1.f, 0.50f, "Closed tune",  "%", 0.f, 100.f);
@@ -145,13 +147,16 @@ struct ChhOhh : GhostModule {
         chhLatchedChar = ohhLatchedChar = 0.f;
     }
 
-    // knob + CV/10, clamped to 0..1 (DRIVE is off-panel, so no CV).
+    /// Read a panel knob plus its CV input (CV/10), clamped to 0..1.
+    /// (DRIVE is off-panel, so it has no CV jack.)
     float normWithCV(int paramId, int inputId) {
         return rack::math::clamp(
             params[paramId].getValue() + inputs[inputId].getVoltage() * 0.1f,
             0.f, 1.f);
     }
 
+    /// Per-sample audio engine: handle triggers + choke, decay both envelopes,
+    /// play back the embedded samples with tune/decay/drive/level/accent.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
 
@@ -192,10 +197,10 @@ struct ChhOhh : GhostModule {
         float ohhLevel = normWithCV(OHH_LEVEL_PARAM, OHH_LEVEL_CV_INPUT);
 
         // -- CH DSP ----------------------------------------------------
-        float chhRate    = std::pow(2.f, (chhTune - 0.5f) * 2.f * CHH_TUNE_OCTAVES);
+        float chhRate    = std::pow(2.f, (chhTune - 0.5f) * 2.f * kChhTuneOctaves);
         float chhDecayShape = std::sqrt(chhDecay);
-        float chhDecaySec = CHH_DECAY_MIN_SEC
-                          + chhDecayShape * (CHH_DECAY_MAX_SEC - CHH_DECAY_MIN_SEC);
+        float chhDecaySec = kChhDecayMinSec
+                          + chhDecayShape * (kChhDecayMaxSec - kChhDecayMinSec);
         const auto& chSrc = chhSource();
         float chhSrc = Ghost::sampleAt(chSrc, chhSamplePos);
         chhSamplePos += Ghost::playbackStep(
@@ -203,28 +208,26 @@ struct ChhOhh : GhostModule {
         chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
         if (chhEnv < Ghost::kDenormalFloor) chhEnv = 0.f;   // denormal safety
         float chhOut = chhSrc * chhEnv * 1.04f;
-        chhOut = Ghost::bitReduce(chhOut, dbgBitDepth);
         chhOut = Ghost::driveWithAccent(
-            chhOut, chhDrive, chhLatchedChar, CHH_ACCENT.driveAmt);
+            chhOut, chhDrive, chhLatchedChar, kChhAccent.driveAmt);
         chhOut *= chhLevel * 0.94f;
         chhOut *= chhLatchedGain * bus.masterVolume;
 
         // -- OH DSP (with choke override on env decay) -----------------
-        float ohhRate     = std::pow(2.f, (ohhTune - 0.5f) * 2.f * OHH_TUNE_OCTAVES);
-        float ohhDecaySec = OHH_DECAY_MIN_SEC
-                          + ohhDecay * (OHH_DECAY_MAX_SEC - OHH_DECAY_MIN_SEC);
+        float ohhRate     = std::pow(2.f, (ohhTune - 0.5f) * 2.f * kOhhTuneOctaves);
+        float ohhDecaySec = kOhhDecayMinSec
+                          + ohhDecay * (kOhhDecayMaxSec - kOhhDecayMinSec);
         const auto& ohSrc = ohhSource();
         float ohhSrc = Ghost::sampleAt(ohSrc, ohhSamplePos);
         ohhSamplePos += Ghost::playbackStep(
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
-        const float ohhEffectiveDecaySec = ohhChokeActive ? CHOKE_DECAY_SEC : ohhDecaySec;
+        const float ohhEffectiveDecaySec = ohhChokeActive ? kChokeDecaySec : ohhDecaySec;
         ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
         if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhOut = ohhSrc * ohhEnv * 1.05f;
-        ohhOut = Ghost::bitReduce(ohhOut, dbgBitDepth);
         ohhOut = Ghost::driveWithAccent(
-            ohhOut, ohhDrive, ohhLatchedChar, OHH_ACCENT.driveAmt);
+            ohhOut, ohhDrive, ohhLatchedChar, kOhhAccent.driveAmt);
         ohhOut *= ohhLevel * 0.96f;
         ohhOut *= ohhLatchedGain * bus.masterVolume;
 
@@ -239,7 +242,8 @@ struct ChhOhh : GhostModule {
 // Mirrors CrashRide's structure.
 // ---------------------------------------------------------------------------
 
-// Right-click slider bound directly to a module param (for off-panel DRIVE).
+/// Right-click context-menu slider bound directly to a module param
+/// (used to surface the off-panel DRIVE controls).
 struct ChhOhhParamSlider : ui::Slider {
     ChhOhhParamSlider(engine::Module* m, int paramId, float widthPx = 200.f) {
         quantity = m->paramQuantities[paramId];
@@ -247,6 +251,8 @@ struct ChhOhhParamSlider : ui::Slider {
     }
 };
 
+/// Panel widget for the production ChhOhh: two stacked voice sections in 14 HP
+/// with shared accent inputs and DRIVE exposed via the right-click menu.
 struct ChhOhhWidget : ModuleWidget, SvgHelper<ChhOhhWidget> {
     ChhOhhWidget(ChhOhh* module) {
         setModule(module);
@@ -299,8 +305,11 @@ rack::Model* modelChhOhh = createModel<ChhOhh, ChhOhhWidget>("ChhOhh");
 // without changing the main production module.
 // ---------------------------------------------------------------------------
 
+/// One text label placed on the Lab panel at a millimetre position.
 struct ChhOhhLabLabelCell { float xMm, yMm; const char* text; };
 
+/// Expert/performance variant of ChhOhh: same combined-hat engine plus a
+/// per-voice ROM bit-depth control, exposed on an 18 HP panel.
 struct ChhOhhLab : GhostModule {
     enum ParamId {
         CHH_TUNE_PARAM, CHH_DECAY_PARAM, CHH_DRIVE_PARAM, CHH_LEVEL_PARAM, CHH_BITS_PARAM,
@@ -350,6 +359,8 @@ struct ChhOhhLab : GhostModule {
         configOutput(OHH_OUT_OUTPUT, "Open audio");
     }
 
+    /// Per-sample engine matching the production voice, with the extra
+    /// per-voice BITS control feeding bitReduce on each hat.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
         if (chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -385,10 +396,10 @@ struct ChhOhhLab : GhostModule {
         float ohhLevel = rack::math::clamp(params[OHH_LEVEL_PARAM].getValue(), 0.f, 1.f);
         int ohhBits = int(std::round(params[OHH_BITS_PARAM].getValue()));
 
-        float chhRate = std::pow(2.f, (chhTune - 0.5f) * 2.f * CHH_TUNE_OCTAVES);
+        float chhRate = std::pow(2.f, (chhTune - 0.5f) * 2.f * kChhTuneOctaves);
         float chhDecayShape = std::sqrt(chhDecay);
-        float chhDecaySec = CHH_DECAY_MIN_SEC
-                          + chhDecayShape * (CHH_DECAY_MAX_SEC - CHH_DECAY_MIN_SEC);
+        float chhDecaySec = kChhDecayMinSec
+                          + chhDecayShape * (kChhDecayMaxSec - kChhDecayMinSec);
         float chhSrc = Ghost::sampleAt(chhSource(), chhSamplePos);
         chhSamplePos += Ghost::playbackStep(
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
@@ -397,23 +408,23 @@ struct ChhOhhLab : GhostModule {
         float chhOut = chhSrc * chhEnv * 1.04f;
         chhOut = Ghost::bitReduce(chhOut, chhBits);
         chhOut = Ghost::driveWithAccent(
-            chhOut, chhDrive, chhLatchedChar, CHH_ACCENT.driveAmt);
+            chhOut, chhDrive, chhLatchedChar, kChhAccent.driveAmt);
         chhOut *= chhLevel * 0.94f;
         chhOut *= chhLatchedGain * bus.masterVolume;
 
-        float ohhRate = std::pow(2.f, (ohhTune - 0.5f) * 2.f * OHH_TUNE_OCTAVES);
-        float ohhDecaySec = OHH_DECAY_MIN_SEC + ohhDecay * (OHH_DECAY_MAX_SEC - OHH_DECAY_MIN_SEC);
+        float ohhRate = std::pow(2.f, (ohhTune - 0.5f) * 2.f * kOhhTuneOctaves);
+        float ohhDecaySec = kOhhDecayMinSec + ohhDecay * (kOhhDecayMaxSec - kOhhDecayMinSec);
         float ohhSrc = Ghost::sampleAt(ohhSource(), ohhSamplePos);
         ohhSamplePos += Ghost::playbackStep(
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
-        const float ohhEffectiveDecaySec = ohhChokeActive ? CHOKE_DECAY_SEC : ohhDecaySec;
+        const float ohhEffectiveDecaySec = ohhChokeActive ? kChokeDecaySec : ohhDecaySec;
         ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
         if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhOut = ohhSrc * ohhEnv * 1.05f;
         ohhOut = Ghost::bitReduce(ohhOut, ohhBits);
         ohhOut = Ghost::driveWithAccent(
-            ohhOut, ohhDrive, ohhLatchedChar, OHH_ACCENT.driveAmt);
+            ohhOut, ohhDrive, ohhLatchedChar, kOhhAccent.driveAmt);
         ohhOut *= ohhLevel * 0.96f;
         ohhOut *= ohhLatchedGain * bus.masterVolume;
 
@@ -422,9 +433,12 @@ struct ChhOhhLab : GhostModule {
     }
 };
 
+/// Background panel for the Lab variant: draws the shell plus all knob/port
+/// text labels.
 struct ChhOhhLabPanel : rack::widget::Widget {
     std::vector<ChhOhhLabLabelCell> labels;
 
+    /// Render the Lab shell and every queued label.
     void draw(const DrawArgs& args) override {
         Ghost::LabArt::drawLabShell(
             args.vg, box.size, "OHCH LAB",
@@ -442,7 +456,10 @@ struct ChhOhhLabPanel : rack::widget::Widget {
     }
 };
 
+/// Panel widget for the Lab variant: lays out the mirrored CLOSED/OPEN knob
+/// columns (including BITS) plus trigger/accent/output jacks.
 struct ChhOhhLabWidget : rack::ModuleWidget {
+    /// Add a centred small knob and queue its text label above it.
     void addLabeledKnob(rack::engine::Module* module, int paramId,
                         float xMm, float yMm, const char* label, ChhOhhLabPanel* panel) {
         addParam(createParamCentered<rack::RoundSmallBlackKnob>(

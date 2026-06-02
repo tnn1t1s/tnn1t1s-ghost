@@ -1,9 +1,10 @@
 // GHOST MIX — dedicated 909-kit summing mixer.
 //
 // Twelve labeled inputs: one per voice of the full 909 kit (KICK, SNARE, RIM,
-// CLAP, TOM LO/MID/HI, CHH, OHH, CRASH, RIDE) plus an AUX channel for an
-// external signal or a chained voice. Each has a mute switch, summed to a single
-// MIX output. It is a deliberately dumb unity summer: per-voice level lives on
+// CLAP, TOM LO/MID/HI, CHH, OHH, CRASH, RIDE) plus a MIXIN channel — the 909's
+// "mix in" external-summing jack, for an outside signal or a chained voice. Each
+// has a mute switch, summed to a single MIX output. It is a deliberately dumb
+// unity summer: per-voice level lives on
 // the GHOST voices themselves, so the mixer just sums whatever is unmuted. Keeps
 // the whole kit in the box on one master mix point instead of a third-party mixer.
 //
@@ -18,7 +19,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /// Twelve-input unity summing mixer for the full 909 kit (one input per voice)
-/// plus an aux channel.
+/// plus a mix-in channel (the 909's external-summing jack).
 struct GhostMix : Module {
     static const int kNumChannels = 12;
     enum ParamId  { MUTE_PARAM, NUM_PARAMS = MUTE_PARAM + kNumChannels };
@@ -29,7 +30,7 @@ struct GhostMix : Module {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
         static const char* names[kNumChannels] = {
             "Kick", "Snare", "Rim", "Clap", "Tom low", "Tom mid", "Tom high",
-            "Closed hat", "Open hat", "Crash", "Ride", "Aux"};
+            "Closed hat", "Open hat", "Crash", "Ride", "Mix in (external)"};
         for (int i = 0; i < kNumChannels; i++) {
             configSwitch(MUTE_PARAM + i, 0.f, 1.f, 0.f,
                          std::string(names[i]) + " mute", {"On", "Muted"});

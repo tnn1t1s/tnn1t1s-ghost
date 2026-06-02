@@ -28,7 +28,7 @@ sequencer and your drum voices, not a closed world.
 | **GHOST RIMCLAP** | Rim + clap ROMpler voice |
 | **GHOST TOMS** | Low / mid / high tom kit |
 | **GHOST CRSHRIDE** | Crash + ride cymbal pair |
-| **GHOST MIX** | Dedicated 12-input kit summing mixer: one labeled input per voice (+ aux), each with a mute switch |
+| **GHOST MIX** | Dedicated 12-input kit summing mixer: one labeled input per voice (+ MIXIN, the 909's external mix-in), each with a mute switch |
 
 ## Architecture
 

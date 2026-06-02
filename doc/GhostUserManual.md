@@ -43,7 +43,8 @@ accent gates travel by cable directly from your sequencer to each voice.
 
 A dedicated summing mixer for the kit: twelve labeled inputs — one per voice of
 the full kit (Kick, Snare, Rim, Clap, Tom Lo/Mid/Hi, Closed Hat, Open Hat,
-Crash, Ride) plus an Aux channel for an external signal or a chained voice —
+Crash, Ride) plus a MIXIN channel — the 909's external mix-in jack, for an
+outside signal or a chained voice —
 each with a mute switch, summed to one MIX output. Per-voice level lives on the
 voices, so the mixer is a clean unity summer — the whole kit on one master mix
 point, in the box.

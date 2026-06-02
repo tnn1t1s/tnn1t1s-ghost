@@ -23,7 +23,7 @@ sections:
       - { label: OHH,     id: in.ohh,    mute: mute.ohh }
       - { label: CRASH,   id: in.crash,  mute: mute.crash }
       - { label: RIDE,    id: in.ride,   mute: mute.ride }
-      - { label: AUX,     id: in.aux,    mute: mute.aux }
+      - { label: MIXIN,   id: in.aux,    mute: mute.aux }
 
   - kind: io_row              # master mix output
     cells:

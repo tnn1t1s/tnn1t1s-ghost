@@ -4,7 +4,8 @@
 
 - **GHOST MIX** — new dedicated 12-input kit summing mixer: one labeled input
   per voice of the full kit (Kick, Snare, Rim, Clap, Tom Lo/Mid/Hi, CHH, OHH,
-  Crash, Ride) plus an Aux channel, mute switch each, unity sum to one MIX output.
+  Crash, Ride) plus a MIXIN channel (the 909's external mix-in), mute switch
+  each, unity sum to one MIX output.
 - **Snare is now a first-class kit voice** — GHOST SNR gets its own mixer channel
   and sequencer lane, so it can be step-programmed (rolls, breakbeat figures)
   rather than sitting outside the kit. Demos now include a backbeat snare where

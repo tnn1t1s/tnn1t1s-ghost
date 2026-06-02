@@ -7,17 +7,17 @@
 /**
  * Tr909Bus -- adjacent-module state broadcast for the Ghost 909 suite.
  *
- * Tr909Ctrl publishes slow-changing global state (accent multiplier and
+ * GhostCtrl publishes slow-changing global state (accent multiplier and
  * master volume) and adjacent voices read it via the leftExpander/
  * rightExpander module pointer. Hit-time events (triggers, total accent
  * gate, local accent gate) are NOT carried on this bus -- they travel
  * through cables to per-voice inputs so they're sampled deterministically
  * on the trigger rising edge with zero latency.
  *
- * The bus uses a "pull" / direct-read pattern: each Tr909Module exposes
+ * The bus uses a "pull" / direct-read pattern: each GhostModule exposes
  * its current state as a public member, neighbors read it directly.
  * Voices forward by copying the resolved state into their own currentBus
- * each frame, so a chain of [Tr909Ctrl][Kck][Snr][Toms]... all see the
+ * each frame, so a chain of [GhostCtrl][Kck][Snr][Toms]... all see the
  * controller's broadcast even though only the leftmost voice is directly
  * adjacent to the controller.
  *
@@ -30,7 +30,7 @@
  * trigger logic on top of this bus -- use cables for any hit-time event.
  */
 
-namespace Ghost { namespace TR909 {
+namespace Ghost {
 
 struct Bus {
     // accentAAmount / accentBAmount are 0..1 linear-space attenuators on
@@ -59,7 +59,7 @@ struct Bus {
  *              level: a programmer leaves both accents off when they
  *              want the voice to duck below its normal hit.
  *   - local:   B only (per-voice accent track). This is the 909 "normal"
- *              hit on supported voices (BD/SD/Toms/CH per Roland OM)
+ *              hit on supported voices (BD/SD/Toms/CH per classic 909 layout)
  *              and is the project reference (0 dB by default).
  *   - global:  A only (Total Accent track on its own). Slight emphasis,
  *              less than full because there's no per-voice support.
@@ -67,7 +67,7 @@ struct Bus {
  *
  * Defaults are MODEST starting points (-6 / -1 / 0 / +1.5 dB) selected
  * to be tunable by ear without clipping. They are NOT verified
- * hardware-faithful values; per-voice tuning by ear or against TR-909
+ * hardware-faithful values; per-voice tuning by ear or against the reference machine
  * reference samples is expected.
  *
  * AccentMix encodes ONLY the level relationship. The voice's own
@@ -77,7 +77,7 @@ struct Bus {
  * intentionally separated.
  *
  * To make a voice ignore Accent B (Ohh / RimClap / Crash / Ride per
- * Roland OM): set localDb = ghostDb so B-alone collapses to ghost.
+ * classic 909 layout): set localDb = ghostDb so B-alone collapses to ghost.
  * Or simply do not wire LOCAL_ACC_INPUT on the voice.
  */
 struct AccentMix {
@@ -158,7 +158,7 @@ struct AccentCharacter {
 // instead of scattering magic numbers across every voice. Each voice composes
 // from these named amounts via a factory; real per-voice differences (snare
 // noise, tom body) live in the factory, not as repeated literals downstream.
-// TR-909 accent = a little drive + a touch of gain; NO pitch/body sweep.
+// 909-style accent = a little drive + a touch of gain; NO pitch/body sweep.
 // ---------------------------------------------------------------------------
 namespace Accent {
     constexpr float kDrive     = 0.10f;  // saturation bump (sample voices: rim/hats/cymbals)
@@ -234,7 +234,7 @@ inline float resolveAccentGain(bool totalGate, bool localGate,
 
     // Accent is a boost ADDED on top of the un-accented level, scaled by the
     // CTRL amounts -- so the accented hit never dips below normal and never
-    // jumps in from silence. Matches the TR-909, where accent just adds a bit
+    // jumps in from silence. Matches the classic 909, where accent just adds a bit
     // of gain on top (gentle), rather than replacing the level outright.
     const float ghostLin = dbToLinear(floorDb);
     const float dA    = dbToLinear(mix.globalDb) - ghostLin;   // boost delta vs ghost
@@ -279,7 +279,7 @@ struct AccentResolution {
  * One-shot sample of the accent gates at trigger-rising-edge time.
  *
  * Reads totalInputId from `self`'s inputs (always required); reads
- * localInputId if it is >= 0 (voices without Accent B per Roland TR-909
+ * localInputId if it is >= 0 (voices without Accent B per the classic 909
  * OM -- Ohh, RimClap, CrashRide -- pass -1 to skip). Combines the gates
  * with bus state and the voice's mix into a {charStrength, gain} pair.
  *
@@ -310,17 +310,17 @@ inline AccentResolution sampleAccentAtTrig(rack::Module* self,
     return r;
 }
 
-}} // namespace
+} // namespace
 
 /** Marker base for any 909 module that participates in the state bus. */
-struct Tr909Module : AgentModule {
-    Ghost::TR909::Bus currentBus;
+struct GhostModule : AgentModule {
+    Ghost::Bus currentBus;
 };
 
-namespace Ghost { namespace TR909 {
+namespace Ghost {
 
 /**
- * Resolve the current bus state by checking adjacent Tr909Modules.
+ * Resolve the current bus state by checking adjacent GhostModules.
  * Returns first found controllerPresent state, defaulting to a "no
  * controller, neutral values" Bus otherwise. Voices should call this
  * once per process() and use the returned amounts when computing
@@ -329,16 +329,16 @@ namespace Ghost { namespace TR909 {
  * Also writes the resolved state into self->currentBus so the chain
  * extends through this voice to whichever neighbor is on the other side.
  */
-inline Bus resolveBus(Tr909Module* self) {
+inline Bus resolveBus(GhostModule* self) {
     Bus state;
 
-    if (auto* leftN = dynamic_cast<Tr909Module*>(self->leftExpander.module)) {
+    if (auto* leftN = dynamic_cast<GhostModule*>(self->leftExpander.module)) {
         if (leftN->currentBus.controllerPresent) {
             state = leftN->currentBus;
         }
     }
     if (!state.controllerPresent) {
-        if (auto* rightN = dynamic_cast<Tr909Module*>(self->rightExpander.module)) {
+        if (auto* rightN = dynamic_cast<GhostModule*>(self->rightExpander.module)) {
             if (rightN->currentBus.controllerPresent) {
                 state = rightN->currentBus;
             }
@@ -349,4 +349,4 @@ inline Bus resolveBus(Tr909Module* self) {
     return state;
 }
 
-}} // namespace
+} // namespace

@@ -1,8 +1,8 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <cmath>
 #include "SvgHelper.hpp"
@@ -11,7 +11,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * Toms -- TR-909 inspired toms (LowTom / MidTom / HighTom).
+ * Toms -- 909-style toms (LowTom / MidTom / HighTom).
  *
  * Direct port of a known-passable JUCE one-shot tom generator with every
  * internal model parameter exposed via `TomFit::Config`. Mirrors the
@@ -73,7 +73,7 @@ struct Config {
     float clickLengthSamples = 30.f;
 
     // Body envelope rate range: rate(decay) = envRateMin + (1-decay) * envRateSpan
-    // Calibrated against TR-909 LowTom tune050-decay050: tau ~ 100 ms at decay=0.5.
+    // Calibrated against the reference machine LowTom tune050-decay050: tau ~ 100 ms at decay=0.5.
     float envRateMin         = 6.f;
     float envRateSpan        = 8.f;
 
@@ -91,10 +91,10 @@ struct Config {
     // accent on the original 909; the Ghost default keeps a small
     // body/click/drive boost as a stylistic add. AccentCharacter member
     // order is body, pitch, click, drive, noise, snap, decay, brightness, bend.
-    Ghost::TR909::AccentCharacter accent = Ghost::TR909::Accent::toms();  // shared policy
+    Ghost::AccentCharacter accent = Ghost::Accent::toms();  // shared policy
 };
 
-// baseHz calibrated against TR-909 references at tune050-decay050:
+// baseHz calibrated against the reference machine references at tune050-decay050:
 //   LowTom ref  = 90.8 Hz (F#2 -31c)  -> 90.8 / 1.06 = 85.7
 //   MidTom ref  = 113.7 Hz (A#2 -42c) -> 113.7 / 1.06 = 107.3
 //   HighTom ref = 133.9 Hz (C3 +41c)  -> 133.9 / 1.06 = 126.3
@@ -154,7 +154,7 @@ struct TomVoice {
         const float env       = std::exp(-envRate * t);
 
         const float click = (sampleCount < (int)fit.clickLengthSamples)
-            ? (Ghost::TR909::accentScale(
+            ? (Ghost::accentScale(
                     fit.clickGain, accentNorm, fit.accent.clickAmt)
                * (1.f - (float)sampleCount / fit.clickLengthSamples))
             : 0.f;
@@ -168,12 +168,12 @@ struct TomVoice {
 
         // Short white-noise burst (909 tom noise circuit), own fast envelope.
         const float noise = nextNoise() * std::exp(-fit.noiseDecayRate * t)
-                          * Ghost::TR909::accentScale(fit.noiseGain, accentNorm, fit.accent.noiseAmt);
+                          * Ghost::accentScale(fit.noiseGain, accentNorm, fit.accent.noiseAmt);
 
         float out = ((tomTriangle(phase1) * fit.osc1Gain
                    + tomTriangle(phase2) * fit.osc2Gain
                    + tomTriangle(phase3) * fit.osc3Gain)
-                   * Ghost::TR909::accentScale(1.f, accentNorm, fit.accent.bodyAmt)
+                   * Ghost::accentScale(1.f, accentNorm, fit.accent.bodyAmt)
                    + click) * env
                    + noise;
 
@@ -181,7 +181,7 @@ struct TomVoice {
         hpState += fit.hpCoef * (out - hpState);
         out -= hpState;
 
-        const float driveGain = Ghost::TR909::accentAdd(
+        const float driveGain = Ghost::accentAdd(
             fit.driveGain, accentNorm, fit.accent.driveAmt);
         if (driveGain > 0.f) {
             out = std::tanh(out * driveGain);
@@ -209,7 +209,7 @@ struct TomVoice {
 // the values back into TomFit::makeXxxTom().
 // ---------------------------------------------------------------------------
 
-struct TomLab : Tr909Module {
+struct TomLab : GhostModule {
     enum ParamId {
         TUNE_PARAM, DECAY_PARAM, LEVEL_PARAM,
         BASE_HZ_PARAM,
@@ -227,7 +227,7 @@ struct TomLab : Tr909Module {
 
     TomVoice voice;
     TomFit::Config fit;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float latchedCaseGain = 1.f;
     float voiceCharStrength = 0.f;
 
@@ -282,9 +282,9 @@ struct TomLab : Tr909Module {
         fit.outputGain         = params[OUTPUT_GAIN_PARAM].getValue();
         fit.accent.driveAmt     = params[ACCENT_DRIVE_PARAM].getValue();
 
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (voice.trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
             voice.fire();
             latchedCaseGain   = acc.gain;
@@ -312,7 +312,7 @@ struct TomLabPanel : rack::widget::Widget {
     std::vector<TomLabLabelCell> labels;
 
     void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawLabShell(
+        Ghost::LabArt::drawLabShell(
             args.vg, box.size, "TOM LAB",
             "curated 18HP expert surface: 3 playable + 13 fit controls",
             nvgRGB(20, 22, 26),
@@ -402,7 +402,7 @@ rack::Model* modelTomLab = createModel<TomLab, TomLabWidget>("TomLab");
 // from TomFit. Use TomLab if you want to sweep internal voicing parameters.
 // ---------------------------------------------------------------------------
 
-struct Toms : Tr909Module {
+struct Toms : GhostModule {
     // GHOST surface: three toms as a small drum sub-system -- each voice fully
     // tunable (TUNE/DECAY/LEVEL) with per-knob CV. IDs finalized for release.
     enum ParamId  {
@@ -411,7 +411,7 @@ struct Toms : Tr909Module {
         HIGH_TUNE_PARAM, HIGH_DECAY_PARAM, HIGH_LEVEL_PARAM,
         NUM_PARAMS
     };
-    // Per Roland TR-909 OM, all three toms have Accent B. The shared
+    // Per the classic 909 voice layout, all three toms have Accent B. The shared
     // LOCAL_ACC and TOTAL_ACC inputs apply to whichever voice fires;
     // each voice latches its own gain at its own trigger edge.
     enum InputId  {
@@ -434,7 +434,7 @@ struct Toms : Tr909Module {
 
     TomVoice low, mid, high;
     TomFit::Config lowFit, midFit, highFit;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float lowGain = 1.f, midGain = 1.f, highGain = 1.f;
     float lowChar = 0.f, midChar = 0.f, highChar = 0.f;
 
@@ -480,9 +480,9 @@ struct Toms : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         auto sampleAcc = [&]() {
-            return Ghost::TR909::sampleAccentAtTrig(
+            return Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
         };
         if (low.trigger.process(inputs[LOW_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {

@@ -1,12 +1,12 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "TR909VoiceCommon.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostVoice.hpp"
+#include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
-#include "embedded/Chh909Data.hpp"
-#include "embedded/Ohh909Data.hpp"
+#include "embedded/GhostChhData.hpp"
+#include "embedded/GhostOhhData.hpp"
 #include <cmath>
 #include "SvgHelper.hpp"
 
@@ -14,7 +14,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * ChhOhh -- TR-909 closed + open hi-hat in a single module.
+ * ChhOhh -- 909-style closed + open hi-hat in a single module.
  *
  * The original 909 closed and open hi-hat share a single envelope/sound
  * circuit: a CH hit instantly mutes any sounding OH. We model that by
@@ -23,7 +23,7 @@ extern Plugin* pluginInstance;
  * mirrors the CrashRide / RimClap pattern of grouping voices that
  * share a hardware path.
  *
- * Accent rails per Roland TR-909 OM:
+ * Accent rails per the classic 909 voice layout:
  *   - CH has Accent B: responds to LOCAL_ACC and TOTAL_ACC
  *   - OH has only Accent A: responds to TOTAL_ACC
  *
@@ -51,24 +51,24 @@ static constexpr float CHOKE_DECAY_SEC   = 0.005f;
 // stylistic Ghost additions, not circuit reproductions.
 // AccentCharacter member order: body, pitch, click, drive, noise, snap,
 // decay, brightness, bend.
-static const Ghost::TR909::AccentCharacter CHH_ACCENT = Ghost::TR909::Accent::driveOnly();
-static const Ghost::TR909::AccentCharacter OHH_ACCENT = Ghost::TR909::Accent::driveOnly();
+static const Ghost::AccentCharacter CHH_ACCENT = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter OHH_ACCENT = Ghost::Accent::driveOnly();
 
 static const std::vector<float>& chhSource() {
     static const std::vector<float> sample =
-        Ghost::TR909::decodeEmbeddedF32(chh909_f32, chh909_f32_len);
+        Ghost::decodeEmbeddedF32(ghostChh_f32, ghostChh_f32_len);
     return sample;
 }
 
 static const std::vector<float>& ohhSource() {
     static const std::vector<float> sample =
-        Ghost::TR909::decodeEmbeddedF32(ohh909_f32, ohh909_f32_len);
+        Ghost::decodeEmbeddedF32(ghostOhh_f32, ghostOhh_f32_len);
     return sample;
 }
 
 } // namespace
 
-struct ChhOhh : Tr909Module {
+struct ChhOhh : GhostModule {
     enum ParamId {
         CHH_TUNE_PARAM,  CHH_DECAY_PARAM,  CHH_DRIVE_PARAM,  CHH_LEVEL_PARAM,
         OHH_TUNE_PARAM,  OHH_DECAY_PARAM,  OHH_DRIVE_PARAM,  OHH_LEVEL_PARAM,
@@ -76,7 +76,7 @@ struct ChhOhh : Tr909Module {
     };
     enum InputId {
         CHH_TRIG_INPUT, OHH_TRIG_INPUT,
-        LOCAL_ACC_INPUT,   // CH only (Accent B); Roland: OH has no Accent B
+        LOCAL_ACC_INPUT,   // CH only (Accent B); the classic 909: OH has no Accent B
         TOTAL_ACC_INPUT,   // shared by both voices (Accent A)
         // Per-knob CV for the panel controls (TUNE/DECAY/LEVEL each voice).
         // DRIVE is an internal/right-click param, so it has no CV jack.
@@ -101,7 +101,7 @@ struct ChhOhh : Tr909Module {
     float ohhEnv       = 0.f;
     bool  ohhChokeActive = false;
 
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float chhLatchedGain = 1.f;
     float ohhLatchedGain = 1.f;
     float chhLatchedChar = 0.f;
@@ -141,13 +141,13 @@ struct ChhOhh : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
 
         // -- Closed hi-hat trigger -------------------------------------
         if (chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             chhSamplePos = 0.f;
             chhEnv       = 1.f;
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
             chhLatchedChar = acc.charStrength;
             chhLatchedGain = acc.gain;
@@ -161,7 +161,7 @@ struct ChhOhh : Tr909Module {
             ohhEnv           = 1.f;
             ohhChokeActive   = false;  // a fresh OH hit cancels pending choke
             // OH has no Accent B; pass localInputId=-1 by default arg.
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
             ohhLatchedChar = acc.charStrength;
             ohhLatchedGain = acc.gain;
@@ -185,13 +185,13 @@ struct ChhOhh : Tr909Module {
         float chhDecaySec = CHH_DECAY_MIN_SEC
                           + chhDecayShape * (CHH_DECAY_MAX_SEC - CHH_DECAY_MIN_SEC);
         const auto& chSrc = chhSource();
-        float chhSrc = Ghost::TR909::sampleAt(chSrc, chhSamplePos);
-        chhSamplePos += Ghost::TR909::playbackStep(
-            Ghost::TR909::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
+        float chhSrc = Ghost::sampleAt(chSrc, chhSamplePos);
+        chhSamplePos += Ghost::playbackStep(
+            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
         chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
         float chhOut = chhSrc * chhEnv * 1.04f;
-        chhOut = Ghost::TR909::bitReduce(chhOut, dbgBitDepth);
-        chhOut = Ghost::TR909::driveWithAccent(
+        chhOut = Ghost::bitReduce(chhOut, dbgBitDepth);
+        chhOut = Ghost::driveWithAccent(
             chhOut, chhDrive, chhLatchedChar, CHH_ACCENT.driveAmt);
         chhOut *= chhLevel * 0.94f;
         chhOut *= chhLatchedGain * bus.masterVolume;
@@ -201,15 +201,15 @@ struct ChhOhh : Tr909Module {
         float ohhDecaySec = OHH_DECAY_MIN_SEC
                           + ohhDecay * (OHH_DECAY_MAX_SEC - OHH_DECAY_MIN_SEC);
         const auto& ohSrc = ohhSource();
-        float ohhSrc = Ghost::TR909::sampleAt(ohSrc, ohhSamplePos);
-        ohhSamplePos += Ghost::TR909::playbackStep(
-            Ghost::TR909::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
+        float ohhSrc = Ghost::sampleAt(ohSrc, ohhSamplePos);
+        ohhSamplePos += Ghost::playbackStep(
+            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
         const float ohhEffectiveDecaySec = ohhChokeActive ? CHOKE_DECAY_SEC : ohhDecaySec;
         ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhOut = ohhSrc * ohhEnv * 1.05f;
-        ohhOut = Ghost::TR909::bitReduce(ohhOut, dbgBitDepth);
-        ohhOut = Ghost::TR909::driveWithAccent(
+        ohhOut = Ghost::bitReduce(ohhOut, dbgBitDepth);
+        ohhOut = Ghost::driveWithAccent(
             ohhOut, ohhDrive, ohhLatchedChar, OHH_ACCENT.driveAmt);
         ohhOut *= ohhLevel * 0.96f;
         ohhOut *= ohhLatchedGain * bus.masterVolume;
@@ -287,7 +287,7 @@ rack::Model* modelChhOhh = createModel<ChhOhh, ChhOhhWidget>("ChhOhh");
 
 struct ChhOhhLabLabelCell { float xMm, yMm; const char* text; };
 
-struct ChhOhhLab : Tr909Module {
+struct ChhOhhLab : GhostModule {
     enum ParamId {
         CHH_TUNE_PARAM, CHH_DECAY_PARAM, CHH_DRIVE_PARAM, CHH_LEVEL_PARAM, CHH_BITS_PARAM,
         OHH_TUNE_PARAM, OHH_DECAY_PARAM, OHH_DRIVE_PARAM, OHH_LEVEL_PARAM, OHH_BITS_PARAM,
@@ -310,7 +310,7 @@ struct ChhOhhLab : Tr909Module {
     float ohhSamplePos = 1e9f;
     float ohhEnv = 0.f;
     bool ohhChokeActive = false;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float chhLatchedGain = 1.f;
     float ohhLatchedGain = 1.f;
     float chhLatchedChar = 0.f;
@@ -337,11 +337,11 @@ struct ChhOhhLab : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             chhSamplePos = 0.f;
             chhEnv = 1.f;
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
             chhLatchedChar = acc.charStrength;
             chhLatchedGain = acc.gain;
@@ -351,7 +351,7 @@ struct ChhOhhLab : Tr909Module {
             ohhSamplePos = 0.f;
             ohhEnv = 1.f;
             ohhChokeActive = false;
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
             ohhLatchedChar = acc.charStrength;
             ohhLatchedGain = acc.gain;
@@ -375,28 +375,28 @@ struct ChhOhhLab : Tr909Module {
         float chhDecayShape = std::sqrt(chhDecay);
         float chhDecaySec = CHH_DECAY_MIN_SEC
                           + chhDecayShape * (CHH_DECAY_MAX_SEC - CHH_DECAY_MIN_SEC);
-        float chhSrc = Ghost::TR909::sampleAt(chhSource(), chhSamplePos);
-        chhSamplePos += Ghost::TR909::playbackStep(
-            Ghost::TR909::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
+        float chhSrc = Ghost::sampleAt(chhSource(), chhSamplePos);
+        chhSamplePos += Ghost::playbackStep(
+            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
         chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
         float chhOut = chhSrc * chhEnv * 1.04f;
-        chhOut = Ghost::TR909::bitReduce(chhOut, chhBits);
-        chhOut = Ghost::TR909::driveWithAccent(
+        chhOut = Ghost::bitReduce(chhOut, chhBits);
+        chhOut = Ghost::driveWithAccent(
             chhOut, chhDrive, chhLatchedChar, CHH_ACCENT.driveAmt);
         chhOut *= chhLevel * 0.94f;
         chhOut *= chhLatchedGain * bus.masterVolume;
 
         float ohhRate = std::pow(2.f, (ohhTune - 0.5f) * 2.f * OHH_TUNE_OCTAVES);
         float ohhDecaySec = OHH_DECAY_MIN_SEC + ohhDecay * (OHH_DECAY_MAX_SEC - OHH_DECAY_MIN_SEC);
-        float ohhSrc = Ghost::TR909::sampleAt(ohhSource(), ohhSamplePos);
-        ohhSamplePos += Ghost::TR909::playbackStep(
-            Ghost::TR909::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
+        float ohhSrc = Ghost::sampleAt(ohhSource(), ohhSamplePos);
+        ohhSamplePos += Ghost::playbackStep(
+            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
         const float ohhEffectiveDecaySec = ohhChokeActive ? CHOKE_DECAY_SEC : ohhDecaySec;
         ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhOut = ohhSrc * ohhEnv * 1.05f;
-        ohhOut = Ghost::TR909::bitReduce(ohhOut, ohhBits);
-        ohhOut = Ghost::TR909::driveWithAccent(
+        ohhOut = Ghost::bitReduce(ohhOut, ohhBits);
+        ohhOut = Ghost::driveWithAccent(
             ohhOut, ohhDrive, ohhLatchedChar, OHH_ACCENT.driveAmt);
         ohhOut *= ohhLevel * 0.96f;
         ohhOut *= ohhLatchedGain * bus.masterVolume;
@@ -410,7 +410,7 @@ struct ChhOhhLabPanel : rack::widget::Widget {
     std::vector<ChhOhhLabLabelCell> labels;
 
     void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawLabShell(
+        Ghost::LabArt::drawLabShell(
             args.vg, box.size, "OHCH LAB",
             "curated 18HP expert surface",
             nvgRGB(8, 8, 10),

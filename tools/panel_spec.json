@@ -2030,12 +2030,12 @@
       }
     ]
   },
-  "Tr909Ctrl": {
-    "slug": "Tr909Ctrl",
+  "GhostCtrl": {
+    "slug": "GhostCtrl",
     "displayName": "GHOST CTRL",
     "tier": "controller",
     "hp": 8,
-    "source": "Tr909Ctrl.cpp",
+    "source": "GhostCtrl.cpp",
     "counts": {
       "params": 4,
       "inputs": 4,

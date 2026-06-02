@@ -5,7 +5,7 @@
 extern rack::Plugin* pluginInstance;
 
 /**
- * NineOhNinePanel -- shared widget template for the Ghost 909 drum suite.
+ * LabArtPanel -- shared widget template for the Ghost 909 drum suite.
  *
  * Panel doctrine (909 family only, supersedes the no-label rule in
  * DESIGN_PRINCIPLES.md for this suite):
@@ -29,7 +29,7 @@ extern rack::Plugin* pluginInstance;
  */
 
 namespace Ghost {
-namespace NineOhNine {
+namespace LabArt {
 
 using namespace rack;
 
@@ -58,7 +58,7 @@ static constexpr float IO_ACCENT_X  = 30.48f;
 static constexpr float IO_OUT_X     = 49.f;
 
 // 4-jack IO row used by voices that have BOTH local and total accent
-// inputs (per Roland TR-909 OM: BD, SD, LT, MT, HT, CH).
+// inputs (per the classic 909 voice layout: BD, SD, LT, MT, HT, CH).
 static constexpr float IO4_TRIG_X = 8.f;
 static constexpr float IO4_LACC_X = 22.f;
 static constexpr float IO4_TACC_X = 38.f;
@@ -376,5 +376,5 @@ struct Panel : rack::widget::Widget {
     }
 };
 
-} // namespace NineOhNine
+} // namespace LabArt
 } // namespace Ghost

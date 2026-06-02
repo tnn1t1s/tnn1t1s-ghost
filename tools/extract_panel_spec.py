@@ -15,7 +15,7 @@ import json, re, sys, pathlib
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src"
 PLUGIN_JSON = pathlib.Path(__file__).resolve().parent.parent / "plugin.json"
 FILES = ["Kck.cpp", "Snr.cpp", "ChhOhh.cpp", "RimClap.cpp", "Toms.cpp",
-         "CrashRide.cpp", "Tr909Ctrl.cpp"]
+         "CrashRide.cpp", "GhostCtrl.cpp"]
 
 NUM = re.compile(r"^NUM_")
 
@@ -195,7 +195,7 @@ def main():
             spec[slug] = {
                 "slug": slug,
                 "displayName": names.get(slug, slug),
-                "tier": ("controller" if slug == "Tr909Ctrl"
+                "tier": ("controller" if slug == "GhostCtrl"
                          else "lab" if slug.endswith("Lab") else "core"),
                 "hp": find_hp(text, struct_name),
                 "source": fname,

@@ -29,7 +29,7 @@ base = read(BASE)
 mod  = {m.get('model'): m for m in base['modules']}
 CLK, SEQ, AUD = mod['SlimeChild-Substation-Clock'], mod['Drumsequencer'], mod['AudioInterface2']
 SAPH, CRUSH    = mod['Saphire'], mod['BusCrush']
-KCK, SNR, OHCH, CTRL = mod['Kck'], mod['Snr'], mod['ChhOhh'], mod['Tr909Ctrl']
+KCK, SNR, OHCH, CTRL = mod['Kck'], mod['Snr'], mod['ChhOhh'], mod['GhostCtrl']
 
 # --- contiguous CTRL + voices (row 0) so the expander chain reaches them ---
 CTRL['pos'], KCK['pos'], SNR['pos'], OHCH['pos'] = [0,0], [8,0], [24,0], [36,0]

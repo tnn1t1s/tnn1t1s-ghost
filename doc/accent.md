@@ -1,7 +1,7 @@
 # Ghost — Accent & GHOST CTRL
 
 How accent works across the Ghost drum voices, and how **GHOST CTRL** shapes it.
-This is the canonical behaviour; the implementation lives in `src/Tr909Bus.hpp`.
+This is the canonical behaviour; the implementation lives in `src/GhostBus.hpp`.
 
 ## The idea in one line
 
@@ -14,7 +14,7 @@ gates are patched **by cable**; the global balance is broadcast **by adjacency**
 
 | Rail | Jack | Meaning |
 |------|------|---------|
-| **Total accent** (Accent A) | `TOTAL` | The **global** accent — analogous to the TR‑909's single ACCENT track. Present on **every** voice. |
+| **Total accent** (Accent A) | `TOTAL` | The **global** accent — analogous to the classic 909's single ACCENT track. Present on **every** voice. |
 | **Local accent** (Accent B) | `LOCAL` | A **per‑voice** accent track. Present only where the voice responds to it. |
 
 **Which voices have which:**
@@ -28,7 +28,7 @@ gates are patched **by cable**; the global balance is broadcast **by adjacency**
 | RIMCLAP | ✓ | — |
 | CRSHRIDE | ✓ | — |
 
-RIMCLAP and CRSHRIDE expose only Total, matching the Roland TR‑909 manual: rim,
+RIMCLAP and CRSHRIDE expose only Total, matching the classic 909 manual: rim,
 clap, crash, ride and the open hat don't take the per‑voice accent.
 
 A gate is "fired" for a hit when its jack is above ~1 V at the trigger edge. The
@@ -55,7 +55,7 @@ The actual levels are tuned **per voice**:
   (Tight ~35% / Classic 15% / Wide ~8%).
 - **Other voices** — a gentle accent: un‑accented at the normal level, accented
   hits about **+3 dB** on top (Accent A or both). This keeps the global accent
-  subtle across the kit, the way a TR‑909 accent reads.
+  subtle across the kit, the way a 909-style accent reads.
 
 ## GHOST CTRL
 

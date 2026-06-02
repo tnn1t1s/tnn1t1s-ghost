@@ -93,9 +93,9 @@ CYMBALS = {
 }
 
 # top-row layout: CTRL + voices must be contiguous for the accent bus
-ROW0_HP = {"Tr909Ctrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20,
+ROW0_HP = {"GhostCtrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20,
            "ChhOhh": 14, "CrashRide": 12}
-ROW0_ORDER = ["Tr909Ctrl", "Kck", "RimClap", "Toms", "ChhOhh", "CrashRide"]
+ROW0_ORDER = ["GhostCtrl", "Kck", "RimClap", "Toms", "ChhOhh", "CrashRide"]
 
 
 def load_base():
@@ -250,7 +250,7 @@ def assemble(data, patterns, has_kick, has_clap, has_toms=False, has_hats=False,
              has_cymbals=False):
     hd = by_model(data, "Drumsequencer")["data"]
     h = by_model(data, "Drumsequencer")["id"]
-    ctrl = by_model(data, "Tr909Ctrl")["id"]  # noqa: kept for clarity / future use
+    ctrl = by_model(data, "GhostCtrl")["id"]  # noqa: kept for clarity / future use
     rc = by_model(data, "RimClap")["id"]
     # the donor's UMix is the master mix; a second UMix (TOMSUB_ID) may be a sub
     um = next(m["id"] for m in data["modules"]

@@ -51,7 +51,7 @@
       "tags": ["Drum"]
     },
     {
-      "slug": "Tr909Ctrl",
+      "slug": "GhostCtrl",
       "name": "GHOST CTRL",
       "description": "Global state controller for the Ghost drum system. DEFAULT, ACCENT A, ACCENT B, and MASTER controls are broadcast to adjacent Ghost voices via the expander path. Hit-time events such as trigger and local/total accent gates are patched directly to each voice. Use GHOST CTRL to make the separate voices behave like one instrument.",
       "tags": ["Controller", "Utility"]

@@ -13,7 +13,7 @@ FLAGS += -Ivendor/svghelper
 
 SOURCES += src/plugin.cpp
 SOURCES += src/Attenuate.cpp
-SOURCES += src/Tr909Ctrl.cpp
+SOURCES += src/GhostCtrl.cpp
 SOURCES += src/Kck.cpp
 SOURCES += src/Snr.cpp
 SOURCES += src/ChhOhh.cpp

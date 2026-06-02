@@ -47,6 +47,7 @@ namespace TomFit {
 /// Full set of internal tom-engine model parameters (pitch, envelope, mix,
 /// noise, click, drive). One Config per voice; only baseHz differs across the
 /// three toms. Exposed for the voice_lab fitting workflow.
+/// Calibration story (ratios, reference LowTom tau, noise burst): see doc/calibration.md.
 struct Config {
     // Pitch
     float baseHz             = 100.f;

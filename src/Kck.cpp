@@ -65,6 +65,7 @@ namespace KckFit {
 /// All tunable model constants for the kick engine (Hz, 1/tau decay rates,
 /// gains, filter coefficients, accent policy). One instance is the full voice
 /// recipe; KckLab exposes a curated subset as live knobs.
+/// Calibration story (the reference match, knob remapping): see doc/calibration.md.
 struct Config {
     // Pitch range (calibrated against the reference machine BD ref tune050-attack050-decay050 = 49.8 Hz).
     // basePitch midpoint 45 Hz; FFT measurement adds ~5 Hz from slow-sweep residual.

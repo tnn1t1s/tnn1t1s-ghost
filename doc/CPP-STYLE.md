@@ -99,6 +99,12 @@ Each voice follows the same shape — keep it:
   obvious overrides. A docstring must add information, not boilerplate.
 - Within a body: explain **why**, not what. Document non-obvious DSP (a filter
   topology, a calibration value, a magic coefficient and where it came from).
+- **Provenance comments** (a value `matched`/`ear-tuned`/`calibrated against` a
+  reference, dated) are first-class — they're what makes a "magic number" not
+  magic. Keep them. BUT when a calibration is **cross-cutting** (one tuning that
+  spans several params/knobs, e.g. the kick's TR-09 match), the full story lives
+  in `doc/calibration.md` and the inline comment is a one-line pointer to it, so
+  the story survives a refactor and is discoverable in one place.
 - Match the surrounding density. No commented-out dead code in shipped files.
 
 ## 10. What must not ship

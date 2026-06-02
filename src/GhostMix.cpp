@@ -40,7 +40,10 @@ struct GhostMix : Module {
         for (int i = 0; i < N; i++)
             if (params[MUTE_PARAM + i].getValue() < 0.5f)   // 0 = on, 1 = muted
                 sum += inputs[IN_INPUT + i].getVoltage();
-        outputs[MIX_OUTPUT].setVoltage(sum);
+        // NaN guard + ±10 V safety clamp: a unity sum of 10 voices can run hot,
+        // and one NaN input must not propagate to the DAC.
+        if (!std::isfinite(sum)) sum = 0.f;
+        outputs[MIX_OUTPUT].setVoltage(rack::math::clamp(sum, -10.f, 10.f));
     }
 };
 

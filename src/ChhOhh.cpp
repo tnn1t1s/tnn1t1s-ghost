@@ -133,6 +133,18 @@ struct ChhOhh : GhostModule {
         configOutput(OHH_OUT_OUTPUT, "Open audio");
     }
 
+    /// Return both voices to silence and a clean state on Rack "Initialize" /
+    /// first load (zero envelopes, park read heads, drop the choke + latches).
+    void onReset() override {
+        chhTrigger.reset();
+        ohhTrigger.reset();
+        chhSamplePos = ohhSamplePos = 1e9f;
+        chhEnv = ohhEnv = 0.f;
+        ohhChokeActive = false;
+        chhLatchedGain = ohhLatchedGain = 1.f;
+        chhLatchedChar = ohhLatchedChar = 0.f;
+    }
+
     // knob + CV/10, clamped to 0..1 (DRIVE is off-panel, so no CV).
     float normWithCV(int paramId, int inputId) {
         return rack::math::clamp(
@@ -189,6 +201,7 @@ struct ChhOhh : GhostModule {
         chhSamplePos += Ghost::playbackStep(
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
         chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
+        if (chhEnv < Ghost::kDenormalFloor) chhEnv = 0.f;   // denormal safety
         float chhOut = chhSrc * chhEnv * 1.04f;
         chhOut = Ghost::bitReduce(chhOut, dbgBitDepth);
         chhOut = Ghost::driveWithAccent(
@@ -206,6 +219,7 @@ struct ChhOhh : GhostModule {
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
         const float ohhEffectiveDecaySec = ohhChokeActive ? CHOKE_DECAY_SEC : ohhDecaySec;
         ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
+        if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhOut = ohhSrc * ohhEnv * 1.05f;
         ohhOut = Ghost::bitReduce(ohhOut, dbgBitDepth);
@@ -379,6 +393,7 @@ struct ChhOhhLab : GhostModule {
         chhSamplePos += Ghost::playbackStep(
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
         chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
+        if (chhEnv < Ghost::kDenormalFloor) chhEnv = 0.f;   // denormal safety
         float chhOut = chhSrc * chhEnv * 1.04f;
         chhOut = Ghost::bitReduce(chhOut, chhBits);
         chhOut = Ghost::driveWithAccent(
@@ -393,6 +408,7 @@ struct ChhOhhLab : GhostModule {
             Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
         const float ohhEffectiveDecaySec = ohhChokeActive ? CHOKE_DECAY_SEC : ohhDecaySec;
         ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
+        if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhOut = ohhSrc * ohhEnv * 1.05f;
         ohhOut = Ghost::bitReduce(ohhOut, ohhBits);

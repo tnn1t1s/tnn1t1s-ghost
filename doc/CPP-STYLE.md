@@ -57,7 +57,7 @@ Each voice follows the same shape — keep it:
 - Constructor: `config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS)` then
   `configParam/configSwitch/configInput/configOutput` for **every** id, with
   ranges, sane defaults, units, and human labels.
-- DSP lives in a separate engine struct/namespace (`Ghost::TR909::…`); the
+- DSP lives in a separate engine struct/namespace (`Ghost::…`); the
   `Module` wires params/CV to it. Keep DSP and Rack glue separable.
 - `Widget` binds live controls **by anchor name** via SvgHelper
   (`bindParam`/`bindInput`/`bindOutput`) — **no hardcoded coordinates in C++**;
@@ -86,7 +86,7 @@ Each voice follows the same shape — keep it:
   reserved for enum ids only). Enum ids `UPPER_SNAKE` ending `_PARAM/_INPUT/_OUTPUT`.
   Existing UPPER_SNAKE constants (e.g. `CHOKE_DECAY_SEC`) get renamed to
   `kChokeDecaySec` during the review fixes.
-- Namespaces lowercase (`Ghost::TR909`). One module per file, file named for it.
+- Namespaces lowercase (`Ghost`). One module per file, file named for it.
 
 ## 9. Comments & docstrings
 
@@ -102,7 +102,7 @@ Each voice follows the same shape — keep it:
 - **Provenance comments** (a value `matched`/`ear-tuned`/`calibrated against` a
   reference, dated) are first-class — they're what makes a "magic number" not
   magic. Keep them. BUT when a calibration is **cross-cutting** (one tuning that
-  spans several params/knobs, e.g. the kick's TR-09 match), the full story lives
+  spans several params/knobs, e.g. the kick's reference match), the full story lives
   in `doc/calibration.md` and the inline comment is a one-line pointer to it, so
   the story survives a refactor and is discoverable in one place.
 - Match the surrounding density. No commented-out dead code in shipped files.
@@ -115,7 +115,9 @@ Each voice follows the same shape — keep it:
 - Module/file-header comments say "909-style", not "TR-909".
 - Calibration provenance references "the reference machine" / "a 909-style
   hardware reference", not "TR-909".
-- Internal identifiers (`Ghost::TR909`, `Tr909*`) are exempt (not user-visible).
+- Internal identifiers were renamed too (ADR 0002 escalation): the namespace is
+  `Ghost::` (no sub-namespace), files/classes are `Ghost*` — there is no `TR909`
+  / `Tr909*` / "909-spelled-out" identifier anywhere in `src/`.
 
 ## 10. What must not ship
 

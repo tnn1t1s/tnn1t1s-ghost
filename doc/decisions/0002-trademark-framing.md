@@ -1,7 +1,19 @@
 # 0002 — Trademark framing: inspired-by, never a clone
 
-**Status:** Accepted (2026-06-02)
+**Status:** Accepted (2026-06-02), **superseded same day — escalated to a full rename** (see Update below)
 **Relates to:** RELEASE.md Track A #6 (IP / ethics audit)
+
+## Update (2026-06-02) — escalated to full rename
+
+The original decision kept tier-4 internal identifiers. On reflection the
+operator escalated: the project began as a 909 clone but became its own
+instrument (hence "Ghost"), so the code names should say what it *is*. **Tier 4
+was done too:** namespace `Ghost::TR909::` flattened to `Ghost::`; files renamed
+(`Tr909Bus`→`GhostBus`, `TR909VoiceCommon`→`GhostVoice`, `Tr909Ctrl`→`GhostCtrl`,
+`NineOhNinePanel`→`GhostPanel`, `embedded/*909Data`→`Ghost*Data`); identifiers
+(`Tr909Module`→`GhostModule`, `NineOhNine` ns→`LabArt`, `*909_f32`→`ghost*_f32`);
+and the `GhostCtrl` model slug (with all patches + builders updated). Result:
+**no "909" model reference anywhere in `src/`** — comments, identifiers, or files.
 
 ## Context
 

@@ -107,6 +107,16 @@ Each voice follows the same shape — keep it:
   the story survives a refactor and is discoverable in one place.
 - Match the surrounding density. No commented-out dead code in shipped files.
 
+## 9b. Trademark framing (see ADR 0002)
+
+- GHOST is **"inspired by / 909-style," never a clone.** User-facing text
+  (manifest names + descriptions, README, manual, panel labels) must NOT contain
+  "TR-909 / TR-09 / Roland".
+- Module/file-header comments say "909-style", not "TR-909".
+- Calibration provenance references "the reference machine" / "a 909-style
+  hardware reference", not "TR-909".
+- Internal identifiers (`Ghost::TR909`, `Tr909*`) are exempt (not user-visible).
+
 ## 10. What must not ship
 
 - Lab/bench variants stay **unregistered** (source ok, not in `plugin.cpp`).

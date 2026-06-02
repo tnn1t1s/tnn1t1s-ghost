@@ -5,7 +5,7 @@
 extern rack::Plugin* pluginInstance;
 
 /**
- * NineOhNinePanel -- shared widget template for the Ghost 909 drum suite.
+ * LabArtPanel -- shared widget template for the Ghost 909 drum suite.
  *
  * Panel doctrine (909 family only, supersedes the no-label rule in
  * DESIGN_PRINCIPLES.md for this suite):
@@ -29,7 +29,7 @@ extern rack::Plugin* pluginInstance;
  */
 
 namespace Ghost {
-namespace NineOhNine {
+namespace LabArt {
 
 using namespace rack;
 
@@ -376,5 +376,5 @@ struct Panel : rack::widget::Widget {
     }
 };
 
-} // namespace NineOhNine
+} // namespace LabArt
 } // namespace Ghost

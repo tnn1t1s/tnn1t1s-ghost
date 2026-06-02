@@ -1,12 +1,12 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "TR909VoiceCommon.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostVoice.hpp"
+#include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
-#include "embedded/Crash909Data.hpp"
-#include "embedded/Ride909Data.hpp"
+#include "embedded/GhostCrashData.hpp"
+#include "embedded/GhostRideData.hpp"
 #include <cmath>
 #include "SvgHelper.hpp"
 
@@ -40,7 +40,7 @@ extern Plugin* pluginInstance;
 namespace crashride_impl {
 
 // Per-voice playable ranges. Source PCM rate is shared via
-// Ghost::TR909::kEmbeddedPcmSampleRate.
+// Ghost::kEmbeddedPcmSampleRate.
 static constexpr float CRASH_TUNE_OCTAVES  = 0.8f;
 static constexpr float CRASH_DECAY_MIN_SEC = 0.25f;
 static constexpr float CRASH_DECAY_MAX_SEC = 3.80f;
@@ -51,27 +51,27 @@ static constexpr float RIDE_DECAY_MAX_SEC  = 4.80f;
 
 static const std::vector<float>& crashSource() {
     static const std::vector<float> sample =
-        Ghost::TR909::decodeEmbeddedF32(crash909_f32, crash909_f32_len);
+        Ghost::decodeEmbeddedF32(ghostCrash_f32, ghostCrash_f32_len);
     return sample;
 }
 
 static const std::vector<float>& rideSource() {
     static const std::vector<float> sample =
-        Ghost::TR909::decodeEmbeddedF32(ride909_f32, ride909_f32_len);
+        Ghost::decodeEmbeddedF32(ghostRide_f32, ghostRide_f32_len);
     return sample;
 }
 
-static const Ghost::TR909::RomAsset& crashAsset() {
-    static const Ghost::TR909::RomAsset asset =
-        Ghost::TR909::makeRomAsset(crashSource(),
-                                       Ghost::TR909::RomAssetConfig(Ghost::TR909::kEmbeddedPcmSampleRate));
+static const Ghost::RomAsset& crashAsset() {
+    static const Ghost::RomAsset asset =
+        Ghost::makeRomAsset(crashSource(),
+                                       Ghost::RomAssetConfig(Ghost::kEmbeddedPcmSampleRate));
     return asset;
 }
 
-static const Ghost::TR909::RomAsset& rideAsset() {
-    static const Ghost::TR909::RomAsset asset =
-        Ghost::TR909::makeRomAsset(rideSource(),
-                                       Ghost::TR909::RomAssetConfig(Ghost::TR909::kEmbeddedPcmSampleRate));
+static const Ghost::RomAsset& rideAsset() {
+    static const Ghost::RomAsset asset =
+        Ghost::makeRomAsset(rideSource(),
+                                       Ghost::RomAssetConfig(Ghost::kEmbeddedPcmSampleRate));
     return asset;
 }
 
@@ -87,18 +87,18 @@ static const Ghost::TR909::RomAsset& rideAsset() {
 //                researching ROMpler bit-crush character.
 // Values are 1:1 with the standalone Crash and Ride modules so the per-voice
 // outputs of CrashRide are audibly identical to those of the standalones.
-static const Ghost::TR909::RomVoiceConfig CRASH_ROM_CFG = { 0.98f, 1.00f, 16 };
-static const Ghost::TR909::RomVoiceConfig RIDE_ROM_CFG  = { 1.00f, 1.00f, 16 };
+static const Ghost::RomVoiceConfig CRASH_ROM_CFG = { 0.98f, 1.00f, 16 };
+static const Ghost::RomVoiceConfig RIDE_ROM_CFG  = { 1.00f, 1.00f, 16 };
 // Per the 909 reference doc, RD and CY have NO accent on the original 909
 // (sit at full max). The drive boosts below are stylistic Ghost
 // additions, not circuit reproductions. AccentCharacter member order:
 // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-static const Ghost::TR909::AccentCharacter CRASH_ACCENT = Ghost::TR909::Accent::driveOnly();
-static const Ghost::TR909::AccentCharacter RIDE_ACCENT  = Ghost::TR909::Accent::driveOnly();
+static const Ghost::AccentCharacter CRASH_ACCENT = Ghost::Accent::driveOnly();
+static const Ghost::AccentCharacter RIDE_ACCENT  = Ghost::Accent::driveOnly();
 
 } // namespace crashride_impl
 
-struct CrashRide : Tr909Module {
+struct CrashRide : GhostModule {
     enum ParamId {
         CRASH_TUNE_PARAM, CRASH_DECAY_PARAM, CRASH_DRIVE_PARAM, CRASH_LEVEL_PARAM,
         RIDE_TUNE_PARAM,  RIDE_DECAY_PARAM,  RIDE_DRIVE_PARAM,  RIDE_LEVEL_PARAM,
@@ -125,10 +125,10 @@ struct CrashRide : Tr909Module {
 
     rack::dsp::SchmittTrigger crashTrigger;
     rack::dsp::SchmittTrigger rideTrigger;
-    Ghost::TR909::RomVoice crashVoice;
-    Ghost::TR909::RomVoice rideVoice;
+    Ghost::RomVoice crashVoice;
+    Ghost::RomVoice rideVoice;
     int dbgBitDepth = 16;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float crashLatchedGain = 1.f;
     float rideLatchedGain  = 1.f;
     float crashLatchedChar = 0.f;
@@ -165,37 +165,37 @@ struct CrashRide : Tr909Module {
     }
 
     inline float voiceProcess(const ProcessArgs& args,
-                              Ghost::TR909::RomVoice& voice,
-                              const Ghost::TR909::RomAsset& asset,
+                              Ghost::RomVoice& voice,
+                              const Ghost::RomAsset& asset,
                               float tuneNorm, float decayNorm,
                               float driveNorm, float levelNorm,
                               float charStrength, float accentDriveAmt,
                               float tuneOctaves, float decayMin, float decayMax,
-                              const Ghost::TR909::RomVoiceConfig& baseCfg,
+                              const Ghost::RomVoiceConfig& baseCfg,
                               float postGain) {
         float playbackRate = std::pow(2.f, (tuneNorm - 0.5f) * 2.f * tuneOctaves);
         float decaySec = decayMin + decayNorm * (decayMax - decayMin);
-        Ghost::TR909::RomVoiceConfig romCfg = baseCfg;
+        Ghost::RomVoiceConfig romCfg = baseCfg;
         romCfg.bitDepth = dbgBitDepth;
         float raw = voice.process(args, asset, playbackRate, decaySec, decayNorm, romCfg);
         float out = raw * postGain;
-        out = Ghost::TR909::driveWithAccent(out, driveNorm, charStrength, accentDriveAmt);
+        out = Ghost::driveWithAccent(out, driveNorm, charStrength, accentDriveAmt);
         out *= levelNorm * 0.92f;
         return out;
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (crashTrigger.process(inputs[CRASH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             crashVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
             crashLatchedChar = acc.charStrength;
             crashLatchedGain = acc.gain;
         }
         if (rideTrigger.process(inputs[RIDE_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             rideVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
             rideLatchedChar = acc.charStrength;
             rideLatchedGain = acc.gain;
@@ -289,7 +289,7 @@ rack::Model* modelCrashRide = createModel<CrashRide, CrashRideWidget>("CrashRide
 // the same tune / decay / drive / level surface as the main module.
 // ---------------------------------------------------------------------------
 
-struct CrashRideLab : Tr909Module {
+struct CrashRideLab : GhostModule {
     enum ParamId {
         CRASH_TUNE_PARAM, CRASH_DECAY_PARAM, CRASH_DRIVE_PARAM, CRASH_LEVEL_PARAM, CRASH_BITS_PARAM,
         RIDE_TUNE_PARAM,  RIDE_DECAY_PARAM,  RIDE_DRIVE_PARAM,  RIDE_LEVEL_PARAM,  RIDE_BITS_PARAM,
@@ -304,9 +304,9 @@ struct CrashRideLab : Tr909Module {
 
     rack::dsp::SchmittTrigger crashTrigger;
     rack::dsp::SchmittTrigger rideTrigger;
-    Ghost::TR909::RomVoice crashVoice;
-    Ghost::TR909::RomVoice rideVoice;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::RomVoice crashVoice;
+    Ghost::RomVoice rideVoice;
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float crashLatchedGain = 1.f;
     float rideLatchedGain = 1.f;
     float crashLatchedChar = 0.f;
@@ -332,39 +332,39 @@ struct CrashRideLab : Tr909Module {
     }
 
     inline float voiceProcess(const ProcessArgs& args,
-                              Ghost::TR909::RomVoice& voice,
-                              const Ghost::TR909::RomAsset& asset,
+                              Ghost::RomVoice& voice,
+                              const Ghost::RomAsset& asset,
                               float tuneNorm, float decayNorm, float driveNorm, float levelNorm,
                               int bitDepth,
                               float charStrength, float accentDriveAmt,
                               float tuneOctaves, float decayMin, float decayMax,
-                              const Ghost::TR909::RomVoiceConfig& baseCfg,
+                              const Ghost::RomVoiceConfig& baseCfg,
                               float postGain) {
         // Shared sampled-cymbal path used by both voices: rate-scaled ROM
         // playback, shortening envelope, optional bit reduction, then the same
         // post-ROM drive/level trim as the standalone voice modules.
         float playbackRate = std::pow(2.f, (tuneNorm - 0.5f) * 2.f * tuneOctaves);
         float decaySec = decayMin + decayNorm * (decayMax - decayMin);
-        Ghost::TR909::RomVoiceConfig romCfg = baseCfg;
+        Ghost::RomVoiceConfig romCfg = baseCfg;
         romCfg.bitDepth = bitDepth;
         float raw = voice.process(args, asset, playbackRate, decaySec, decayNorm, romCfg);
         float out = raw * postGain;
-        out = Ghost::TR909::driveWithAccent(out, driveNorm, charStrength, accentDriveAmt);
+        out = Ghost::driveWithAccent(out, driveNorm, charStrength, accentDriveAmt);
         out *= levelNorm * 0.92f;
         return out;
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (crashTrigger.process(inputs[CRASH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             crashVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
+            auto acc = Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
             crashLatchedChar = acc.charStrength;
             crashLatchedGain = acc.gain;
         }
         if (rideTrigger.process(inputs[RIDE_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             rideVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
+            auto acc = Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
             rideLatchedChar = acc.charStrength;
             rideLatchedGain = acc.gain;
         }
@@ -404,7 +404,7 @@ struct CrashRideLabPanel : rack::widget::Widget {
     std::vector<CrashRideLabLabelCell> labels;
 
     void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawLabShell(
+        Ghost::LabArt::drawLabShell(
             args.vg, box.size, "CRSHRIDE LAB",
             "curated 18HP expert surface");
 

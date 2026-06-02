@@ -1,8 +1,8 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <algorithm>
 #include <cmath>
@@ -158,7 +158,7 @@ struct Config {
     // (ghost / global / local / both) in dB. Wide spread for pronounced,
     // 909-style accent dynamics + multi-level multi-level kick rolls;
     // ghost stays -6 dB so steady patterns / the -6 dBFS calibration hold.
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::kickMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::kickMix();
 
     // Per-DSP-stage CHARACTER weights, applied multiplicatively at
     // fire-time when the hit is accented (any accent gate fired).
@@ -169,7 +169,7 @@ struct Config {
     // here would double-count with the shared abstraction.
     // Shared gentle-accent policy (see Tr909Bus.hpp Accent::). Click + drive,
     // no pitch/body sweep. Tune the suite's accent feel in Accent::, not here.
-    Ghost::TR909::AccentCharacter accent = Ghost::TR909::Accent::kick();
+    Ghost::AccentCharacter accent = Ghost::Accent::kick();
 };
 
 inline Config makeKick() { return Config{}; }
@@ -310,7 +310,7 @@ struct KckVoice {
 // Kck -- production module
 // ---------------------------------------------------------------------------
 
-struct Kck : Tr909Module {
+struct Kck : GhostModule {
     enum ParamId  {
         TUNE_PARAM, DECAY_PARAM, PITCH_PARAM, PITCH_DECAY_PARAM,
         CLICK_PARAM, DRIVE_PARAM, LEVEL_PARAM,
@@ -365,7 +365,7 @@ struct Kck : Tr909Module {
     float latchedCaseGain = 1.f;
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
 
         if (voice.trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             // Hit-time gates from cables (deterministic, zero latency).
@@ -377,8 +377,8 @@ struct Kck : Tr909Module {
             //              feel (drive, pitch dive, click) on any accent.
             //   level:     per-case dB lerp from AccentMix, latched once.
             const float charStrength =
-                Ghost::TR909::isAccentedHit(totalGate, localGate) ? 1.f : 0.f;
-            latchedCaseGain = Ghost::TR909::resolveAccentGain(
+                Ghost::isAccentedHit(totalGate, localGate) ? 1.f : 0.f;
+            latchedCaseGain = Ghost::resolveAccentGain(
                 totalGate, localGate, bus, fit.accentMix);
             voice.fire(charStrength);
         }
@@ -465,7 +465,7 @@ rack::Model* modelKck = createModel<Kck, KckWidget>("Kck");
 // sounds right, copy the values back into KckFit::makeKick().
 // ---------------------------------------------------------------------------
 
-struct KckLab : Tr909Module {
+struct KckLab : GhostModule {
     float latchedCaseGain = 1.f;
 
     enum ParamId {
@@ -607,14 +607,14 @@ struct KckLab : Tr909Module {
         fit.driveBase                = readWithCV(DRIVE_BASE_PARAM,        DRIVE_BASE_CV);
         fit.outputGain               = readWithCV(OUTPUT_GAIN_PARAM,       OUTPUT_GAIN_CV);
 
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
 
         if (voice.trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             const bool totalGate = inputs[TOTAL_ACC_INPUT].getNormalVoltage(0.f) > 1.f;
             const bool localGate = inputs[LOCAL_ACC_INPUT].getNormalVoltage(0.f) > 1.f;
             const float charStrength =
-                Ghost::TR909::isAccentedHit(totalGate, localGate) ? 1.f : 0.f;
-            latchedCaseGain = Ghost::TR909::resolveAccentGain(
+                Ghost::isAccentedHit(totalGate, localGate) ? 1.f : 0.f;
+            latchedCaseGain = Ghost::resolveAccentGain(
                 totalGate, localGate, bus, fit.accentMix);
             voice.fire(charStrength);
         }
@@ -642,7 +642,7 @@ struct KckLabPanel : rack::widget::Widget {
     std::vector<KckLabLabelCell> labels;
 
     void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawLabShell(
+        Ghost::LabArt::drawLabShell(
             args.vg, box.size, "KCK LAB",
             "curated 18HP expert surface: 7 playable + 9 fit controls",
             nvgRGB(20, 18, 22));

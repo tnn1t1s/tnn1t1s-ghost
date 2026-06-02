@@ -7,17 +7,17 @@
 /**
  * Tr909Bus -- adjacent-module state broadcast for the Ghost 909 suite.
  *
- * Tr909Ctrl publishes slow-changing global state (accent multiplier and
+ * GhostCtrl publishes slow-changing global state (accent multiplier and
  * master volume) and adjacent voices read it via the leftExpander/
  * rightExpander module pointer. Hit-time events (triggers, total accent
  * gate, local accent gate) are NOT carried on this bus -- they travel
  * through cables to per-voice inputs so they're sampled deterministically
  * on the trigger rising edge with zero latency.
  *
- * The bus uses a "pull" / direct-read pattern: each Tr909Module exposes
+ * The bus uses a "pull" / direct-read pattern: each GhostModule exposes
  * its current state as a public member, neighbors read it directly.
  * Voices forward by copying the resolved state into their own currentBus
- * each frame, so a chain of [Tr909Ctrl][Kck][Snr][Toms]... all see the
+ * each frame, so a chain of [GhostCtrl][Kck][Snr][Toms]... all see the
  * controller's broadcast even though only the leftmost voice is directly
  * adjacent to the controller.
  *
@@ -30,7 +30,7 @@
  * trigger logic on top of this bus -- use cables for any hit-time event.
  */
 
-namespace Ghost { namespace TR909 {
+namespace Ghost {
 
 struct Bus {
     // accentAAmount / accentBAmount are 0..1 linear-space attenuators on
@@ -310,17 +310,17 @@ inline AccentResolution sampleAccentAtTrig(rack::Module* self,
     return r;
 }
 
-}} // namespace
+} // namespace
 
 /** Marker base for any 909 module that participates in the state bus. */
-struct Tr909Module : AgentModule {
-    Ghost::TR909::Bus currentBus;
+struct GhostModule : AgentModule {
+    Ghost::Bus currentBus;
 };
 
-namespace Ghost { namespace TR909 {
+namespace Ghost {
 
 /**
- * Resolve the current bus state by checking adjacent Tr909Modules.
+ * Resolve the current bus state by checking adjacent GhostModules.
  * Returns first found controllerPresent state, defaulting to a "no
  * controller, neutral values" Bus otherwise. Voices should call this
  * once per process() and use the returned amounts when computing
@@ -329,16 +329,16 @@ namespace Ghost { namespace TR909 {
  * Also writes the resolved state into self->currentBus so the chain
  * extends through this voice to whichever neighbor is on the other side.
  */
-inline Bus resolveBus(Tr909Module* self) {
+inline Bus resolveBus(GhostModule* self) {
     Bus state;
 
-    if (auto* leftN = dynamic_cast<Tr909Module*>(self->leftExpander.module)) {
+    if (auto* leftN = dynamic_cast<GhostModule*>(self->leftExpander.module)) {
         if (leftN->currentBus.controllerPresent) {
             state = leftN->currentBus;
         }
     }
     if (!state.controllerPresent) {
-        if (auto* rightN = dynamic_cast<Tr909Module*>(self->rightExpander.module)) {
+        if (auto* rightN = dynamic_cast<GhostModule*>(self->rightExpander.module)) {
             if (rightN->currentBus.controllerPresent) {
                 state = rightN->currentBus;
             }
@@ -349,4 +349,4 @@ inline Bus resolveBus(Tr909Module* self) {
     return state;
 }
 
-}} // namespace
+} // namespace

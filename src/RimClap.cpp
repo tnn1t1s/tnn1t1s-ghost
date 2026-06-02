@@ -1,12 +1,12 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "TR909VoiceCommon.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostVoice.hpp"
+#include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
-#include "embedded/Clp909Data.hpp"
-#include "embedded/Rim909Data.hpp"
+#include "embedded/GhostClapData.hpp"
+#include "embedded/GhostRimData.hpp"
 #include "SvgHelper.hpp"
 
 using namespace rack;
@@ -17,16 +17,16 @@ namespace {
 // (sit at full max). The drive boost below is a stylistic Ghost
 // addition, not a circuit reproduction. AccentCharacter member order:
 // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-static const Ghost::TR909::AccentCharacter RIMCLAP_ACCENT = Ghost::TR909::Accent::driveOnly();
+static const Ghost::AccentCharacter RIMCLAP_ACCENT = Ghost::Accent::driveOnly();
 static const std::vector<float>& rimClapClapSource() {
     static const std::vector<float> sample =
-        Ghost::TR909::decodeEmbeddedF32(clp909_f32, clp909_f32_len);
+        Ghost::decodeEmbeddedF32(ghostClap_f32, ghostClap_f32_len);
     return sample;
 }
 
 static const std::vector<float>& rimClapRimSource() {
     static const std::vector<float> sample =
-        Ghost::TR909::decodeEmbeddedF32(rim909_f32, rim909_f32_len);
+        Ghost::decodeEmbeddedF32(ghostRim_f32, ghostRim_f32_len);
     return sample;
 }
 
@@ -42,14 +42,14 @@ struct RomVoice {
         if (pos >= float(sample.size() - 1)) {
             return 0.f;
         }
-        float out = Ghost::TR909::sampleAt(sample, pos);
-        pos += Ghost::TR909::playbackStep(Ghost::TR909::kEmbeddedPcmSampleRate, sampleRate, playbackRate);
-        return Ghost::TR909::bitReduce(out, bitDepth);
+        float out = Ghost::sampleAt(sample, pos);
+        pos += Ghost::playbackStep(Ghost::kEmbeddedPcmSampleRate, sampleRate, playbackRate);
+        return Ghost::bitReduce(out, bitDepth);
     }
 };
 }
 
-struct RimClap : Tr909Module {
+struct RimClap : GhostModule {
     // GHOST surface: each voice is fully tunable -- TUNE (playback-rate /
     // pitch) and LEVEL, each with a CV jack -- so the module plays as a
     // machine rather than needing hands. IDs finalized for release.
@@ -84,7 +84,7 @@ struct RimClap : Tr909Module {
     RomVoice clapVoice;
     RomVoice rimVoice;
     // Un-accented = normal (0 dB); accent adds a gentle ~+3 dB on top (909-style).
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float clapLatchedGain = 1.f;
     float rimLatchedGain  = 1.f;
     float clapLatchedChar = 0.f;
@@ -119,17 +119,17 @@ struct RimClap : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (clapTrigger.process(inputs[CLAP_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             clapVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
             clapLatchedChar = acc.charStrength;
             clapLatchedGain = acc.gain;
         }
         if (rimTrigger.process(inputs[RIM_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             rimVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
             rimLatchedChar = acc.charStrength;
             rimLatchedGain = acc.gain;
@@ -142,9 +142,9 @@ struct RimClap : Tr909Module {
 
         float clap = clapVoice.process(rimClapClapSource(), args.sampleRate, clapRate) * clapLevel;
         float rim = rimVoice.process(rimClapRimSource(), args.sampleRate, rimRate) * rimLevel;
-        clap = Ghost::TR909::driveWithAccent(
+        clap = Ghost::driveWithAccent(
             clap, 0.f, clapLatchedChar, RIMCLAP_ACCENT.driveAmt);
-        rim = Ghost::TR909::driveWithAccent(
+        rim = Ghost::driveWithAccent(
             rim, 0.f, rimLatchedChar, RIMCLAP_ACCENT.driveAmt);
         clap *= clapLatchedGain * bus.masterVolume;
         rim  *= rimLatchedGain  * bus.masterVolume;
@@ -193,7 +193,7 @@ rack::Model* modelRimClap = createModel<RimClap, RimClapWidget>("RimClap");
 // without inventing analog controls that the current engine does not have.
 // ---------------------------------------------------------------------------
 
-struct RimClapLab : Tr909Module {
+struct RimClapLab : GhostModule {
     enum ParamId {
         CLAP_TUNE_PARAM, CLAP_BITS_PARAM, CLAP_LEVEL_PARAM,
         RIM_TUNE_PARAM,  RIM_BITS_PARAM,  RIM_LEVEL_PARAM,
@@ -211,7 +211,7 @@ struct RimClapLab : Tr909Module {
     RomVoice clapVoice;
     RomVoice rimVoice;
     // Un-accented = normal (0 dB); accent adds a gentle ~+3 dB on top (909-style).
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float clapLatchedGain = 1.f;
     float rimLatchedGain = 1.f;
     float clapLatchedChar = 0.f;
@@ -233,16 +233,16 @@ struct RimClapLab : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (clapTrigger.process(inputs[CLAP_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             clapVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
+            auto acc = Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
             clapLatchedChar = acc.charStrength;
             clapLatchedGain = acc.gain;
         }
         if (rimTrigger.process(inputs[RIM_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             rimVoice.trigger();
-            auto acc = Ghost::TR909::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
+            auto acc = Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix);
             rimLatchedChar = acc.charStrength;
             rimLatchedGain = acc.gain;
         }
@@ -256,9 +256,9 @@ struct RimClapLab : Tr909Module {
 
         float clap = clapVoice.process(rimClapClapSource(), args.sampleRate, clapRate, clapBits) * clapLevel;
         float rim = rimVoice.process(rimClapRimSource(), args.sampleRate, rimRate, rimBits) * rimLevel;
-        clap = Ghost::TR909::driveWithAccent(
+        clap = Ghost::driveWithAccent(
             clap, 0.f, clapLatchedChar, RIMCLAP_ACCENT.driveAmt);
-        rim = Ghost::TR909::driveWithAccent(
+        rim = Ghost::driveWithAccent(
             rim, 0.f, rimLatchedChar, RIMCLAP_ACCENT.driveAmt);
         clap *= clapLatchedGain * bus.masterVolume;
         rim *= rimLatchedGain * bus.masterVolume;
@@ -274,7 +274,7 @@ struct RimClapLabPanel : rack::widget::Widget {
     std::vector<RimClapLabLabelCell> labels;
 
     void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawLabShell(
+        Ghost::LabArt::drawLabShell(
             args.vg, box.size, "RIMCLAP LAB",
             "curated 18HP expert surface",
             nvgRGB(10, 8, 10),

@@ -1,15 +1,15 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostBus.hpp"
 #include "SvgHelper.hpp"
 
 using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * Tr909Ctrl -- TR-909 global state controller.
+ * GhostCtrl -- TR-909 global state controller.
  *
  * Sits next to the 909 voice kit and broadcasts slow-changing global
  * controls via the expander bus.
@@ -25,12 +25,12 @@ extern Plugin* pluginInstance;
  *                 in any case where B fires.
  *   - MASTER   -- post-everything output volume scalar.
  *
- * Each knob has a CV input. Tr909Ctrl is NOT in the trigger path;
+ * Each knob has a CV input. GhostCtrl is NOT in the trigger path;
  * per-step gates (Total Accent, Local Accent, voice triggers) travel
  * from the sequencer directly to each voice's cable inputs.
  */
 
-struct Tr909Ctrl : Tr909Module {
+struct GhostCtrl : GhostModule {
     // DEFAULT (no-accent / ghost level) is fixed at full internally -- it was a
     // dull control, so the panel exposes only the expressive trims.
     enum ParamId  {
@@ -47,7 +47,7 @@ struct Tr909Ctrl : Tr909Module {
     };
     enum OutputId { NUM_OUTPUTS };
 
-    Tr909Ctrl() {
+    GhostCtrl() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
         configParam(ACCENT_A_PARAM,   0.f, 1.f, 0.5f, "Accent A amount", "%", 0.f, 100.f);
         configParam(ACCENT_B_PARAM,   0.f, 1.f, 0.5f, "Accent B amount", "%", 0.f, 100.f);
@@ -81,28 +81,28 @@ struct Tr909Ctrl : Tr909Module {
 // Panel -- 8 HP, solid black, 4 vertical knob+CV pairs
 // ---------------------------------------------------------------------------
 
-struct Tr909CtrlWidget : ModuleWidget, SvgHelper<Tr909CtrlWidget> {
-    Tr909CtrlWidget(Tr909Ctrl* module) {
+struct GhostCtrlWidget : ModuleWidget, SvgHelper<GhostCtrlWidget> {
+    GhostCtrlWidget(GhostCtrl* module) {
         setModule(module);
-        loadPanel(asset::plugin(pluginInstance, "res/Tr909Ctrl.svg"));
+        loadPanel(asset::plugin(pluginInstance, "res/GhostCtrl.svg"));
 
         addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
         addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
         addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ThemedScrew>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        bindParam<RoundBlackKnob>("param.main.accent-a", Tr909Ctrl::ACCENT_A_PARAM);
-        bindParam<RoundBlackKnob>("param.main.accent-b", Tr909Ctrl::ACCENT_B_PARAM);
-        bindParam<RoundBlackKnob>("param.main.master",   Tr909Ctrl::MASTER_VOL_PARAM);
+        bindParam<RoundBlackKnob>("param.main.accent-a", GhostCtrl::ACCENT_A_PARAM);
+        bindParam<RoundBlackKnob>("param.main.accent-b", GhostCtrl::ACCENT_B_PARAM);
+        bindParam<RoundBlackKnob>("param.main.master",   GhostCtrl::MASTER_VOL_PARAM);
 
-        bindInput<PJ301MPort>("cv.main.accent-a", Tr909Ctrl::ACCENT_A_CV_INPUT);
-        bindInput<PJ301MPort>("cv.main.accent-b", Tr909Ctrl::ACCENT_B_CV_INPUT);
-        bindInput<PJ301MPort>("cv.main.master",   Tr909Ctrl::MASTER_VOL_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.accent-a", GhostCtrl::ACCENT_A_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.accent-b", GhostCtrl::ACCENT_B_CV_INPUT);
+        bindInput<PJ301MPort>("cv.main.master",   GhostCtrl::MASTER_VOL_CV_INPUT);
 
-        bindParam<CKSSThreeHorizontal>("param.main.range", Tr909Ctrl::RANGE_PARAM);
+        bindParam<CKSSThreeHorizontal>("param.main.range", GhostCtrl::RANGE_PARAM);
     }
 };
 
-constexpr float Tr909Ctrl::kRangeScale[3];
+constexpr float GhostCtrl::kRangeScale[3];
 
-rack::Model* modelTr909Ctrl = createModel<Tr909Ctrl, Tr909CtrlWidget>("Tr909Ctrl");
+rack::Model* modelGhostCtrl = createModel<GhostCtrl, GhostCtrlWidget>("GhostCtrl");

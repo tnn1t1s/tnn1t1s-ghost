@@ -1,8 +1,8 @@
 #include <rack.hpp>
 #include "AgentModule.hpp"
 #include "PanelLayout.hpp"
-#include "NineOhNinePanel.hpp"
-#include "Tr909Bus.hpp"
+#include "GhostPanel.hpp"
+#include "GhostBus.hpp"
 #include "ghost/signal/Audio.hpp"
 #include <cmath>
 #include "SvgHelper.hpp"
@@ -112,7 +112,7 @@ struct Config {
     // timbral accent on the original 909 (gates noise and tone VCAs);
     // noiseAmt is the audible signature. AccentCharacter member order is
     // body, pitch, click, drive, noise, snap, decay, brightness, bend.
-    Ghost::TR909::AccentCharacter accent = Ghost::TR909::Accent::snare();  // shared policy
+    Ghost::AccentCharacter accent = Ghost::Accent::snare();  // shared policy
 };
 
 static inline const Config& defaults() {
@@ -128,7 +128,7 @@ static inline void reset() {
 }  // namespace SnrFit
 
 
-struct Snr : Tr909Module {
+struct Snr : GhostModule {
 
     enum ParamId  {
         TUNE_PARAM, TONE_PARAM, SNAPPY_PARAM, LEVEL_PARAM,
@@ -145,7 +145,7 @@ struct Snr : Tr909Module {
     // Default to a neutral mix until Snr accent is ear-tuned; keeps the
     // existing 909-snare voicing audibly unchanged when no controller is
     // wired or accent gates fire.
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float latchedCaseGain = 1.f;
     float latchedCharStrength = 0.f;
 
@@ -186,9 +186,9 @@ struct Snr : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
             latchedCharStrength = acc.charStrength;
             latchedCaseGain = acc.gain;
@@ -257,7 +257,7 @@ struct Snr : Tr909Module {
         float lowNoise = lpNoise.lpf * noiseLowEnv * lowNoiseGain;
         float highNoiseGain = (fit.highNoiseBase + snap_norm * fit.highNoiseSnappy)
                             * (fit.highNoiseToneBase + tone_norm * fit.highNoiseToneSpan);
-        highNoiseGain = Ghost::TR909::accentScale(
+        highNoiseGain = Ghost::accentScale(
             highNoiseGain, latchedCharStrength, fit.accent.noiseAmt);
         float highNoise = hpNoise.hpf * noiseHighEnv * highNoiseGain;
         float click = ((body - prevBody) * fit.clickBodyGain + (noiseValue - prevNoise) * fit.clickNoiseGain) * clickEnv;
@@ -274,7 +274,7 @@ struct Snr : Tr909Module {
         clickEnv *= std::exp(-args.sampleTime / fit.clickTauSec);
 
         float mix = body + lowNoise + highNoise + click;
-        mix = std::tanh(mix * Ghost::TR909::accentAdd(
+        mix = std::tanh(mix * Ghost::accentAdd(
             fit.mixDriveBase + fit.mixDriveSnappy * snap_norm,
             latchedCharStrength, fit.accent.driveAmt));
         mix *= attackEnv;
@@ -367,7 +367,7 @@ rack::Model* modelSnr = createModel<Snr, SnrWidget>("Snr");
 // controls that actually moved the sound during voice-lab passes.
 // ---------------------------------------------------------------------------
 
-struct SnrLab : Tr909Module {
+struct SnrLab : GhostModule {
     enum ParamId {
         // Primary 909-facing surface.
         TUNE_PARAM, TONE_PARAM, SNAPPY_PARAM, LEVEL_PARAM,
@@ -383,7 +383,7 @@ struct SnrLab : Tr909Module {
     enum OutputId { OUT_OUTPUT, NUM_OUTPUTS };
 
     dsp::SchmittTrigger trigger;
-    Ghost::TR909::AccentMix accentMix = Ghost::TR909::Accent::gentleMix();
+    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float latchedCaseGain = 1.f;
     float latchedCharStrength = 0.f;
 
@@ -430,9 +430,9 @@ struct SnrLab : Tr909Module {
     }
 
     void process(const ProcessArgs& args) override {
-        const auto bus = Ghost::TR909::resolveBus(this);
+        const auto bus = Ghost::resolveBus(this);
         if (trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            auto acc = Ghost::TR909::sampleAccentAtTrig(
+            auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
             latchedCharStrength = acc.charStrength;
             latchedCaseGain = acc.gain;
@@ -514,7 +514,7 @@ struct SnrLab : Tr909Module {
         float lowNoise = lpNoise.lpf * noiseLowEnv * lowNoiseGain;
         float highNoiseGain = (fit.highNoiseBase + snap_norm * fit.highNoiseSnappy)
                             * (fit.highNoiseToneBase + tone_norm * fit.highNoiseToneSpan);
-        highNoiseGain = Ghost::TR909::accentScale(
+        highNoiseGain = Ghost::accentScale(
             highNoiseGain, latchedCharStrength, fit.accent.noiseAmt);
         float highNoise = hpNoise.hpf * noiseHighEnv * highNoiseGain;
         float click = ((body - prevBody) * fit.clickBodyGain + (noiseValue - prevNoise) * fit.clickNoiseGain) * clickEnv;
@@ -530,7 +530,7 @@ struct SnrLab : Tr909Module {
         clickEnv *= std::exp(-args.sampleTime / fit.clickTauSec);
 
         float mix = body + lowNoise + highNoise + click;
-        mix = std::tanh(mix * Ghost::TR909::accentAdd(
+        mix = std::tanh(mix * Ghost::accentAdd(
             fit.mixDriveBase + fit.mixDriveSnappy * snap_norm,
             latchedCharStrength, fit.accent.driveAmt));
         mix *= attackEnv;
@@ -547,7 +547,7 @@ struct SnrLabPanel : rack::widget::Widget {
     std::vector<SnrLabLabelCell> labels;
 
     void draw(const DrawArgs& args) override {
-        Ghost::NineOhNine::drawLabShell(
+        Ghost::LabArt::drawLabShell(
             args.vg, box.size, "SNR LAB",
             "curated 18HP expert surface",
             nvgRGB(10, 8, 10),

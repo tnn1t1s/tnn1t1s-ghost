@@ -12,7 +12,7 @@ extern rack::Model* modelChhOhh;
 extern rack::Model* modelRimClap;
 extern rack::Model* modelToms;
 extern rack::Model* modelCrashRide;
-extern rack::Model* modelTr909Ctrl;
+extern rack::Model* modelGhostCtrl;
 extern rack::Model* modelGhostMix;
 
 rack::Plugin* pluginInstance;
@@ -27,6 +27,6 @@ void init(rack::Plugin* p) {
     p->addModel(modelRimClap);
     p->addModel(modelToms);
     p->addModel(modelCrashRide);
-    p->addModel(modelTr909Ctrl);
+    p->addModel(modelGhostCtrl);
     p->addModel(modelGhostMix);   // dedicated 909-kit summing mixer
 }

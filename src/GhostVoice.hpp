@@ -7,7 +7,6 @@
 #include <vector>
 
 namespace Ghost {
-namespace TR909 {
 
 /**
  * Shared helpers for the 909 family.
@@ -178,5 +177,4 @@ struct TptSVF {
     }
 };
 
-}  // namespace TR909
 }  // namespace Ghost

@@ -9,8 +9,9 @@
 # so the plugin builds out of the box on this machine.
 RACK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))../vcv-rack/vendor/rack-sdk)
 
-FLAGS += -Ivendor/svghelper
+FLAGS += -Ivendor/svghelper -Isrc
 
+# --- Shipping plugin: the registered kit only ---
 SOURCES += src/plugin.cpp
 SOURCES += src/Attenuate.cpp
 SOURCES += src/GhostCtrl.cpp
@@ -21,6 +22,15 @@ SOURCES += src/RimClap.cpp
 SOURCES += src/Toms.cpp
 SOURCES += src/CrashRide.cpp
 SOURCES += src/GhostMix.cpp
+
+# --- Lab/bench variants (per-voice tuning tools, unregistered) ---
+# Excluded from the shipping build by default so the VCV Library push carries
+# only the kit. Build them for dev/rot-checking with: make BUILD_LABS=1
+BUILD_LABS ?= 0
+ifeq ($(BUILD_LABS),1)
+SOURCES += $(wildcard src/lab/*.cpp)
+FLAGS += -DGHOST_LABS
+endif
 
 DISTRIBUTABLES += res
 

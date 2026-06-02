@@ -12,13 +12,12 @@ extern Plugin* pluginInstance;
  * module. Mirrors the RimClap pattern but with the richer surface that the
  * cymbal voices need: independent TUNE / DECAY / DRIVE / LEVEL per voice.
  *
- * Each voice is the same engine the standalone Crash and Ride modules use:
- * embedded clean 909 PCM -> playback-rate tune -> shortening VCA -> soft
- * drive -> output level. Tuning constants per voice (sample rate, tune span,
- * decay range, ROM config) are kept identical to the standalones so a patch
- * that swaps Crash/Ride for CrashRide sounds the same on each output.
+ * Each voice is one ROMpler engine: embedded clean 909 PCM -> playback-rate
+ * tune -> shortening VCA -> soft drive -> output level. The crash and ride
+ * each carry their own fixed tuning constants (sample rate, tune span, decay
+ * range, ROM config) so the two voices keep distinct, calibrated character.
  *
- * One shared accent input, per the established Ghost 909 family
+ * One shared accent input, per the established Ghost family
  * convention. Per-voice trigger and audio output.
  *
  * Rack IDs (stable):

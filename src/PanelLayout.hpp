@@ -269,7 +269,7 @@ inline void drawAssetPanel(NVGcontext* vg, rack::math::Vec size,
 
 // ── Generic dark Lab shell ───────────────────────────────────────────────────
 /// Draw a dark dashboard shell with left-aligned title and optional subtitle.
-/// Used by expert / kitchen-sink variants outside the 909 suite as well.
+/// Used by expert / kitchen-sink variants outside the Ghost suite as well.
 inline void drawLabShell(NVGcontext* vg, rack::math::Vec size,
                          const char* title,
                          const char* subtitle,

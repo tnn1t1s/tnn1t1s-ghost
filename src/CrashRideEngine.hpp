@@ -9,9 +9,9 @@
  * (CrashRide.cpp) and the CrashRideLab bench (lab/CrashRideLab.cpp).
  *
  * Each voice is a sampled 909 PCM ROM: embedded clean 909 PCM -> playback-rate
- * tune -> shortening VCA -> soft drive -> output level. Tuning constants per
- * voice (tune span, decay range, ROM config) are kept identical to the
- * standalone Crash and Ride modules so per-voice outputs are audibly identical.
+ * tune -> shortening VCA -> soft drive -> output level. The crash and ride each
+ * carry their own fixed tuning constants (tune span, decay range, ROM config)
+ * so the two voices keep distinct, calibrated character.
  */
 
 #include <rack.hpp>
@@ -79,8 +79,7 @@ inline const Ghost::RomAsset& rideAsset() {
 //   bitDepth:   quantisation depth applied to the source samples. 16 = the
 //                full embedded resolution; lower values are a debug hook for
 //                researching ROMpler bit-crush character.
-// Values are 1:1 with the standalone Crash and Ride modules so the per-voice
-// outputs of CrashRide are audibly identical to those of the standalones.
+// These constants set the crash voice's ROM playback character.
 static const Ghost::RomVoiceConfig kCrashRomCfg = { 0.98f, 1.00f, 16 };
 static const Ghost::RomVoiceConfig kRideRomCfg  = { 1.00f, 1.00f, 16 };
 // Per the 909 reference doc, RD and CY have NO accent on the original 909

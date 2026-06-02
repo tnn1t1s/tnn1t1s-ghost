@@ -151,7 +151,7 @@ struct Config {
     // Output
     float outputGain                = 1.0f;
 
-    // Accent application -- two orthogonal axes, see Tr909Bus.hpp.
+    // Accent application -- two orthogonal axes, see GhostBus.hpp.
     //
     // accentMix decides the LEVEL relationship across the four cases
     // (ghost / global / local / both) in dB. Wide spread for pronounced,
@@ -166,7 +166,7 @@ struct Config {
     // Note: there is intentionally NO level field here. Level on / across
     // accent cases is governed by AccentMix dB; a per-voice level boost
     // here would double-count with the shared abstraction.
-    // Shared gentle-accent policy (see Tr909Bus.hpp Accent::). Click + drive,
+    // Shared gentle-accent policy (see GhostBus.hpp Accent::). Click + drive,
     // no pitch/body sweep. Tune the suite's accent feel in Accent::, not here.
     Ghost::AccentCharacter accent = Ghost::Accent::kick();
 };

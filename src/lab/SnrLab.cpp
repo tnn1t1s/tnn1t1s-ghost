@@ -16,7 +16,7 @@ extern Plugin* pluginInstance;
 // focused subset of the hidden fit variables that most directly change the
 // voicing. This is intentionally narrower than the full internal Config: the
 // goal is a playable expert module, not a raw dump of every constant. SnrLab
-// follows the same 18HP Lab doctrine as the rest of the 909 family: keep the
+// follows the same 18HP Lab doctrine as the rest of the Ghost family: keep the
 // module small enough to patch musically, but large enough to surface the fit
 // controls that actually moved the sound during voice-lab passes.
 // ---------------------------------------------------------------------------

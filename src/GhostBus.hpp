@@ -5,7 +5,7 @@
 #include "AgentModule.hpp"
 
 /**
- * Tr909Bus -- adjacent-module state broadcast for the Ghost 909 suite.
+ * GhostBus -- adjacent-module state broadcast for the Ghost drum suite.
  *
  * GhostCtrl publishes slow-changing global state (accent multiplier and
  * master volume) and adjacent voices read it via the leftExpander/

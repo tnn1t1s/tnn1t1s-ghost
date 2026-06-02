@@ -74,7 +74,7 @@ struct Kck : GhostModule {
 
     // Latched at TRIG rising edge along with voice.latchedAccent. Determines
     // the per-case output level (ghost / global / local / both dB lookup);
-    // see Tr909Bus.hpp::resolveAccentGain for the math. Held constant for
+    // see GhostBus.hpp::resolveAccentGain for the math. Held constant for
     // the duration of the hit so knob movements during a hit don't shift
     // its level mid-flight.
     float latchedCaseGain = 1.f;

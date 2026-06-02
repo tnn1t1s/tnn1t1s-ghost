@@ -9,7 +9,7 @@
 namespace Ghost {
 
 /**
- * Shared helpers for the 909 family.
+ * Shared helpers for the Ghost family.
  *
  * The sample-based voices in this plugin embed clean PCM captures directly in
  * C++ headers. Each module treats that payload as its "ROM" source, then

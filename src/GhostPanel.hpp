@@ -5,9 +5,9 @@
 extern rack::Plugin* pluginInstance;
 
 /**
- * LabArtPanel -- shared widget template for the Ghost 909 drum suite.
+ * LabArtPanel -- shared widget template for the Ghost drum suite.
  *
- * Panel doctrine (909 family only, supersedes the no-label rule in
+ * Panel doctrine (Ghost family only, supersedes the no-label rule in
  * DESIGN_PRINCIPLES.md for this suite):
  *
  *   - cream graph-paper ground (procedural grid, not an image asset)
@@ -17,7 +17,7 @@ extern rack::Plugin* pluginInstance;
  *   - 2 columns of knob-over-jack pairs (3 pair rows) + 1 centered LEVEL
  *   - bottom I/O strip: TRIG | ACCENT | OUT with vertical dividers
  *
- * Width standards for the 909 family:
+ * Width standards for the Ghost family:
  *   - 8HP  : controller
  *   - 12HP : single-voice main module
  *   - 14HP : paired-voice main module

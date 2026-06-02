@@ -88,10 +88,17 @@ Each voice follows the same shape — keep it:
   `kChokeDecaySec` during the review fixes.
 - Namespaces lowercase (`Ghost::TR909`). One module per file, file named for it.
 
-## 9. Comments
+## 9. Comments & docstrings
 
-- Explain **why**, not what. Document non-obvious DSP (a filter topology, a
-  calibration value, a magic coefficient and where it came from).
+- **Every struct/class** carries a doc comment immediately above it: what it is
+  and its contract (one line minimum; more for the DSP engines).
+- **Every non-trivial free function / method** carries a brief doc comment —
+  purpose, key params and their **units**, and what the return means. Focus on
+  the contract, not a restatement of the signature.
+- **Exempt:** trivial one-liners (getters, `makeKick() { return Config{}; }`),
+  obvious overrides. A docstring must add information, not boilerplate.
+- Within a body: explain **why**, not what. Document non-obvious DSP (a filter
+  topology, a calibration value, a magic coefficient and where it came from).
 - Match the surrounding density. No commented-out dead code in shipped files.
 
 ## 10. What must not ship

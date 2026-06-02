@@ -60,7 +60,7 @@ struct RimClap : GhostModule {
         RIM_LEVEL_PARAM,
         NUM_PARAMS
     };
-    // Per Roland TR-909 OM, neither RS nor CP has Accent B; they share a
+    // Per the classic 909 voice layout, neither RS nor CP has Accent B; they share a
     // single TOTAL_ACC_INPUT (Accent A). Each voice latches the case gain
     // independently at its own trigger edge. Per-knob CV follows the gates.
     enum InputId {

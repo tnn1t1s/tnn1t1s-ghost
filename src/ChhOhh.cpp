@@ -14,7 +14,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * ChhOhh -- TR-909 closed + open hi-hat in a single module.
+ * ChhOhh -- 909-style closed + open hi-hat in a single module.
  *
  * The original 909 closed and open hi-hat share a single envelope/sound
  * circuit: a CH hit instantly mutes any sounding OH. We model that by
@@ -23,7 +23,7 @@ extern Plugin* pluginInstance;
  * mirrors the CrashRide / RimClap pattern of grouping voices that
  * share a hardware path.
  *
- * Accent rails per Roland TR-909 OM:
+ * Accent rails per the classic 909 voice layout:
  *   - CH has Accent B: responds to LOCAL_ACC and TOTAL_ACC
  *   - OH has only Accent A: responds to TOTAL_ACC
  *
@@ -76,7 +76,7 @@ struct ChhOhh : GhostModule {
     };
     enum InputId {
         CHH_TRIG_INPUT, OHH_TRIG_INPUT,
-        LOCAL_ACC_INPUT,   // CH only (Accent B); Roland: OH has no Accent B
+        LOCAL_ACC_INPUT,   // CH only (Accent B); the classic 909: OH has no Accent B
         TOTAL_ACC_INPUT,   // shared by both voices (Accent A)
         // Per-knob CV for the panel controls (TUNE/DECAY/LEVEL each voice).
         // DRIVE is an internal/right-click param, so it has no CV jack.

@@ -11,7 +11,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * Toms -- TR-909 inspired toms (LowTom / MidTom / HighTom).
+ * Toms -- 909-style toms (LowTom / MidTom / HighTom).
  *
  * Direct port of a known-passable JUCE one-shot tom generator with every
  * internal model parameter exposed via `TomFit::Config`. Mirrors the
@@ -73,7 +73,7 @@ struct Config {
     float clickLengthSamples = 30.f;
 
     // Body envelope rate range: rate(decay) = envRateMin + (1-decay) * envRateSpan
-    // Calibrated against TR-909 LowTom tune050-decay050: tau ~ 100 ms at decay=0.5.
+    // Calibrated against the reference machine LowTom tune050-decay050: tau ~ 100 ms at decay=0.5.
     float envRateMin         = 6.f;
     float envRateSpan        = 8.f;
 
@@ -94,7 +94,7 @@ struct Config {
     Ghost::AccentCharacter accent = Ghost::Accent::toms();  // shared policy
 };
 
-// baseHz calibrated against TR-909 references at tune050-decay050:
+// baseHz calibrated against the reference machine references at tune050-decay050:
 //   LowTom ref  = 90.8 Hz (F#2 -31c)  -> 90.8 / 1.06 = 85.7
 //   MidTom ref  = 113.7 Hz (A#2 -42c) -> 113.7 / 1.06 = 107.3
 //   HighTom ref = 133.9 Hz (C3 +41c)  -> 133.9 / 1.06 = 126.3
@@ -411,7 +411,7 @@ struct Toms : GhostModule {
         HIGH_TUNE_PARAM, HIGH_DECAY_PARAM, HIGH_LEVEL_PARAM,
         NUM_PARAMS
     };
-    // Per Roland TR-909 OM, all three toms have Accent B. The shared
+    // Per the classic 909 voice layout, all three toms have Accent B. The shared
     // LOCAL_ACC and TOTAL_ACC inputs apply to whichever voice fires;
     // each voice latches its own gain at its own trigger edge.
     enum InputId  {

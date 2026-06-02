@@ -56,7 +56,7 @@ def main():
     L.cable(data, k, 0, au, 1, "#d8d8d8")
 
     # CTRL: both accents up so all four tiers are active; master leaves headroom.
-    ctrl = L.by_model(data, "Tr909Ctrl")
+    ctrl = L.by_model(data, "GhostCtrl")
     for p in ctrl["params"]:
         p["value"] = {0: 1.0, 1: 1.0, 2: 0.5}[p["id"]]  # Accent A, Accent B, Master
 

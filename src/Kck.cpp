@@ -13,7 +13,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * Kck -- TR-909 inspired kick drum.
+ * Kck -- 909-style kick drum.
  *
  * Direct port of a known-passable JUCE 909 kick generator with all internal
  * model parameters exposed via `KckFit::Config`. Mirrors the `TomFit::Config`
@@ -62,13 +62,13 @@ extern Plugin* pluginInstance;
 namespace KckFit {
 
 struct Config {
-    // Pitch range (calibrated against TR-909 BD ref tune050-attack050-decay050 = 49.8 Hz).
+    // Pitch range (calibrated against the reference machine BD ref tune050-attack050-decay050 = 49.8 Hz).
     // basePitch midpoint 45 Hz; FFT measurement adds ~5 Hz from slow-sweep residual.
-    // Calibrated so TUNE=100% -> 68.5 Hz (the TR-09 match, 2026-06-01).
+    // Calibrated so TUNE=100% -> 68.5 Hz (the reference match, 2026-06-01).
     float basePitchOffset           = 38.0f;   // TUNE=0 -> 38 Hz
     float basePitchSpan             = 30.48f;  // TUNE=1 -> 68.48 Hz (matched)
 
-    // Body envelope (1/tau range), calibrated against TR-909 BD: -20 dB at 170 ms
+    // Body envelope (1/tau range), calibrated against the reference machine BD: -20 dB at 170 ms
     // (tau ~ 73 ms, ampDecay ~ 13.5) at decay=0.5. JUCE original 2.25/1.75 was 10x too slow.
     float ampDecayMin               = 26.f;    // DECAY=0.5 -> 17.8 (matched); range tau ~38..104 ms
     float ampDecaySpan              = 16.4f;
@@ -332,7 +332,7 @@ struct Kck : GhostModule {
     Kck() {
         fit = KckFit::makeKick();
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-        // Calibrated 2026-06-01: TUNE=100% + every shaping knob at noon = the TR-09 match.
+        // Calibrated 2026-06-01: TUNE=100% + every shaping knob at noon = the reference match.
         configParam(TUNE_PARAM,        0.f, 1.f, 1.00f, "Tune",         "%", 0.f, 100.f);
         configParam(DECAY_PARAM,       0.f, 1.f, 0.50f, "Decay",        "%", 0.f, 100.f);
         configParam(PITCH_PARAM,       0.f, 1.f, 0.50f, "Pitch amount", "%", 0.f, 100.f);
@@ -393,7 +393,7 @@ struct Kck : GhostModule {
         float attackNorm     = kckNormWithCV(*this, ATTACK_PARAM,      ATTACK_CV_INPUT);
         float toneNorm       = kckNormWithCV(*this, TONE_PARAM,        TONE_CV_INPUT);
 
-        // Calibration (2026-06-01 TR-09 match): the matched sound is TUNE=100%
+        // Calibration (2026-06-01 reference match): the matched sound is TUNE=100%
         // with every shaping knob at noon. CLICK/DRIVE are remapped so noon hits
         // the matched values; ATTACK/TONE macro the click sharpness / body
         // brightness so noon -> matched clickRate 140 / bodyFcMult 1.30.

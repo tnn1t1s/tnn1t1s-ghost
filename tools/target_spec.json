@@ -73,7 +73,7 @@
     "accents": ["Total"],
     "outputs": ["Rim Audio", "Clap Audio"]
   },
-  "Tr909Ctrl": {
+  "GhostCtrl": {
     "displayName": "GHOST CTRL",
     "tier": "controller",
     "hp": 8,

@@ -9,7 +9,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * GhostCtrl -- TR-909 global state controller.
+ * GhostCtrl -- 909-style global state controller.
  *
  * Sits next to the 909 voice kit and broadcasts slow-changing global
  * controls via the expander bus.

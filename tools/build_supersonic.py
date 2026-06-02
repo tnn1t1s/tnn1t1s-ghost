@@ -22,7 +22,7 @@ base = json.loads(subprocess.run(['bash','-c',f'zstd -dc "{BASE}" | tar -xO ./pa
 m = {x.get('model'): x for x in base['modules']}
 CLK, SEQ, AUD = m['SlimeChild-Substation-Clock'], m['Drumsequencer'], m['AudioInterface2']
 SAPH, CRUSH   = m['Saphire'], m['BusCrush']
-KCK, SNR, OHCH, RC, TOMS, CTRL = m['Kck'], m['Snr'], m['ChhOhh'], m['RimClap'], m['Toms'], m['Tr909Ctrl']
+KCK, SNR, OHCH, RC, TOMS, CTRL = m['Kck'], m['Snr'], m['ChhOhh'], m['RimClap'], m['Toms'], m['GhostCtrl']
 
 # CTRL + voices contiguous (row 0) so the expander chain reaches every voice.
 CTRL['pos'],KCK['pos'],SNR['pos'],OHCH['pos'],RC['pos'],TOMS['pos'] = [0,0],[8,0],[24,0],[36,0],[50,0],[62,0]

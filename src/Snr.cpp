@@ -11,7 +11,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * Snr -- TR-909 inspired snare drum.
+ * Snr -- 909-style snare drum.
  *
  * The original 909 snare is a balanced instrument, not a generic synth patch:
  * two trigger-reset triangle VCOs supply the body, and a quasi-random binary

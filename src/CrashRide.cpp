@@ -14,7 +14,7 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 /**
- * CrashRide -- TR-909 style cymbal pair (crash + ride) consolidated into one
+ * CrashRide -- 909-style cymbal pair (crash + ride) consolidated into one
  * module. Mirrors the RimClap pattern but with the richer surface that the
  * cymbal voices need: independent TUNE / DECAY / DRIVE / LEVEL per voice.
  *
@@ -104,7 +104,7 @@ struct CrashRide : GhostModule {
         RIDE_TUNE_PARAM,  RIDE_DECAY_PARAM,  RIDE_DRIVE_PARAM,  RIDE_LEVEL_PARAM,
         NUM_PARAMS
     };
-    // Per Roland TR-909 OM, neither CY nor RD has Accent B; they share a
+    // Per the classic 909 voice layout, neither CY nor RD has Accent B; they share a
     // single TOTAL_ACC_INPUT (Accent A). Each voice latches the case gain
     // independently at its own trigger edge.
     enum InputId {

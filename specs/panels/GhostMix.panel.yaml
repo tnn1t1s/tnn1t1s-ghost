@@ -9,10 +9,11 @@ hp: 12
 sections:
   - use: header               # shared Ghost header (specs/fragments.yaml)
 
-  - kind: mixer               # 10 channel strips: [input jack | mute switch], label above
+  - kind: mixer               # 12 channel strips: [input jack | mute switch], label above
     columns: 2
     cells:
       - { label: KICK,    id: in.kick,   mute: mute.kick }
+      - { label: SNARE,   id: in.snare,  mute: mute.snare }
       - { label: RIM,     id: in.rim,    mute: mute.rim }
       - { label: CLAP,    id: in.clap,   mute: mute.clap }
       - { label: TOM LO,  id: in.tomlo,  mute: mute.tomlo }
@@ -22,6 +23,7 @@ sections:
       - { label: OHH,     id: in.ohh,    mute: mute.ohh }
       - { label: CRASH,   id: in.crash,  mute: mute.crash }
       - { label: RIDE,    id: in.ride,   mute: mute.ride }
+      - { label: AUX,     id: in.aux,    mute: mute.aux }
 
   - kind: io_row              # master mix output
     cells:

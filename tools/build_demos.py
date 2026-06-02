@@ -37,6 +37,7 @@ DEMOS = {
     }),
     "02-detroit": dict(bpm=130, grid={
         L.KICK_TRACK:   [1, 5, 9, 13],
+        L.SNR_TRACK:    [5, 13],          # snare + clap on the backbeat (Detroit)
         L.CLAP_TRACK:   [5, 13],
         L.CHH_TRACK:    [2, 4, 6, 8, 10, 12, 14, 16],
         L.OHH_TRACK:    [3, 7, 11, 15],
@@ -51,6 +52,7 @@ DEMOS = {
     }),
     "04-hypnotic": dict(bpm=140, grid={
         L.KICK_TRACK:    [1, 5, 9, 13],
+        L.SNR_TRACK:     [5, 13],         # light backbeat snare under the ride
         L.RIDE_TRACK:    [1, 3, 5, 7, 9, 11, 13, 15],
         L.RIM_TRACK:     [5, 13],
         L.TOM_LO_TRACK:  [7, 15],
@@ -82,6 +84,7 @@ DEMOS = {
     }),
     "08-electro-88": dict(bpm=128, grid={        # electro / electro; broken kick
         L.KICK_TRACK:   [1, 2, 4, 7, 11, 15, 16],
+        L.SNR_TRACK:    [5, 13],          # hard electro snare on the backbeat
         L.CLAP_TRACK:   [5, 13],
         L.CHH_TRACK:    [3, 6, 9, 13, 14],
         L.TOM_LO_TRACK: [8, 11, 15],
@@ -108,6 +111,7 @@ def build(name, bpm, grid):
     data = L.load_base()
     L.drop_module(data, "Bogaudio-UMix")       # GHOST MIX replaces UMix
     L.add_toms(data)
+    L.add_snr(data)
     L.add_chhohh(data)
     L.add_crashride(data)
     L.add_ghostmix(data)

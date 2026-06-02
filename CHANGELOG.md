@@ -2,8 +2,13 @@
 
 ## 2.1.0 (2026-06-01)
 
-- **GHOST MIX** — new dedicated 10-input kit summing mixer (one labeled input
-  per voice, mute switch each, unity sum to one MIX output).
+- **GHOST MIX** — new dedicated 12-input kit summing mixer: one labeled input
+  per voice of the full kit (Kick, Snare, Rim, Clap, Tom Lo/Mid/Hi, CHH, OHH,
+  Crash, Ride) plus an Aux channel, mute switch each, unity sum to one MIX output.
+- **Snare is now a first-class kit voice** — GHOST SNR gets its own mixer channel
+  and sequencer lane, so it can be step-programmed (rolls, breakbeat figures)
+  rather than sitting outside the kit. Demos now include a backbeat snare where
+  it fits the groove (detroit, hypnotic, electro-88).
 - **GHOST CTRL RANGE switch** — Tight / Classic / Wide dynamic-range selector
   that scales the kick's ghost floor (the 909 hardware mod, in a switch).
 - **Kick** rebuilt as an authentic 909 engine and calibrated by ear; wide,

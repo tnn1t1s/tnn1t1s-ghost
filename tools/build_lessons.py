@@ -36,6 +36,7 @@ DONOR_REF = "HEAD:patches/909-lessons/02-add-bassdrum.vcv"
 
 # ---- routing convention ----
 ACCENT_TRACK, KICK_TRACK, CLAP_TRACK, RIM_TRACK = 1, 2, 7, 8
+SNR_TRACK = 3                                 # the one free Hora lane (out5)
 # Toms use the Hora's tom lanes, mapped descending: out6=HIGH, out7=MID, out8=LOW
 TOM_HI_TRACK, TOM_MID_TRACK, TOM_LO_TRACK = 4, 5, 6
 # Hats on the Hora's hat lanes: out13=closed (CHH), out14=open (OHH)
@@ -46,6 +47,7 @@ def out_of(track): return track + 2          # Hora: output id = track + 2
 
 # voice I/O ids
 KCK_TRIG, KCK_TOTAL_ACC = 0, 11
+SNR_TRIG, SNR_TOTAL_ACC, SNR_OUT = 0, 6, 0
 RC_CLAP_TRIG, RC_RIM_TRIG, RC_TOTAL_ACC = 0, 1, 2
 RC_CLAP_OUT, RC_RIM_OUT = 0, 1
 TM_LO_TRIG, TM_MID_TRIG, TM_HI_TRIG, TM_TOTAL_ACC = 0, 1, 2, 4
@@ -61,9 +63,11 @@ CHHOHH_ID = 9101000000000008
 CRASHRIDE_ID = 9101000000000009
 TOMSUB_ID = 9300000000000002
 GHOSTMIX_ID = 9101000000000010
-# GHOST MIX fixed input channels (one per voice)
-GM = dict(kick=0, rim=1, clap=2, tomlo=3, tommid=4, tomhi=5,
-          chh=6, ohh=7, crash=8, ride=9)
+SNR_ID = 9101000000000011
+# GHOST MIX fixed input channels (one per voice, + aux). Order matches the
+# GhostMix.cpp enum: Kick, Snare, Rim, Clap, Tom Lo/Mid/Hi, CHH, OHH, Crash, Ride, Aux.
+GM = dict(kick=0, snare=1, rim=2, clap=3, tomlo=4, tommid=5, tomhi=6,
+          chh=7, ohh=8, crash=9, ride=10, aux=11)
 
 # patterns (32-step page)
 QUARTERS  = [0, 4, 8, 12, 16, 20, 24, 28]    # four-on-floor / metronome
@@ -93,9 +97,11 @@ CYMBALS = {
 }
 
 # top-row layout: CTRL + voices must be contiguous for the accent bus
-ROW0_HP = {"GhostCtrl": 8, "Kck": 16, "RimClap": 12, "Toms": 20,
+ROW0_HP = {"GhostCtrl": 8, "Kck": 16, "Snr": 12, "RimClap": 12, "Toms": 20,
            "ChhOhh": 14, "CrashRide": 12}
-ROW0_ORDER = ["GhostCtrl", "Kck", "RimClap", "Toms", "ChhOhh", "CrashRide"]
+# Snr sits right after Kck: kick + snare are the backbone, and CTRL's accent bus
+# needs every voice physically contiguous.
+ROW0_ORDER = ["GhostCtrl", "Kck", "Snr", "RimClap", "Toms", "ChhOhh", "CrashRide"]
 
 
 def load_base():
@@ -193,8 +199,14 @@ def add_tom_submix(data):
                                 model="Bogaudio-UMix", pos=[60, 1]))
 
 
+def add_snr(data):
+    """Inject a GHOST Snr module on the contiguous CTRL row (pos set by pack)."""
+    data["modules"].append(dict(id=SNR_ID, plugin="tnn1t1s-ghost",
+                                model="Snr", version="2.0.0", pos=[24, 0]))
+
+
 def add_ghostmix(data):
-    """Inject GHOST MIX (the in-the-box 10-input kit mixer)."""
+    """Inject GHOST MIX (the in-the-box 12-input kit mixer)."""
     data["modules"].append(dict(id=GHOSTMIX_ID, plugin="tnn1t1s-ghost",
                                 model="GhostMix", version="2.0.0", pos=[24, 1]))
 
@@ -217,6 +229,12 @@ def assemble_gmix(data, patterns):
     # triggers + shared accent into every voice's TOTAL_ACC
     cable(data, h, out_of(KICK_TRACK),    k,  KCK_TRIG, "#c91847")
     cable(data, h, A,                     k,  KCK_TOTAL_ACC, "#f3b0c2")
+    # snare is optional (lessons 01-06 omit it); wire it only when present
+    snr = by_model(data, "Snr")
+    if snr:
+        s = snr["id"]
+        cable(data, h, out_of(SNR_TRACK), s, SNR_TRIG, "#d33682")
+        cable(data, h, A,                 s, SNR_TOTAL_ACC, "#f3b0c2")
     cable(data, h, out_of(RIM_TRACK),     rc, RC_RIM_TRIG, "#3398dc")
     cable(data, h, out_of(CLAP_TRACK),    rc, RC_CLAP_TRIG, "#f9c130")
     cable(data, h, A,                     rc, RC_TOTAL_ACC, "#f3b0c2")
@@ -232,6 +250,8 @@ def assemble_gmix(data, patterns):
     cable(data, h, A,                     cr, CR_TOTAL_ACC, "#f3b0c2")
     # audio -> GHOST MIX fixed channels
     cable(data, k,  0,            gm, GM["kick"])
+    if snr:
+        cable(data, s, SNR_OUT,   gm, GM["snare"])
     cable(data, rc, RC_RIM_OUT,   gm, GM["rim"])
     cable(data, rc, RC_CLAP_OUT,  gm, GM["clap"])
     cable(data, t,  TM_LO_OUT,    gm, GM["tomlo"])

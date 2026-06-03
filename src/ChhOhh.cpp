@@ -52,23 +52,14 @@ struct ChhOhh : GhostModule {
         NUM_OUTPUTS
     };
 
-    dsp::SchmittTrigger chhTrigger;
-    dsp::SchmittTrigger ohhTrigger;
-
-    // CH voice state.
-    float chhSamplePos = 1e9f;
-    float chhEnv       = 0.f;
-
-    // OH voice state.
-    float ohhSamplePos = 1e9f;
-    float ohhEnv       = 0.f;
-    bool  ohhChokeActive = false;
+    // Per-sample synthesis (both hats + the choke) lives in ChhOhhVoice
+    // (ChhOhhEngine.hpp), shared with the headless stress harness; the module
+    // owns the Rack-side plumbing only.
+    ChhOhhVoice voice;
 
     Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float chhLatchedGain = 1.f;
     float ohhLatchedGain = 1.f;
-    float chhLatchedChar = 0.f;
-    float ohhLatchedChar = 0.f;
 
     ChhOhh() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -97,13 +88,13 @@ struct ChhOhh : GhostModule {
     /// Return both voices to silence and a clean state on Rack "Initialize" /
     /// first load (zero envelopes, park read heads, drop the choke + latches).
     void onReset() override {
-        chhTrigger.reset();
-        ohhTrigger.reset();
-        chhSamplePos = ohhSamplePos = 1e9f;
-        chhEnv = ohhEnv = 0.f;
-        ohhChokeActive = false;
+        voice.chhTrigger.reset();
+        voice.ohhTrigger.reset();
+        voice.chhSamplePos = voice.ohhSamplePos = 1e9f;
+        voice.chhEnv = voice.ohhEnv = 0.f;
+        voice.ohhChokeActive = false;
         chhLatchedGain = ohhLatchedGain = 1.f;
-        chhLatchedChar = ohhLatchedChar = 0.f;
+        voice.chhLatchedChar = voice.ohhLatchedChar = 0.f;
     }
 
     /// Read a panel knob plus its CV input (CV/10), clamped to 0..1.
@@ -120,27 +111,21 @@ struct ChhOhh : GhostModule {
         const auto bus = Ghost::resolveBus(this);
 
         // -- Closed hi-hat trigger -------------------------------------
-        if (chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            chhSamplePos = 0.f;
-            chhEnv       = 1.f;
+        if (voice.chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
-            chhLatchedChar = acc.charStrength;
             chhLatchedGain = acc.gain;
-            // CH→OH choke: any sounding open hat is muted by a CH hit.
-            if (ohhEnv > 1e-4f) ohhChokeActive = true;
+            // fireChh re-arms the CH voice and applies the CH->OH choke.
+            voice.fireChh(acc.charStrength);
         }
 
         // -- Open hi-hat trigger ---------------------------------------
-        if (ohhTrigger.process(inputs[OHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            ohhSamplePos     = 0.f;
-            ohhEnv           = 1.f;
-            ohhChokeActive   = false;  // a fresh OH hit cancels pending choke
+        if (voice.ohhTrigger.process(inputs[OHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             // OH has no Accent B; pass localInputId=-1 by default arg.
             auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix);
-            ohhLatchedChar = acc.charStrength;
             ohhLatchedGain = acc.gain;
+            voice.fireOhh(acc.charStrength);
         }
 
         // -- Read controls once per frame for both voices -------------
@@ -155,39 +140,12 @@ struct ChhOhh : GhostModule {
         float ohhDrive = rack::math::clamp(params[OHH_DRIVE_PARAM].getValue(), 0.f, 1.f);
         float ohhLevel = normWithCV(OHH_LEVEL_PARAM, OHH_LEVEL_CV_INPUT);
 
-        // -- CH DSP ----------------------------------------------------
-        float chhRate    = std::pow(2.f, (chhTune - 0.5f) * 2.f * kChhTuneOctaves);
-        float chhDecayShape = std::sqrt(chhDecay);
-        float chhDecaySec = kChhDecayMinSec
-                          + chhDecayShape * (kChhDecayMaxSec - kChhDecayMinSec);
-        const auto& chSrc = chhSource();
-        float chhSrc = Ghost::sampleAt(chSrc, chhSamplePos);
-        chhSamplePos += Ghost::playbackStep(
-            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
-        chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
-        if (chhEnv < Ghost::kDenormalFloor) chhEnv = 0.f;   // denormal safety
-        float chhOut = chhSrc * chhEnv * 1.04f;
-        chhOut = Ghost::driveWithAccent(
-            chhOut, chhDrive, chhLatchedChar, kChhAccent.driveAmt);
-        chhOut *= chhLevel * 0.94f;
+        float chhOut, ohhOut;
+        voice.process(args,
+                      chhTune, chhDecay, chhDrive, chhLevel,
+                      ohhTune, ohhDecay, ohhDrive, ohhLevel,
+                      chhOut, ohhOut);
         chhOut *= chhLatchedGain * bus.masterVolume;
-
-        // -- OH DSP (with choke override on env decay) -----------------
-        float ohhRate     = std::pow(2.f, (ohhTune - 0.5f) * 2.f * kOhhTuneOctaves);
-        float ohhDecaySec = kOhhDecayMinSec
-                          + ohhDecay * (kOhhDecayMaxSec - kOhhDecayMinSec);
-        const auto& ohSrc = ohhSource();
-        float ohhSrc = Ghost::sampleAt(ohSrc, ohhSamplePos);
-        ohhSamplePos += Ghost::playbackStep(
-            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
-        const float ohhEffectiveDecaySec = ohhChokeActive ? kChokeDecaySec : ohhDecaySec;
-        ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
-        if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
-        if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
-        float ohhOut = ohhSrc * ohhEnv * 1.05f;
-        ohhOut = Ghost::driveWithAccent(
-            ohhOut, ohhDrive, ohhLatchedChar, kOhhAccent.driveAmt);
-        ohhOut *= ohhLevel * 0.96f;
         ohhOut *= ohhLatchedGain * bus.masterVolume;
 
         outputs[CHH_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(chhOut));

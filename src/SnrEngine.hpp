@@ -129,3 +129,149 @@ static inline const Config& defaults() {
     return cfg;
 }
 }  // namespace SnrFit
+
+namespace {
+
+/// One-shot 909-style snare voice: two phase-reset triangle bodies + split
+/// low/high binary-noise branches + a transient click, soft-clipped and
+/// level-scaled. The per-sample synthesis extracted from Snr.cpp so the
+/// production module and the headless stress harness drive the same code
+/// (mirrors KckVoice / TomVoice). Per-hit accent CHARACTER is latched at fire();
+/// the per-case output gain + bus master are applied by the module post-voice.
+struct SnrVoice {
+    dsp::SchmittTrigger trigger;
+
+    float phase1   = 0.f;
+    float phase2   = 0.f;
+    float bodyEnv1 = 0.f;
+    float bodyEnv2 = 0.f;
+    float noiseLowEnv = 0.f;
+    float noiseHighEnv = 0.f;
+    float bendEnv  = 0.f;
+    float attackEnv = 1.f;
+    float clickEnv = 0.f;
+    float bodyLP = 0.f;
+
+    float noisePhase = 0.f;
+    uint32_t noiseShift = 0x1u;
+    float noiseValue = 1.f;
+    float prevBody = 0.f;
+    float prevNoise = 0.f;
+
+    SnrSVF lpNoise;
+    SnrSVF hpNoise;
+
+    // Latched at fire(): accent CHARACTER strength (0..1), held for the hit.
+    float latchedCharStrength = 0.f;
+
+    /// Retrigger: reset envelopes/phases/filters to the hit start and latch the
+    /// accent character strength (clamped 0..1). The free-running binary-noise
+    /// LFSR (noiseShift/noiseValue/noisePhase) intentionally persists across
+    /// hits, exactly as the original module did.
+    void fire(float charStrength) {
+        bodyEnv1 = 1.f;
+        bodyEnv2 = 1.f;
+        noiseLowEnv = 1.f;
+        noiseHighEnv = 1.f;
+        bendEnv  = 1.f;
+        attackEnv = 0.f;
+        clickEnv = 1.f;
+        phase1   = 0.f;
+        phase2   = 0.f;
+        bodyLP = 0.f;
+        noisePhase = 0.f;
+        prevBody = 0.f;
+        prevNoise = noiseValue;
+        lpNoise.reset();
+        hpNoise.reset();
+        latchedCharStrength = rack::math::clamp(charStrength, 0.f, 1.f);
+    }
+    void fire() { fire(0.f); }
+
+    /// Render one sample. Takes the engine config and the four normalized
+    /// (0..1) control values; returns the snare output in audio-normalized
+    /// units (pre case-gain/master). Math/state/order are a byte-for-byte
+    /// move of the original Snr::process body.
+    float process(const rack::Module::ProcessArgs& args,
+                  const SnrFit::Config& fit,
+                  float tune_norm,
+                  float tone_norm,
+                  float snap_norm,
+                  float level_norm) {
+        float tune_oct = (tune_norm - 0.5f) * 2.f * kSnrTuneOctRange;
+        float scale    = std::pow(2.f, tune_oct);
+        float bendOct  = bendEnv * fit.bendMaxOct;
+        float f1       = fit.osc1BaseHz * scale * std::pow(2.f, bendOct);
+        float f2       = fit.osc2BaseHz * scale * std::pow(2.f, bendOct * fit.osc2BendRatio);
+        float toneTau  = kSnrToneMinSec + tone_norm * (fit.toneMaxSec - kSnrToneMinSec);
+        float snapShape = std::pow(1.f - snap_norm, fit.snappyShapePower);
+        float noiseLowTau = toneTau
+                          * (fit.lowNoiseSnappyTauMinScale + snapShape * fit.lowNoiseSnappyTauDelta);
+        float noiseHighTau = toneTau * fit.noiseHighRatio
+                           * (1.f + snapShape * fit.highNoiseSnappyTauDelta);
+
+        // --- body: two phase-reset triangles with different decays ------
+        phase1 += f1 * args.sampleTime;
+        phase2 += f2 * args.sampleTime;
+        phase1 -= std::floor(phase1);
+        phase2 -= std::floor(phase2);
+
+        float tri1 = snrTriangle(phase1);
+        float tri2 = snrTriangle(phase2);
+        float bodyRaw = tri1 * bodyEnv1 * fit.body1Gain + tri2 * bodyEnv2 * fit.body2Gain;
+        float bodyLpAlpha = 1.f - std::exp(-2.f * float(M_PI) * fit.bodyLpHz * args.sampleTime);
+        bodyLP += (bodyRaw - bodyLP) * bodyLpAlpha;
+        if (std::abs(bodyLP) < Ghost::kDenormalFloor) bodyLP = 0.f;   // denormal safety
+        float body = std::tanh(bodyLP * fit.bodyDrive);
+
+        // --- noise: fixed binary source, split into low/high branches ----
+        noisePhase += fit.noiseClockHz * args.sampleTime;
+        while (noisePhase >= 1.f) {
+            noisePhase -= 1.f;
+            uint32_t newBit = ((noiseShift >> 0) ^ (noiseShift >> 2)
+                             ^ (noiseShift >> 3) ^ (noiseShift >> 5)) & 1u;
+            noiseShift = (noiseShift >> 1) | (newBit << 15);
+            noiseValue = (noiseShift & 1u) ? 1.f : -1.f;
+        }
+        lpNoise.process(noiseValue, fit.noiseLpHz, args.sampleRate, kSnrNoiseLowQ);
+        hpNoise.process(noiseValue, fit.noiseHpHz, args.sampleRate, kSnrNoiseHighQ);
+        float lowNoiseGain = fit.lowNoiseGain
+                           * (fit.lowNoiseToneBase + tone_norm * fit.lowNoiseToneSpan)
+                           * (1.f + snapShape * fit.lowNoiseSnappyGainDelta);
+        float lowNoise = lpNoise.lpf * noiseLowEnv * lowNoiseGain;
+        float highNoiseGain = (fit.highNoiseBase + snap_norm * fit.highNoiseSnappy)
+                            * (fit.highNoiseToneBase + tone_norm * fit.highNoiseToneSpan);
+        highNoiseGain = Ghost::accentScale(
+            highNoiseGain, latchedCharStrength, fit.accent.noiseAmt);
+        float highNoise = hpNoise.hpf * noiseHighEnv * highNoiseGain;
+        float click = ((body - prevBody) * fit.clickBodyGain + (noiseValue - prevNoise) * fit.clickNoiseGain) * clickEnv;
+        prevBody = body;
+        prevNoise = noiseValue;
+
+        // --- envelope decays --------------------------------------------
+        bodyEnv1 *= std::exp(-args.sampleTime / fit.body1TauSec);
+        if (bodyEnv1 < Ghost::kDenormalFloor) bodyEnv1 = 0.f;   // denormal safety
+        bodyEnv2 *= std::exp(-args.sampleTime / fit.body2TauSec);
+        if (bodyEnv2 < Ghost::kDenormalFloor) bodyEnv2 = 0.f;   // denormal safety
+        noiseLowEnv *= std::exp(-args.sampleTime / noiseLowTau);
+        if (noiseLowEnv < Ghost::kDenormalFloor) noiseLowEnv = 0.f;   // denormal safety
+        noiseHighEnv *= std::exp(-args.sampleTime / noiseHighTau);
+        if (noiseHighEnv < Ghost::kDenormalFloor) noiseHighEnv = 0.f;   // denormal safety
+        bendEnv *= std::exp(-args.sampleTime / fit.bendTauSec);
+        if (bendEnv < Ghost::kDenormalFloor) bendEnv = 0.f;   // denormal safety
+        attackEnv += (1.f - attackEnv) * (1.f - std::exp(-args.sampleTime / fit.attackTauSec));
+        clickEnv *= std::exp(-args.sampleTime / fit.clickTauSec);
+        if (clickEnv < Ghost::kDenormalFloor) clickEnv = 0.f;   // denormal safety
+
+        float mix = body + lowNoise + highNoise + click;
+        mix = std::tanh(mix * Ghost::accentAdd(
+            fit.mixDriveBase + fit.mixDriveSnappy * snap_norm,
+            latchedCharStrength, fit.accent.driveAmt));
+        mix *= attackEnv;
+
+        float out = mix * level_norm * fit.outputGain;
+        return out;
+    }
+};
+
+}  // namespace

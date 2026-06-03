@@ -1,0 +1,6 @@
+# Build artifacts from `make stress` / `make -C tests/stress run`
+stress_perf
+stress_san
+spike
+*.o
+*.dSYM/

@@ -144,8 +144,19 @@ in `process()` is the cardinal audio-thread sin; this proves the Ghost cores don
 
 ## 5. Static analysis
 
-- **clang-tidy:** not installed on this machine (`clang-tidy not found`). Deferred to CI / a
-  machine with LLVM tools; recommended check set `bugprone-*, cert-*, performance-*`.
+- **clang-tidy:** now run locally via Homebrew LLVM 21.1.7 (Apple clang ships none).
+  Config `.clang-tidy` at repo root enables `bugprone-*, cert-*, performance-*` (a few noisy
+  checks disabled with inline rationale). Run over `src/*.cpp src/*Engine.hpp` against the SDK
+  include path: **38 warnings, all in GUI/boilerplate, none in a DSP per-sample path** — so
+  nothing actionable for audio correctness. Breakdown:
+  - `performance-enum-size` ×27 — VCV `ParamId`/`InputId`/`OutputId` enums use `int`; the VCV
+    API requires int-compatible enumerators, so this is not changeable.
+  - `cert-dcl59-cpp` ×5 — unnamed namespace in the `*Engine.hpp` headers; **intentional** —
+    that's the engine-isolation pattern the harness depends on (file-local linkage per TU).
+  - `cert-flp30-c` ×2 — `float` loop counter in `GhostPanel.hpp` grid drawing (GUI, cosmetic).
+  - `bugprone-empty-catch` ×2 — `catch (...) {}` around `loadImage` in `PanelLayout.hpp`; the
+    empty body **is** the fallback (draw the vector panel if the PNG fails to load). GUI only.
+  - `cert-int09-c` ×2 — mixed-explicit enumerator init in `GhostMix.cpp` ID enums (VCV idiom).
 - **cppcheck 2.20.0** over `src/*Engine.hpp`, `GhostVoice.hpp`, `GhostBus.hpp`
   (`--enable=warning,performance,portability,style --std=c++11`):
   - **No error / warning / performance / portability findings.**
@@ -183,18 +194,54 @@ to **exactly zero**.
 - Layer 1 (robustness): finite / bounded / denormal-flush / reset-determinism, 4 sample rates, adversarial input incl. mid-stream SR change. ✅
 - Layer 2 (RT-safety): global `new`/`delete` override, zero-alloc steady-state assertion. ✅
 - Layer 3 (perf + leak): ns/sample per voice per SR, voices-per-core@48k, flat-RSS check. ✅
-- Layer 5 (static analysis): cppcheck clean (clang-tidy deferred — not installed). ◑
+- **Layer 4 (libFuzzer):** `tests/stress/fuzz_voice.cpp` — coverage-guided, first input byte
+  selects 1 of 10 voices, the rest is consumed as a param/gate/CV/sample-rate program; every
+  sample asserted finite + `|out| <= 12`. `make -C tests/stress fuzz` builds with
+  `-fsanitize=fuzzer,address,undefined`. **Ran locally** (Homebrew LLVM 21). ✅
+- **Layer 5 (static analysis):** cppcheck clean **and** clang-tidy (`.clang-tidy`,
+  `bugprone-*,cert-*,performance-*`) run locally — see §5. ✅
+- **CI wiring (GitHub Actions):** `.github/workflows/stress.yml` — fetches the Rack SDK headers
+  and runs Layers 1-3 (ASan+UBSan, **LSan enabled** on Linux) + cppcheck + clang-tidy + a bounded
+  libFuzzer campaign on `ubuntu-latest`, uploading this report and the run logs as artifacts.
+  **Wired, not yet executed** (runs when the branch is pushed / a PR opens). ◑
 - Packaging: `tests/stress/` + `make stress` (and standalone `make -C tests/stress run`). ✅
 
-**Deferred:**
-- **Layer 4 (libFuzzer).** *Not reached* — explicitly skipped. The mapping (fuzzer bytes →
-  param/gate/CV sequence → `process()`, assert finite/bounded under ASan) is straightforward to
-  add as `tests/stress/fuzz_voice.cpp` with `-fsanitize=fuzzer`; bounded-iteration target. Now
-  that all 10 voices are factored, the fuzzer can cover the full kit.
-- **clang-tidy** — install LLVM tools (or run in CI) with `bugprone-*,cert-*,performance-*`.
-- **CI wiring (GitHub Actions).** Run the sanitizer harness + cppcheck on every PR; run the
-  heavy ASan/LSan/fuzzing passes on the existing Linux Docker/cross-build path (LSan is mature
-  there, unlike Darwin/arm64). Emit this report as a release artifact + badge.
+**What ran locally vs in CI (honest accounting):**
+- *Ran locally on this macOS/arm64 machine:* Layers 1-3 (ASan+UBSan, perf), cppcheck, clang-tidy
+  (via Homebrew LLVM 21.1.7), and the libFuzzer campaign (see §9). LSan did **not** run locally
+  (unsupported on Darwin/arm64).
+- *Wired for CI only (Linux), not yet executed here:* the GitHub Actions workflow itself, and
+  specifically **LSan** leak detection (enabled via ASan's `detect_leaks=1` default on Linux).
+  It will execute on push / PR — that's expected and is the deliverable.
+
+---
+
+## 9. Layer 4 / CI results (what executed locally)
+
+**libFuzzer campaign — ran locally.** Built with Homebrew LLVM 21.1.7
+(`-fsanitize=fuzzer,address,undefined -std=c++11 -O1`, linked against LLVM's libc++ so the
+libFuzzer archive's symbols resolve). 45-second coverage-guided campaign (a fresh foreground
+re-verification, after a reboot interrupted the original background run); because the first
+input byte selects the voice, a single run exercises **all 10 cores**:
+
+| metric | value |
+|---|---|
+| total executed inputs | 212,523 |
+| avg exec/sec | ~4,620 |
+| new corpus units found | 122 |
+| peak RSS | 200 MB (libFuzzer/ASan bookkeeping; not the DSP) |
+| **crashes / leaks / timeouts / OOM** | **0** |
+| **finite + `\|out\| <= 12` assertion failures** | **0** |
+
+Exit code 0, no `crash-*` / `leak-*` / `timeout-*` artifacts produced. No new bugs surfaced by
+fuzzing beyond what the Layer 1 adversarial sweep already covered.
+
+**clang-tidy — ran locally.** 38 warnings, **0 in any DSP per-sample path** (full breakdown in
+§5); nothing actionable for audio correctness.
+
+**CI workflow — validated, not executed.** `.github/workflows/stress.yml` passes `actionlint`.
+The cppcheck and clang-tidy invocations it uses were run verbatim locally and succeed. The
+workflow runs in full (incl. LSan) the first time the branch is pushed or a PR is opened.
 
 ---
 
@@ -206,18 +253,38 @@ Primary (self-contained — the sub-Makefile resolves the SDK path itself):
 make -C tests/stress run
 ```
 
-Or via the top-level target. **Note:** the repo's top-level `Makefile` uses a *recursive*
-`RACK_DIR ?= $(realpath …$(lastword $(MAKEFILE_LIST))…)` that mis-resolves once `plugin.mk` is
-included, so plain `make` here needs `RACK_DIR` passed explicitly (this is pre-existing and also
-affects the normal plugin build in a bare shell):
+Or via the top-level target, which now also resolves the SDK on its own:
 
 ```sh
-make stress RACK_DIR=/Users/user/Development/vcv-rack/vendor/rack-sdk
+make stress
 ```
+
+(The top-level `Makefile`'s `RACK_DIR` self-resolution bug — which previously forced
+`RACK_DIR=...` on a bare `make` — is fixed; see issue #18. An explicit
+`make stress RACK_DIR=/path/to/Rack-SDK` still works to override.)
 
 Both build two binaries — `stress_perf` (`-O2`) and `stress_san` (ASan+UBSan) — run each, and
 print the robustness table, perf table, zero-alloc result, and RSS-flatness check. Exit code 0
 == all PASS. Individual targets: `make -C tests/stress stress_perf | stress_san | spike`.
+
+**Layer 4 (libFuzzer)** — needs an LLVM clang++ (Apple clang has no libFuzzer):
+
+```sh
+# Auto-detects Homebrew LLVM at /opt/homebrew/opt/llvm; override FUZZ_CXX if elsewhere.
+make -C tests/stress fuzz FUZZ_TIME=60 \
+  RACK_DIR=/Users/user/Development/vcv-rack/vendor/rack-sdk
+```
+
+**clang-tidy** (LLVM):
+
+```sh
+RACK=/Users/user/Development/vcv-rack/vendor/rack-sdk
+/opt/homebrew/opt/llvm/bin/clang-tidy src/*.cpp src/*Engine.hpp -- \
+  -std=c++11 -Isrc -Ivendor/svghelper -I$RACK/include -I$RACK/dep/include
+```
+
+**CI** — push the branch or open a PR; `.github/workflows/stress.yml` runs everything above
+(Layers 1-3 with LSan, cppcheck, clang-tidy, bounded fuzz) on `ubuntu-latest`.
 
 ---
 
@@ -227,7 +294,10 @@ tests/stress/spike_kck.cpp     # SPIKE: standalone KckEngine compile/link proof
 tests/stress/rack_shim.cpp     # 4 NanoVG color stubs (GUI globals; no DSP path)
 tests/stress/voices.hpp        # uniform adapters over all 10 drivable voice cores
 tests/stress/stress_test.cpp   # the harness: Layers 1–3 + reporting
-tests/stress/Makefile          # builds/runs stress_san + stress_perf
+tests/stress/fuzz_voice.cpp    # Layer 4: libFuzzer harness (all 10 voices)
+tests/stress/Makefile          # builds/runs stress_san + stress_perf + fuzz
+.clang-tidy                    # bugprone-/cert-/performance- check set
+.github/workflows/stress.yml   # CI: Layers 1–3 + cppcheck + clang-tidy + fuzz (Linux, LSan on)
 Makefile                       # + `make stress` target (delegates to tests/stress)
 ```
 

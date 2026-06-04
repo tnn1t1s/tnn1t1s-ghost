@@ -130,10 +130,20 @@ struct Kck : GhostModule {
         // the matched values; ATTACK/TONE macro the click sharpness / body
         // brightness so noon -> matched clickRate 140 / bodyFcMult 1.30.
         KckFit::Config f = fit;
-        f.clickRateBase = 60.f + 160.f * attackNorm;          // ATTACK=0.5 -> 140
+        // ATTACK solely controls click rate/tightness (decoupled from CLICK). GEOMETRIC
+        // map (reuse Ghost::expDecaySec) so the audible change spreads evenly across the
+        // knob instead of cramming into the bottom 10% -- rate is perceived
+        // logarithmically, like decay. 55..1385 -> noon ~277 = the matched click;
+        // long smeared click (CCW) -> ultra-tight tick (CW).
+        f.clickRateBase = Ghost::expDecaySec(attackNorm, 12.f, 1500.f);
         f.bodyFcMult    = 0.70f + 1.20f * toneNorm;           // TONE=0.5   -> 1.30
         const float clickEff = rack::math::clamp(0.305f + clickNorm, 0.f, 1.f);  // CLICK=0.5 -> 0.805
-        const float driveEff = rack::math::clamp((driveNorm - 0.5f) * 2.f, 0.f, 1.f); // DRIVE=0.5 -> 0
+        // DRIVE: drives the WHOLE kick at the final saturation stage (KckEngine
+        // ~L307), the audible lever, not the body-only clip (which the dark TONE
+        // filters out). noon (0.5) -> driveEff 0 -> driveBase exact (calibrated
+        // kick). CCW cleaner, CW crushed. Effect knob: invisible at noon, obvious
+        // at the ends.
+        const float driveEff = rack::math::clamp((driveNorm - 0.5f) * 2.f, -1.f, 1.f);
 
         float out = voice.process(args, f,
                                   tuneNorm, decayNorm, pitchNorm, pitchDecayNorm,

@@ -267,7 +267,7 @@ struct KckVoice {
         // pitch sweeps, which is the bridged-T character missing before.
         const float pn   = phase * (1.f / kTwoPi);             // 0..1
         const float tri  = 4.f * std::fabs(pn - 0.5f) - 1.f;    // -1..1 triangle
-        const float clip = fit.bodyClip + driveNorm * 2.f + acc * fit.accent.driveAmt;
+        const float clip = fit.bodyClip + acc * fit.accent.driveAmt;  // DRIVE baked into bodyClip (Kck.cpp)
         const float sat  = std::tanh(tri * clip) / std::tanh(clip);
 
         // Chamberlin state-variable filter, cutoff tracking freq, Q from bodyReso.
@@ -288,8 +288,7 @@ struct KckVoice {
 
         // Click: short pulse + low-passed noise burst (the attack transient).
         // attackNorm is the CLICK knob; ATTACK macro feeds clickRateBase.
-        const float clickEnv = std::exp(-(fit.clickRateBase
-                                          + attackNorm * fit.clickRateAttack) * t);
+        const float clickEnv = std::exp(-fit.clickRateBase * t);  // rate = ATTACK only (decoupled from CLICK level)
         clickLp += 0.5f * (nextNoise() - clickLp);              // ~one-pole LP noise (~4 kHz)
         const float pulse = (t < 0.002f) ? 1.f : 0.f;           // ~2 ms onset pulse
         const float click =
@@ -304,7 +303,9 @@ struct KckVoice {
         if (std::abs(hpState) < Ghost::kDenormalFloor) hpState = 0.f;   // denormal safety
         out -= hpState;
 
-        out = std::tanh(out * (fit.driveBase + acc * fit.accent.driveAmt));
+        // DRIVE knob (driveNorm, -1..1) scales the whole-kick saturation around
+        // the matched driveBase: noon -> x1 (exact), CW crushes, CCW cleans.
+        out = std::tanh(out * (fit.driveBase * std::pow(2.6f, driveNorm) + acc * fit.accent.driveAmt));
 
         const float levelGain = fit.outputGain * levelNorm;
         out = rack::math::clamp(out, -1.f, 1.f) * levelGain;

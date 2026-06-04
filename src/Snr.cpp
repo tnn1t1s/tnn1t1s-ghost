@@ -35,7 +35,9 @@ struct Snr : GhostModule {
     };
     enum OutputId { OUT_OUTPUT, NUM_OUTPUTS };
 
-    dsp::SchmittTrigger trigger;
+    // Per-sample synthesis lives in SnrVoice (SnrEngine.hpp), shared with the
+    // headless stress harness; the module owns the Rack-side plumbing only.
+    SnrVoice voice;
     // Per-instance fit config: each Snr owns its own copy so multiple
     // instances never share or race a file-scope static.
     SnrFit::Config fit = SnrFit::defaults();
@@ -44,27 +46,6 @@ struct Snr : GhostModule {
     // wired or accent gates fire.
     Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
     float latchedCaseGain = 1.f;
-    float latchedCharStrength = 0.f;
-
-    float phase1   = 0.f;
-    float phase2   = 0.f;
-    float bodyEnv1 = 0.f;
-    float bodyEnv2 = 0.f;
-    float noiseLowEnv = 0.f;
-    float noiseHighEnv = 0.f;
-    float bendEnv  = 0.f;
-    float attackEnv = 1.f;
-    float clickEnv = 0.f;
-    float bodyLP = 0.f;
-
-    float noisePhase = 0.f;
-    uint32_t noiseShift = 0x1u;
-    float noiseValue = 1.f;
-    float prevBody = 0.f;
-    float prevNoise = 0.f;
-
-    SnrSVF lpNoise;
-    SnrSVF hpNoise;
 
     /// Configure the four params, CV/accent inputs, and audio output.
     Snr() {
@@ -86,18 +67,18 @@ struct Snr : GhostModule {
     /// Return the snare to silence and a clean state on Rack "Initialize" /
     /// first load (zero envelopes, phases, filters, and accent latches).
     void onReset() override {
-        trigger.reset();
-        phase1 = phase2 = 0.f;
-        bodyEnv1 = bodyEnv2 = 0.f;
-        noiseLowEnv = noiseHighEnv = 0.f;
-        bendEnv = 0.f;
-        attackEnv = 1.f;
-        clickEnv = 0.f;
-        bodyLP = 0.f;
-        lpNoise.reset();
-        hpNoise.reset();
+        voice.trigger.reset();
+        voice.phase1 = voice.phase2 = 0.f;
+        voice.bodyEnv1 = voice.bodyEnv2 = 0.f;
+        voice.noiseLowEnv = voice.noiseHighEnv = 0.f;
+        voice.bendEnv = 0.f;
+        voice.attackEnv = 1.f;
+        voice.clickEnv = 0.f;
+        voice.bodyLP = 0.f;
+        voice.lpNoise.reset();
+        voice.hpNoise.reset();
         latchedCaseGain = 1.f;
-        latchedCharStrength = 0.f;
+        voice.latchedCharStrength = 0.f;
     }
 
     /// Synthesize one sample: on a rising TRIG, latch accent and reset all
@@ -105,106 +86,19 @@ struct Snr : GhostModule {
     /// branches, and transient click into the soft-clipped, level-scaled output.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
-        if (trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
+        if (voice.trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             auto acc = Ghost::sampleAccentAtTrig(
                 this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
-            latchedCharStrength = acc.charStrength;
             latchedCaseGain = acc.gain;
-            bodyEnv1 = 1.f;
-            bodyEnv2 = 1.f;
-            noiseLowEnv = 1.f;
-            noiseHighEnv = 1.f;
-            bendEnv  = 1.f;
-            attackEnv = 0.f;
-            clickEnv = 1.f;
-            phase1   = 0.f;
-            phase2   = 0.f;
-            bodyLP = 0.f;
-            noisePhase = 0.f;
-            prevBody = 0.f;
-            prevNoise = noiseValue;
-            lpNoise.reset();
-            hpNoise.reset();
+            voice.fire(acc.charStrength);
         }
 
         float tune_norm    = snrNormWithCV(*this, TUNE_PARAM,   TUNE_CV_INPUT);
         float tone_norm    = snrNormWithCV(*this, TONE_PARAM,   TONE_CV_INPUT);
         float snap_norm    = snrNormWithCV(*this, SNAPPY_PARAM, SNAPPY_CV_INPUT);
         float level_norm   = snrNormWithCV(*this, LEVEL_PARAM,  LEVEL_CV_INPUT);
-        const SnrFit::Config& fit = this->fit;
 
-        float tune_oct = (tune_norm - 0.5f) * 2.f * kSnrTuneOctRange;
-        float scale    = std::pow(2.f, tune_oct);
-        float bendOct  = bendEnv * fit.bendMaxOct;
-        float f1       = fit.osc1BaseHz * scale * std::pow(2.f, bendOct);
-        float f2       = fit.osc2BaseHz * scale * std::pow(2.f, bendOct * fit.osc2BendRatio);
-        float toneTau  = kSnrToneMinSec + tone_norm * (fit.toneMaxSec - kSnrToneMinSec);
-        float snapShape = std::pow(1.f - snap_norm, fit.snappyShapePower);
-        float noiseLowTau = toneTau
-                          * (fit.lowNoiseSnappyTauMinScale + snapShape * fit.lowNoiseSnappyTauDelta);
-        float noiseHighTau = toneTau * fit.noiseHighRatio
-                           * (1.f + snapShape * fit.highNoiseSnappyTauDelta);
-
-        // --- body: two phase-reset triangles with different decays ------
-        phase1 += f1 * args.sampleTime;
-        phase2 += f2 * args.sampleTime;
-        phase1 -= std::floor(phase1);
-        phase2 -= std::floor(phase2);
-
-        float tri1 = snrTriangle(phase1);
-        float tri2 = snrTriangle(phase2);
-        float bodyRaw = tri1 * bodyEnv1 * fit.body1Gain + tri2 * bodyEnv2 * fit.body2Gain;
-        float bodyLpAlpha = 1.f - std::exp(-2.f * float(M_PI) * fit.bodyLpHz * args.sampleTime);
-        bodyLP += (bodyRaw - bodyLP) * bodyLpAlpha;
-        if (std::abs(bodyLP) < Ghost::kDenormalFloor) bodyLP = 0.f;   // denormal safety
-        float body = std::tanh(bodyLP * fit.bodyDrive);
-
-        // --- noise: fixed binary source, split into low/high branches ----
-        noisePhase += fit.noiseClockHz * args.sampleTime;
-        while (noisePhase >= 1.f) {
-            noisePhase -= 1.f;
-            uint32_t newBit = ((noiseShift >> 0) ^ (noiseShift >> 2)
-                             ^ (noiseShift >> 3) ^ (noiseShift >> 5)) & 1u;
-            noiseShift = (noiseShift >> 1) | (newBit << 15);
-            noiseValue = (noiseShift & 1u) ? 1.f : -1.f;
-        }
-        lpNoise.process(noiseValue, fit.noiseLpHz, args.sampleRate, kSnrNoiseLowQ);
-        hpNoise.process(noiseValue, fit.noiseHpHz, args.sampleRate, kSnrNoiseHighQ);
-        float lowNoiseGain = fit.lowNoiseGain
-                           * (fit.lowNoiseToneBase + tone_norm * fit.lowNoiseToneSpan)
-                           * (1.f + snapShape * fit.lowNoiseSnappyGainDelta);
-        float lowNoise = lpNoise.lpf * noiseLowEnv * lowNoiseGain;
-        float highNoiseGain = (fit.highNoiseBase + snap_norm * fit.highNoiseSnappy)
-                            * (fit.highNoiseToneBase + tone_norm * fit.highNoiseToneSpan);
-        highNoiseGain = Ghost::accentScale(
-            highNoiseGain, latchedCharStrength, fit.accent.noiseAmt);
-        float highNoise = hpNoise.hpf * noiseHighEnv * highNoiseGain;
-        float click = ((body - prevBody) * fit.clickBodyGain + (noiseValue - prevNoise) * fit.clickNoiseGain) * clickEnv;
-        prevBody = body;
-        prevNoise = noiseValue;
-
-        // --- envelope decays --------------------------------------------
-        bodyEnv1 *= std::exp(-args.sampleTime / fit.body1TauSec);
-        if (bodyEnv1 < Ghost::kDenormalFloor) bodyEnv1 = 0.f;   // denormal safety
-        bodyEnv2 *= std::exp(-args.sampleTime / fit.body2TauSec);
-        if (bodyEnv2 < Ghost::kDenormalFloor) bodyEnv2 = 0.f;   // denormal safety
-        noiseLowEnv *= std::exp(-args.sampleTime / noiseLowTau);
-        if (noiseLowEnv < Ghost::kDenormalFloor) noiseLowEnv = 0.f;   // denormal safety
-        noiseHighEnv *= std::exp(-args.sampleTime / noiseHighTau);
-        if (noiseHighEnv < Ghost::kDenormalFloor) noiseHighEnv = 0.f;   // denormal safety
-        bendEnv *= std::exp(-args.sampleTime / fit.bendTauSec);
-        if (bendEnv < Ghost::kDenormalFloor) bendEnv = 0.f;   // denormal safety
-        attackEnv += (1.f - attackEnv) * (1.f - std::exp(-args.sampleTime / fit.attackTauSec));
-        clickEnv *= std::exp(-args.sampleTime / fit.clickTauSec);
-        if (clickEnv < Ghost::kDenormalFloor) clickEnv = 0.f;   // denormal safety
-
-        float mix = body + lowNoise + highNoise + click;
-        mix = std::tanh(mix * Ghost::accentAdd(
-            fit.mixDriveBase + fit.mixDriveSnappy * snap_norm,
-            latchedCharStrength, fit.accent.driveAmt));
-        mix *= attackEnv;
-
-        float out = mix * level_norm * fit.outputGain;
+        float out = voice.process(args, fit, tune_norm, tone_norm, snap_norm, level_norm);
         out *= latchedCaseGain * bus.masterVolume;
         outputs[OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(out));
     }

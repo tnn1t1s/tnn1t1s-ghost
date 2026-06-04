@@ -7,7 +7,13 @@
 #
 # By default it points at the rack-sdk vendored in the sibling vcv-rack repo,
 # so the plugin builds out of the box on this machine.
-RACK_DIR ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))../vcv-rack/vendor/rack-sdk)
+#
+# Capture THIS Makefile's directory immediately with := before plugin.mk is
+# included and appends to MAKEFILE_LIST. A lazy $(lastword $(MAKEFILE_LIST))
+# in RACK_DIR would otherwise re-resolve to plugin.mk's path once included,
+# mis-pointing RACK_DIR in a bare shell (issue: RACK_DIR self-resolution).
+GHOST_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+RACK_DIR ?= $(realpath $(GHOST_MK_DIR)../vcv-rack/vendor/rack-sdk)
 
 FLAGS += -Ivendor/svghelper -Isrc
 
@@ -50,3 +56,12 @@ deploy: all
 	cp -r res/      "$(RACK_PLUGINS)/tnn1t1s-ghost/res/"
 
 .PHONY: deploy
+
+# --- Offline DSP stress harness (issue #17) --------------------------------
+# Headless robustness / RT-safety / performance suite over the voice cores.
+# Builds + runs entirely against the Rack SDK headers (no libRack, no GUI).
+# See tests/stress/ and reflect/stress-test-report.md.
+stress:
+	$(MAKE) -C tests/stress RACK_DIR="$(RACK_DIR)" run
+
+.PHONY: stress

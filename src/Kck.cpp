@@ -101,7 +101,8 @@ struct Kck : GhostModule {
 
         if (voice.trigger.process(inputs[TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
             // Hit-time gates from cables (deterministic, zero latency).
-            const bool totalGate = inputs[TOTAL_ACC_INPUT].getNormalVoltage(0.f) > 1.f;
+            // Accent A normalled ON (unpatched -> accented; see issue #21).
+            const bool totalGate = inputs[TOTAL_ACC_INPUT].getNormalVoltage(10.f) > 1.f;
             const bool localGate = inputs[LOCAL_ACC_INPUT].getNormalVoltage(0.f) > 1.f;
 
             // Two orthogonal axes:

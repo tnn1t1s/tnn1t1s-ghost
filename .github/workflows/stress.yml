@@ -9,9 +9,10 @@
 # (its include/ + dep/include/ trees) -- no libRack, no full Rack build.
 name: stress
 
+# Manual-only: this is an on-demand pre-release gate, not a per-PR check.
+# Run it from the Actions tab, or `gh workflow run stress.yml`.
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 env:
   # Pinned to match the SDK the harness was developed against. Bump as needed;

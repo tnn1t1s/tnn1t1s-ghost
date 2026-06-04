@@ -105,8 +105,13 @@ def mixer_cell(colcx, y, jack_fp, theme, fontbook, layout, text, in_id, mute_id,
     g.append(jack(jack_c, jack_fp, theme))
     g.append(anchor(jack_c, in_id))
     g.append(anchor(mute_c, mute_id))
+    # Label ABOVE the jack with the same chevron rule the knob/param cells use, so
+    # the mixer reads as part of the series and each label clearly points down at
+    # its jack (the chevron ties label -> port, removing between-rows ambiguity).
     ly = y - jr - layout.grid.label_clearance_mm
-    g.append(label(colcx, ly, text, fontbook.role("label"), theme.color("label")))
+    g.append(label(jack_c.x, ly, text, fontbook.role("label"), theme.color("label")))
+    g.append(chevron_rule(jack_c.x, jr * 1.5, ly + 1.6, theme,
+                          color=theme.color("dim"), sw=theme.strokes.ring_mm))
     return g
 
 

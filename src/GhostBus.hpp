@@ -300,8 +300,11 @@ inline AccentResolution sampleAccentAtTrig(rack::Module* self,
                                            const Bus& bus,
                                            const AccentMix& mix,
                                            int localInputId = -1) {
+    // Accent A (total) is normalled ON: an unpatched jack reads as accented, so a
+    // lone voice sounds powerful by default; patching an accent cable overrides it
+    // (see issue #21). Accent B (local) stays normalled OFF.
     const bool totalGate = (totalInputId >= 0)
-        && self->inputs[totalInputId].getNormalVoltage(0.f) > 1.f;
+        && self->inputs[totalInputId].getNormalVoltage(10.f) > 1.f;
     const bool localGate = (localInputId >= 0)
         && self->inputs[localInputId].getNormalVoltage(0.f) > 1.f;
     AccentResolution r;

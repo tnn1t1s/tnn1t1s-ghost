@@ -77,6 +77,13 @@ mistaken for compression. A fresh open-hat trigger re-arms the voice.
 Use any Rack sequencer (Hora Drum Sequencer, Impromptu Clocked + SEQ, etc.).
 Ghost is the behavioral layer between your sequencer and your drum voices.
 
+## Running in a DAW
+
+To host Ghost in Logic Pro (or any DAW) via VCV Rack 2 Pro, and to sync the kit
+to your project's transport so it starts, stops, and follows tempo, see
+`using-ghost-in-a-daw.md`. It also covers the audio routing and two host-specific
+gotchas (knobs not moving, and a keyboard-related crash on load).
+
 ## Audio provenance
 
 All embedded audio captures were recorded by the author from a drum machine the

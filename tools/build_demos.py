@@ -18,7 +18,7 @@ import os
 
 import build_lessons as L   # reuse load_base/assemble_gmix/constants/helpers
 
-DEMODIR = os.path.join(L.REPO, "patches/909-demos")
+DEMODIR = os.path.join(L.REPO, "patches/demos")
 
 
 def bars(steps16):

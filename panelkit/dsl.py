@@ -64,11 +64,11 @@ _FRAGMENTS_CACHE: dict | None = None
 
 
 def _fragments() -> dict:
-    """Shared section fragments (specs/fragments.yaml), loaded once."""
+    """Shared section fragments (panelkit/specs/fragments.yaml), loaded once."""
     global _FRAGMENTS_CACHE
     if _FRAGMENTS_CACHE is None:
-        root = pathlib.Path(__file__).resolve().parents[1]
-        p = root / "specs" / "fragments.yaml"
+        pkg = pathlib.Path(__file__).resolve().parents[0]
+        p = pkg / "specs" / "fragments.yaml"
         _FRAGMENTS_CACHE = yaml.safe_load(p.read_text()) if p.exists() else {}
     return _FRAGMENTS_CACHE
 

@@ -20,8 +20,8 @@ from panelkit.cli import render  # noqa: E402
 
 PORT = 8765
 DEFAULT = "Attenuate"
-PANELS = ROOT / "specs/panels"
-SHARED = {"theme": ROOT / "specs/themes/ghost.yaml",
+PANELS = ROOT / "panelkit/specs/panels"
+SHARED = {"theme": ROOT / "panelkit/specs/themes/ghost.yaml",
           "layout": ROOT / "panelkit/data/layout.defaults.yaml"}
 RESERVED = {"file", "svg", "render", "favicon.ico"}
 

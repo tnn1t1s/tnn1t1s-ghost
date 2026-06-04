@@ -55,7 +55,7 @@ Result: the patch is **silent on load**, starts in sync when you press Play, and
 follows the project tempo. (It is silent in standalone Rack too, because there is
 no host clock — that is expected.)
 
-A ready-made example ships in `patches/909-demos/02-detroit-sync.vcv`: the
+A ready-made example ships in `patches/demos/02-detroit-sync.vcv`: the
 Detroit demo, clock-slaved to the host.
 
 ## 3. Gotchas

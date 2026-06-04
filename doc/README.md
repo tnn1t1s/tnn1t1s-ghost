@@ -1,6 +1,24 @@
 # doc/
 
-Reference docs for the Ghost plugin: the user manual (`GhostUserManual.md`),
-DAW hosting (`using-ghost-in-a-daw.md`), C++ style (`CPP-STYLE.md`), the accent
-model (`accent.md`), voice calibration (`calibration.md`), recording
-(`recording.md`), and architecture decisions (`decisions/`).
+Documentation for the Ghost drum plugin.
+
+## Start here
+
+- **[GhostUserManual.md](GhostUserManual.md)** — what the modules are and how to
+  play the kit. Read this first.
+
+## Using Ghost
+
+- [using-ghost-in-a-daw.md](using-ghost-in-a-daw.md) — host transport sync,
+  running Ghost inside a DAW.
+- [recording.md](recording.md) — capturing audio from a patch.
+
+## For contributors
+
+Internal / development docs live in [`dev/`](dev/):
+
+- [dev/CPP-STYLE.md](dev/CPP-STYLE.md) — C++ style conventions.
+- [dev/accent.md](dev/accent.md) — the accent model.
+- [dev/calibration.md](dev/calibration.md) — voice calibration.
+
+Architecture decision records are in [`decisions/`](decisions/).

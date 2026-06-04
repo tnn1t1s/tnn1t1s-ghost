@@ -58,10 +58,10 @@ still ride within the chosen range.
 
 Example patches live in `patches/`:
 
-- `patches/909-demos/` — eight classic-909 grooves, one per style (house,
+- `patches/demos/` — eight classic-909 grooves, one per style (house,
   Detroit, Chicago jack, hard techno, tribal, filter house, minimal techno, electro),
   plus a minimal-techno multi-level kick study, each on GHOST MIX at its own tempo.
-- `patches/909-lessons/` — a build-it-up series (rimshot → kick → claps → toms →
+- `patches/lessons/` — a build-it-up series (rimshot → kick → claps → toms →
   hats) for learning the kit one voice at a time.
 
 ## Building

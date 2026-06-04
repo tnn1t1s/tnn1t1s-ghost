@@ -7,7 +7,7 @@ Record a running VCV Rack patch to an mp4 with clean stereo audio, using macOS
 
 **Args:** `$ARGUMENTS` = optional `<patch.vcv path or demo name> <seconds>`
 (default: `04-hypnotic` and `28`). A bare name resolves to
-`$HOME/Development/tnn1t1s-ghost/patches/909-demos/<name>.vcv`.
+`$HOME/Development/tnn1t1s-ghost/patches/demos/<name>.vcv`.
 
 ## Critical rules — do NOT deviate
 - Use **`screencapture`**, never ffmpeg/avfoundation (avfoundation = warbly audio

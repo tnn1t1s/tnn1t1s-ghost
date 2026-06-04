@@ -1,4 +1,4 @@
-# specs/
+# panelkit/specs/
 
 Declarative source-of-truth for the module panels, consumed by the panelkit
 toolkit to generate `res/*.svg`.

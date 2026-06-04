@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build patches/ghost-supersonic.vcv -- a faithful recreation of the classic
+"""Build patches/demos/ghost-supersonic.vcv -- a faithful recreation of the classic
 electro / "Supersonic"-school 808 groove (Planet Rock -> J.J. Fad lineage),
 played on the GHOST kit. ~132 BPM feel.
 
@@ -14,8 +14,8 @@ Run: python tools/build_supersonic.py
 """
 import subprocess, json, tempfile, pathlib
 
-BASE = "patches/ghost-buscrush-demo.vcv"
-OUT  = "patches/ghost-supersonic.vcv"
+BASE = "patches/demos/ghost-buscrush-demo.vcv"
+OUT  = "patches/demos/ghost-supersonic.vcv"
 
 base = json.loads(subprocess.run(['bash','-c',f'zstd -dc "{BASE}" | tar -xO ./patch.json'],
                                  capture_output=True).stdout)

@@ -120,7 +120,7 @@ struct CrashRide : GhostModule {
                               const Ghost::RomVoiceConfig& baseCfg,
                               float postGain) {
         float playbackRate = std::pow(2.f, (tuneNorm - 0.5f) * 2.f * tuneOctaves);
-        float decaySec = decayMin + decayNorm * (decayMax - decayMin);
+        float decaySec = Ghost::expDecaySec(decayNorm, decayMin, decayMax);
         Ghost::RomVoiceConfig romCfg = baseCfg;
         float raw = voice.process(args, asset, playbackRate, decaySec, decayNorm, romCfg);
         float out = raw * postGain;

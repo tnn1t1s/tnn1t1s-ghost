@@ -37,6 +37,16 @@ static constexpr float kChokeDecaySec   = 0.005f;
 static constexpr float kChhMixGain = 2.50f;   // mix makeup (post-drive); headroom to push hats past the cymbals
 static constexpr float kOhhMixGain = 2.50f;   // "
 
+// 909-style "air": a high-pass-emphasized HF lift inside the hat voice so it
+// cuts the kick/snare/clap midrange instead of being masked by it. Our open-hat
+// sample peaks at ~4 kHz (mid-heavy); the real 909 shapes its sample through
+// series filters with high-pass/bandpass emphasis. Applied post-sample/pre-drive.
+// Tunable by ear; see issue #20.
+static constexpr float kOhhAirHz = 8000.f;
+static constexpr float kOhhAir   = 1.20f;   // ~+7 dB shelf above 8 kHz on the open hat
+static constexpr float kChhAirHz = 9000.f;
+static constexpr float kChhAir   = 0.40f;   // closed hat already cuts; light touch
+
 // Per-DSP-stage accent character. CH and OH both have a small drive boost
 // on accented hits; per the 909 reference doc, CH has level-only accent on
 // the original 909 and OH has no accent (sits at full max). These are
@@ -82,6 +92,10 @@ struct ChhOhhVoice {
     float chhLatchedChar = 0.f;
     float ohhLatchedChar = 0.f;
 
+    // 909-style HF "air" shelf per hat (see issue #20).
+    Ghost::AirShelf chhAir;
+    Ghost::AirShelf ohhAir;
+
     /// Trigger the closed hat: rewind its read head, re-arm the envelope, latch
     /// accent character, and CHOKE any sounding open hat (the 909 CH->OH mute).
     void fireChh(float charStrength) {
@@ -111,8 +125,8 @@ struct ChhOhhVoice {
         // -- CH DSP ----------------------------------------------------
         float chhRate    = std::pow(2.f, (chhTune - 0.5f) * 2.f * kChhTuneOctaves);
         float chhDecayShape = std::sqrt(chhDecay);
-        float chhDecaySec = kChhDecayMinSec
-                          + chhDecayShape * (kChhDecayMaxSec - kChhDecayMinSec);
+        float chhDecaySec = Ghost::expDecaySec(
+            chhDecayShape, kChhDecayMinSec, kChhDecayMaxSec);
         const auto& chSrc = chhSource();
         float chhSrc = Ghost::sampleAt(chSrc, chhSamplePos);
         chhSamplePos += Ghost::playbackStep(
@@ -120,14 +134,15 @@ struct ChhOhhVoice {
         chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
         if (chhEnv < Ghost::kDenormalFloor) chhEnv = 0.f;   // denormal safety
         float chhO = chhSrc * chhEnv * 1.04f;
+        chhO = chhAir.process(chhO, kChhAir, kChhAirHz, args.sampleRate);  // 909-style air
         chhO = Ghost::driveWithAccent(
             chhO, chhDrive, chhLatchedChar, kChhAccent.driveAmt);
         chhO *= chhLevel * kChhMixGain;
 
         // -- OH DSP (with choke override on env decay) -----------------
         float ohhRate     = std::pow(2.f, (ohhTune - 0.5f) * 2.f * kOhhTuneOctaves);
-        float ohhDecaySec = kOhhDecayMinSec
-                          + ohhDecay * (kOhhDecayMaxSec - kOhhDecayMinSec);
+        float ohhDecaySec = Ghost::expDecaySec(
+            ohhDecay, kOhhDecayMinSec, kOhhDecayMaxSec);
         const auto& ohSrc = ohhSource();
         float ohhSrc = Ghost::sampleAt(ohSrc, ohhSamplePos);
         ohhSamplePos += Ghost::playbackStep(
@@ -137,6 +152,7 @@ struct ChhOhhVoice {
         if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
         if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
         float ohhO = ohhSrc * ohhEnv * 1.05f;
+        ohhO = ohhAir.process(ohhO, kOhhAir, kOhhAirHz, args.sampleRate);  // 909-style air
         ohhO = Ghost::driveWithAccent(
             ohhO, ohhDrive, ohhLatchedChar, kOhhAccent.driveAmt);
         ohhO *= ohhLevel * kOhhMixGain;

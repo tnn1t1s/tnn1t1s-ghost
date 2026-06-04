@@ -88,6 +88,33 @@ inline float driveWithAccent(float x, float baseDriveNorm,
     return drive(x, baseDriveNorm + charStrength * accentDriveAmt);
 }
 
+/// Geometric (exponential) knob->time map: each equal knob move multiplies the
+/// decay by a constant ratio, which is how decay length is perceived. Linear-in-
+/// time crams the audible change into the bottom of the knob; this spreads it
+/// evenly across the full sweep. Used by the sample voices (hats, cymbals); the
+/// synth voices keep their calibrated 909 rate maps. See issue #19.
+inline float expDecaySec(float norm, float minSec, float maxSec) {
+    norm = norm < 0.f ? 0.f : (norm > 1.f ? 1.f : norm);
+    return minSec * std::pow(maxSec / minSec, norm);
+}
+
+/// First-order high-shelf "air" lift. Adds a scaled copy of the content above
+/// cutoffHz back into the signal (out = x + amount * highpassed(x)), brightening
+/// without thinning the body. amount 0 = bypass; ~1.0 is roughly a +6 dB shelf.
+/// One float of state. Models the 909 hat's high-pass-emphasized cymbal voicing
+/// (the hardware shapes its 6-bit sample through series filters). See issue #20.
+struct AirShelf {
+    float lp = 0.f;
+    void reset() { lp = 0.f; }
+    float process(float x, float amount, float cutoffHz, float sampleRate) {
+        if (amount <= 0.f) return x;
+        float a = 1.f - std::exp(-2.f * float(M_PI) * cutoffHz / sampleRate);
+        lp += a * (x - lp);
+        if (std::abs(lp) < kDenormalFloor) lp = 0.f;   // denormal safety
+        return x + amount * (x - lp);   // x + amount * highpass
+    }
+};
+
 inline float bitReduce(float x, int bits) {
     if (bits >= 16) {
         return x;

@@ -161,12 +161,12 @@ struct CrashRide : GhostModule {
         const float rideLevel = normWithCV(RIDE_LEVEL_PARAM, RIDE_LEVEL_CV_INPUT);
 
         namespace cri = crashride_impl;
-        float crashOut = voiceProcess(args, crashVoice, cri::crashAsset(),
+        float crashOut = cri::kCrashMixGain * voiceProcess(args, crashVoice, cri::crashAsset(),
                                       crashTune, crashDecay, crashDrive, crashLevel,
                                       crashLatchedChar, cri::kCrashAccent.driveAmt,
                                       cri::kCrashTuneOctaves, cri::kCrashDecayMinSec, cri::kCrashDecayMaxSec,
                                       cri::kCrashRomCfg, 1.04f);
-        float rideOut  = voiceProcess(args, rideVoice, cri::rideAsset(),
+        float rideOut  = cri::kRideMixGain * voiceProcess(args, rideVoice, cri::rideAsset(),
                                       rideTune, rideDecay, rideDrive, rideLevel,
                                       rideLatchedChar, cri::kRideAccent.driveAmt,
                                       cri::kRideTuneOctaves, cri::kRideDecayMinSec, cri::kRideDecayMaxSec,

@@ -39,6 +39,13 @@ static constexpr float kRideTuneOctaves  = 0.7f;
 static constexpr float kRideDecayMinSec  = 0.12f;
 static constexpr float kRideDecayMaxSec  = 4.80f;
 
+// Mix makeup (post-drive, level-only): the cymbal PCM sits far below the kit
+// (~0.26 crash / ~0.17 ride peak vs ~1.0 kick). Bring each to ~0.8 default with
+// headroom to ~1.0 via the LEVEL knob, balancing them in GHOST MIX without
+// adding drive/saturation.
+static constexpr float kCrashMixGain = 3.10f;
+static constexpr float kRideMixGain  = 4.85f;
+
 /// Embedded crash PCM, decoded once and cached.
 inline const std::vector<float>& crashSource() {
     static const std::vector<float> sample =

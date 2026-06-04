@@ -30,6 +30,13 @@ static constexpr float kOhhDecayMaxSec = 3.20f;
 
 static constexpr float kChokeDecaySec   = 0.005f;
 
+// Mix makeup (post-drive, level-only): the hat PCM is normalized ~0.6 peak,
+// ~6 dB under the kick/snare/clap. Bring the hats to ~0.8 default with headroom
+// to ~1.0 via the LEVEL knob, so they balance in GHOST MIX. Applied after drive,
+// so the timbre is unchanged.
+static constexpr float kChhMixGain = 2.50f;   // mix makeup (post-drive); headroom to push hats past the cymbals
+static constexpr float kOhhMixGain = 2.50f;   // "
+
 // Per-DSP-stage accent character. CH and OH both have a small drive boost
 // on accented hits; per the 909 reference doc, CH has level-only accent on
 // the original 909 and OH has no accent (sits at full max). These are
@@ -115,7 +122,7 @@ struct ChhOhhVoice {
         float chhO = chhSrc * chhEnv * 1.04f;
         chhO = Ghost::driveWithAccent(
             chhO, chhDrive, chhLatchedChar, kChhAccent.driveAmt);
-        chhO *= chhLevel * 0.94f;
+        chhO *= chhLevel * kChhMixGain;
 
         // -- OH DSP (with choke override on env decay) -----------------
         float ohhRate     = std::pow(2.f, (ohhTune - 0.5f) * 2.f * kOhhTuneOctaves);
@@ -132,7 +139,7 @@ struct ChhOhhVoice {
         float ohhO = ohhSrc * ohhEnv * 1.05f;
         ohhO = Ghost::driveWithAccent(
             ohhO, ohhDrive, ohhLatchedChar, kOhhAccent.driveAmt);
-        ohhO *= ohhLevel * 0.96f;
+        ohhO *= ohhLevel * kOhhMixGain;
 
         chhOut = chhO;
         ohhOut = ohhO;

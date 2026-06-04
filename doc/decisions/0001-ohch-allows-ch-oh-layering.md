@@ -46,7 +46,7 @@ step" logic.
 
 - A patch with CHH and OHH on the same step will hear both, not one. This is by
   design, not a bug, and is the one case where the hats "sum."
-- Regression fixture: `patches/tests/ohch-choke.vcv` exercises the sequential
+- Regression fixture: `tests/patches/ohch-choke.vcv` exercises the sequential
   choke (closed hat every 16th, open hat on the offbeats).
 
 ## Alternatives considered

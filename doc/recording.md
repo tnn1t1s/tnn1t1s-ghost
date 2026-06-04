@@ -30,7 +30,7 @@ automates the mechanical parts; this doc is the canonical reference.
 1. **Launch the patch** (keep the display awake while recording):
    ```bash
    caffeinate -d -t 120 &
-   open "$HOME/Development/tnn1t1s-ghost/patches/909-demos/04-hypnotic.vcv"
+   open "$HOME/Development/tnn1t1s-ghost/patches/demos/04-hypnotic.vcv"
    ```
 
 2. **Route VCV audio → Multi-Output Device** (manual, one click; the demo patches

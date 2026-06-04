@@ -31,8 +31,8 @@ Lessons (layers of the groove):
 import json, os, subprocess, tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LDIR = os.path.join(REPO, "patches/909-lessons")
-DONOR_REF = "HEAD:patches/909-lessons/02-add-bassdrum.vcv"
+LDIR = os.path.join(REPO, "patches/lessons")
+DONOR_REF = "HEAD:patches/lessons/02-add-bassdrum.vcv"
 
 # ---- routing convention ----
 ACCENT_TRACK, KICK_TRACK, CLAP_TRACK, RIM_TRACK = 1, 2, 7, 8

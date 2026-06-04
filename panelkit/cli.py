@@ -2,7 +2,7 @@
 
     python -m panelkit render Attenuate
 
-Reads specs/panels/<Module>.panel.yaml + the Ghost theme/layout, writes
+Reads panelkit/specs/panels/<Module>.panel.yaml + the Ghost theme/layout, writes
 res/<Module>.svg and a preview PNG. A human edits the YAML and re-runs this;
 no code changes, no LLM tokens.
 """
@@ -21,11 +21,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def render(module: str, preview: bool = True) -> pathlib.Path:
-    theme = load_theme(ROOT / "specs/themes/ghost.yaml")
-    layout = load_layout(override_path=ROOT / "specs/layout/ghost.yaml")
+    theme = load_theme(ROOT / "panelkit/specs/themes/ghost.yaml")
+    layout = load_layout(override_path=ROOT / "panelkit/specs/layout/ghost.yaml")
     footprints = load_footprints()
     fontbook = FontBook(theme)
-    spec = load_panel_spec(ROOT / "specs/panels" / f"{module}.panel.yaml")
+    spec = load_panel_spec(ROOT / "panelkit/specs/panels" / f"{module}.panel.yaml")
 
     els = build_panel(spec, theme, layout, footprints, fontbook)
     svg = panel_svg(spec.hp, els, theme)

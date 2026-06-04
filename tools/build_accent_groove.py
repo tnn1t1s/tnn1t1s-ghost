@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build patches/ghost-accent-groove.vcv -- a boom-bap groove that *plays the
+"""Build patches/demos/ghost-accent-groove.vcv -- a boom-bap groove that *plays the
 GHOST CTRL accent system*.
 
 KCK is the dynamic engine (its AccentMix is non-neutral: ghost -6dB -> accents
@@ -18,8 +18,8 @@ Run: python tools/build_accent_groove.py
 """
 import subprocess, json, tempfile, pathlib
 
-BASE = "patches/ghost-buscrush-demo.vcv"
-OUT  = "patches/ghost-accent-groove.vcv"
+BASE = "patches/demos/ghost-buscrush-demo.vcv"
+OUT  = "patches/demos/ghost-accent-groove.vcv"
 
 def read(vcv):
     return json.loads(subprocess.run(['bash','-c',f'zstd -dc "{vcv}" | tar -xO ./patch.json'],

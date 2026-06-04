@@ -14,12 +14,12 @@ def footprints():
 
 @pytest.fixture(scope="session")
 def layout():
-    return load_layout(override_path=ROOT / "specs/layout/ghost.yaml")
+    return load_layout(override_path=ROOT / "panelkit/specs/layout/ghost.yaml")
 
 
 @pytest.fixture(scope="session")
 def theme():
-    return load_theme(ROOT / "specs/themes/ghost.yaml")
+    return load_theme(ROOT / "panelkit/specs/themes/ghost.yaml")
 
 
 @pytest.fixture(scope="session")

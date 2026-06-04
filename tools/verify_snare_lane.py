@@ -33,7 +33,7 @@ L.cable(data, h, L.out_of(L.SNR_TRACK), s, L.SNR_TRIG, "#c91847")
 L.cable(data, s, L.SNR_OUT, au, 0, "#d8d8d8")
 L.cable(data, s, L.SNR_OUT, au, 1, "#d8d8d8")
 
-out = os.path.join(L.REPO, "patches/tests/snare-lane.vcv")
+out = os.path.join(L.REPO, "tests/patches/snare-lane.vcv")
 os.makedirs(os.path.dirname(out), exist_ok=True)
 L.save_vcv(data, out)
 print(f"SNR_TRACK={L.SNR_TRACK}  ->  Hora out {L.out_of(L.SNR_TRACK)}  ->  Snr TRIG")

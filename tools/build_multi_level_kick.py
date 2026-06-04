@@ -19,7 +19,7 @@ import os
 import build_lessons as L
 from build_demos import set_tempo
 
-OUT = os.path.join(L.REPO, "patches/909-demos/09-multi-level-kick.vcv")
+OUT = os.path.join(L.REPO, "patches/demos/09-multi-level-kick.vcv")
 BPM = 130
 
 KCK_TRIG, KCK_LOCAL_ACC, KCK_TOTAL_ACC = 0, 10, 11

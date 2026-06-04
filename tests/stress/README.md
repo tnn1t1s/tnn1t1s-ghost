@@ -8,4 +8,4 @@ allocation, performance, and libFuzzer fuzzing.
 - `make stress` — robustness + RT-safety + perf (ASan/UBSan)
 - `make fuzz` — libFuzzer campaign (needs LLVM clang)
 
-Report: `../../reflect/stress-test-report.md`. CI: `../../.github/workflows/stress.yml`.
+Report: `STRESS-REPORT.md`. CI: `../../.github/workflows/stress.yml`.

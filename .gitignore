@@ -15,3 +15,6 @@ dist/
 __pycache__/
 *.pyc
 tools/_preview/
+
+# Internal scratch (agent briefs, run logs, raw tool output) -- not released
+reflect/

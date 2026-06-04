@@ -82,7 +82,7 @@ jobs:
         with:
           name: stress-reports
           path: |
-            reflect/stress-test-report.md
+            tests/stress/STRESS-REPORT.md
             reflect/stress-harness-ci.log
             reflect/cppcheck-ci.log
             reflect/clang-tidy-ci.log

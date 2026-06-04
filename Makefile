@@ -60,7 +60,7 @@ deploy: all
 # --- Offline DSP stress harness (issue #17) --------------------------------
 # Headless robustness / RT-safety / performance suite over the voice cores.
 # Builds + runs entirely against the Rack SDK headers (no libRack, no GUI).
-# See tests/stress/ and reflect/stress-test-report.md.
+# See tests/stress/ and tests/stress/STRESS-REPORT.md.
 stress:
 	$(MAKE) -C tests/stress RACK_DIR="$(RACK_DIR)" run
 

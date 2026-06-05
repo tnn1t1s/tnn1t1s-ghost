@@ -54,10 +54,9 @@ Record a running VCV Rack patch to an mp4 with clean stereo audio, using macOS
    ffprobe -v error -select_streams a:0 -show_entries stream=channels,sample_rate -show_entries format=duration /tmp/ghost_demo.mov
    ```
 
-7. **Export + keep**:
-   ```bash
-   ffmpeg -y -i /tmp/ghost_demo.mov -c:v libx264 -preset medium -crf 23 \
-     -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 256k /tmp/ghost_demo.mp4
-   cp /tmp/ghost_demo.mp4 $HOME/Desktop/   # /tmp clears on reboot
-   ```
-   Report the Desktop path. (Optional trim before export — see doc/recording.md.)
+7. **Master + export** — the standard finish is **`/master-vcv-demo`**, which
+   2-pass loudness-normalizes the raw `/tmp/ghost_demo.mov` to a loud, present,
+   peak-safe mp4 (-11 LUFS / -1 dBTP) and saves it to the Desktop. Always master
+   from the raw `.mov`, not a plain re-encode — VCV captures are high
+   crest-factor and sound quiet until mastered. (Optional trim first — see
+   doc/recording.md.)

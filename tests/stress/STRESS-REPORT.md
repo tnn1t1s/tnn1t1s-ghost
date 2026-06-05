@@ -17,7 +17,7 @@ headers alone (no `libRack`, no GUI).
 |---|---|
 | Platform | macOS 24.3.0 (Darwin), Apple M4, arm64, 10 cores |
 | Compiler | Apple clang 17.0.0 (`clang-1700.0.13.5`), `-std=c++11` |
-| Rack SDK | `/Users/user/Development/vcv-rack/vendor/rack-sdk` (header-only; `include/` + `dep/include/`) |
+| Rack SDK | `$RACK_DIR` (header-only; `include/` + `dep/include/`) |
 | libRack | **not linked** — engines use only header-only `rack::math`, `rack::dsp::SchmittTrigger`, `rack::simd`, `rack::Module::ProcessArgs` |
 | Sanitizers | `-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1` (correctness build) |
 | Perf build | `-O2 -DSTRESS_PERF` (no sanitizer — for honest ns/sample + alloc counting) |
@@ -272,13 +272,13 @@ print the robustness table, perf table, zero-alloc result, and RSS-flatness chec
 ```sh
 # Auto-detects Homebrew LLVM at /opt/homebrew/opt/llvm; override FUZZ_CXX if elsewhere.
 make -C tests/stress fuzz FUZZ_TIME=60 \
-  RACK_DIR=/Users/user/Development/vcv-rack/vendor/rack-sdk
+  RACK_DIR=$RACK_DIR
 ```
 
 **clang-tidy** (LLVM):
 
 ```sh
-RACK=/Users/user/Development/vcv-rack/vendor/rack-sdk
+RACK=$RACK_DIR
 /opt/homebrew/opt/llvm/bin/clang-tidy src/*.cpp src/*Engine.hpp -- \
   -std=c++11 -Isrc -Ivendor/svghelper -I$RACK/include -I$RACK/dep/include
 ```

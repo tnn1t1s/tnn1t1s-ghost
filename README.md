@@ -2,6 +2,8 @@
 
 **Classic machine behavior, rebuilt for Rack.**
 
+![GHOST drum kit in VCV Rack](doc/ghost.png)
+
 Ghost is a Rack-native drum system inspired by classic 909 behavior: separate
 voices, shared accent, coupled hi-hat choke behavior, and a central controller
 (**GHOST CTRL**) that makes independent modules behave like one instrument.
@@ -16,6 +18,16 @@ Ghost is a good Rack citizen. The voices respond to standard triggers and CV, so
 you drive them with any sequencer in the ecosystem (Hora Drum Sequencer, Impromptu
 Clocked + SEQ, etc.). Ghost is the 909-style behavioral layer between your
 sequencer and your drum voices, not a closed world.
+
+## Install
+
+Add it from the **VCV Rack module browser** (search "Ghost" or "TNN1T1S").
+
+*During the soft-launch period, before it lands in the VCV Library: grab the
+latest `tnn1t1s-ghost-*.vcvplugin` from the [Releases](../../releases) page and
+drop it in your Rack `plugins/` folder, then restart Rack.*
+
+Then load a patch from `patches/demos/` (e.g. `02-detroit.vcv`) and press play.
 
 ## Modules
 

@@ -34,6 +34,7 @@ static constexpr float kSnrToneMinSec   = 0.018f;
 static constexpr float kSnrNoiseHighQ   = 0.78f;
 static constexpr float kSnrNoiseLowQ    = 0.82f;
 static constexpr float kSnrCvScale      = 0.1f;
+static constexpr float kSnrBodyHpQ      = 0.707f;  // Butterworth: flat, no resonant bump
 
 /// Read a 0..1 param and fold in its CV input (scaled by kSnrCvScale), clamped
 /// to [0, 1]. Used for the four front-panel controls.
@@ -82,6 +83,14 @@ namespace SnrFit {
 struct Config {
     float osc1BaseHz = 157.655031f;
     float osc2BaseHz = 332.641481f;
+    // High-pass on the snare BODY only (not the noise). At center tune the body
+    // fundamental (~160 Hz) sits at/above this corner, so a centred snare is
+    // ~untouched; as you tune DOWN the body sweeps below the corner and gets
+    // attenuated in proportion -- self-cleaning the kick/snare backbeat collision
+    // without any tune-tracking logic. The kick is ~entirely <150 Hz (measured),
+    // so this trims only the colliding low body, not the snare's character (which
+    // is noise-dominated, centroid ~3.4 kHz). See issue #24.
+    float bodyHpHz = 170.f;
     float body1TauSec = 0.025189178f;
     float body2TauSec = 0.020462034f;
     float bodyLpHz = 1273.814504f;
@@ -160,6 +169,7 @@ struct SnrVoice {
 
     SnrSVF lpNoise;
     SnrSVF hpNoise;
+    SnrSVF bodyHP;   // fixed high-pass on the body (issue #24)
 
     // Latched at fire(): accent CHARACTER strength (0..1), held for the hit.
     float latchedCharStrength = 0.f;
@@ -184,6 +194,7 @@ struct SnrVoice {
         prevNoise = noiseValue;
         lpNoise.reset();
         hpNoise.reset();
+        bodyHP.reset();
         latchedCharStrength = rack::math::clamp(charStrength, 0.f, 1.f);
     }
     void fire() { fire(0.f); }
@@ -223,6 +234,10 @@ struct SnrVoice {
         bodyLP += (bodyRaw - bodyLP) * bodyLpAlpha;
         if (std::abs(bodyLP) < Ghost::kDenormalFloor) bodyLP = 0.f;   // denormal safety
         float body = std::tanh(bodyLP * fit.bodyDrive);
+        // High-pass the body only: removes the low fundamental that collides with
+        // the kick when the snare is tuned down; ~transparent at center. (#24)
+        bodyHP.process(body, fit.bodyHpHz, args.sampleRate, kSnrBodyHpQ);
+        body = bodyHP.hpf;
 
         // --- noise: fixed binary source, split into low/high branches ----
         noisePhase += fit.noiseClockHz * args.sampleTime;

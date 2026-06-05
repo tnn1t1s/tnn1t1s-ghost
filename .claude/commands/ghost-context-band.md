@@ -46,10 +46,14 @@ case "$FOOT" in
     FOOT=$(ls /tmp/gcb_foot.* | head -1);;
 esac
 
-# 2. de-pillarbox the footage (most-common detected content rect)
-PB=$(ffmpeg -hide_banner -ss 20 -i "$FOOT" -vf cropdetect=24:2:0 -t 4 -f null - 2>&1 \
-     | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | sort | uniq -c | sort -rn \
-     | head -1 | grep -oE 'crop=[0-9:]+')
+# 2. de-pillarbox the footage. Scan the WHOLE used range and take the NARROWEST
+#    content width (a montage has shots with different pillarbox; cropping to the
+#    narrowest means no shot ever shows black bars). Filter widths < 50% of frame
+#    to ignore fade-to-black artifacts.
+VW=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$FOOT")
+PB=$(ffmpeg -hide_banner -i "$FOOT" -t 60 -vf cropdetect=24:2:0 -f null - 2>&1 \
+     | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' \
+     | awk -F'[=:]' -v m=$((VW/2)) '$2>=m{print $2, $0}' | sort -n | head -1 | cut -d' ' -f2)
 [ -z "$PB" ] && PB="crop=iw:ih:0:0"
 
 # 3. measure VCV module bounds (row-luma; skip the bright title bar)

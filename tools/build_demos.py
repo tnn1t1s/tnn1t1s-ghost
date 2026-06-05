@@ -4,14 +4,14 @@
 Each demo is the full GHOST kit through GHOST MIX, on the canonical Hora lane
 routing (see build_lessons.py / reference_ghost_hora_routing), with a
 genre-appropriate tempo on the clock. Patterns are grounded in documented 909
-breakdowns (Attack, Aulart, drum-patterns.com, filter house / minimal techno refs).
+breakdowns (Attack, Aulart, drum-patterns.com).
 
 Grids are written in 1-indexed 16-step form and repeated across the 2-bar
 (32-step) Hora page. Clock tempo is set by an empirically-calibrated linear fit
 (see tempo_for_bpm); the doc's log2 formula doesn't predict musical BPM here.
 
 Swing comes from the Hora's own shuffle (default ~2), which sounds good on the
-straight grids; the shuffle grooves (chicago/revolution/minimal) lean on it.
+straight grids; the shuffle grooves (chicago/filter-house/minimal) lean on it.
 """
 import math
 import os
@@ -67,7 +67,7 @@ DEMOS = {
         L.CHH_TRACK:     [1, 3, 5, 7, 9, 11, 13, 15],
         L.RIM_TRACK:     [6, 12],
     }),
-    "06-filter-house": dict(bpm=123, grid={    # filter house; swing TODO
+    "06-filter-house": dict(bpm=123, grid={      # filter house; swing TODO
         L.KICK_TRACK:    [1, 5, 9, 13],
         L.CLAP_TRACK:    [5, 13],
         L.CHH_TRACK:     [1, 2, 8, 9, 14, 16],
@@ -75,14 +75,14 @@ DEMOS = {
         L.RIM_TRACK:     [3, 7, 11, 15],
         L.TOM_MID_TRACK: [3, 10, 14],
     }),
-    "07-minimal": dict(bpm=130, grid={           # minimal techno; swing TODO
+    "07-minimal": dict(bpm=130, grid={           # minimal; swing TODO
         L.KICK_TRACK:   [1, 5, 9, 13],
         L.RIM_TRACK:    [4, 7, 11, 14, 16],
         L.CHH_TRACK:    [3, 11],
         L.OHH_TRACK:    [15],
         L.CLAP_TRACK:   [13],
     }),
-    "08-electro-88": dict(bpm=128, grid={        # electro / electro; broken kick
+    "08-electro-88": dict(bpm=128, grid={        # electro; broken kick
         L.KICK_TRACK:   [1, 2, 4, 7, 11, 15, 16],
         L.SNR_TRACK:    [5, 13],          # hard electro snare on the backbeat
         L.CLAP_TRACK:   [5, 13],
@@ -121,7 +121,7 @@ def build(name, bpm, grid):
     # Accent every kick: with the kick's 10% un-accented floor, an accent only on
     # some kicks would drop the rest to near-silence and break a steady pattern.
     # So the accent lane mirrors the kick lane (what almost everyone does anyway);
-    # genuine kick dynamics live in the dedicated Multi-level multi-level patch.
+    # genuine kick dynamics live in the dedicated multi-level kick patch.
     patterns[L.ACCENT_TRACK] = list(patterns[L.KICK_TRACK])
     L.assemble_gmix(data, patterns)
     L.save_vcv(data, os.path.join(DEMODIR, f"{name}.vcv"))

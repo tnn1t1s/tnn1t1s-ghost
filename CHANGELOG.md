@@ -16,8 +16,8 @@
   pronounced accent ladder (ghost 15% / local 60% / global 100%).
 - Accent model DRY'd into a shared `Accent::` policy; un-accented hits never
   jump from silence (additive-over-ghost gain).
-- Example patches: `patches/demos/` (8 classic-909 grooves + a minimal techno
-  multi-level kick study) and `patches/lessons/` (build-it-up series).
+- Example patches: `patches/demos/` (8 classic-909 grooves + a multi-level
+  kick study) and `patches/lessons/` (build-it-up series).
 - Removed the `KckLab` tuning bench from the browser (kick calibration done).
 
 ## 2.0.0 (2026-05-30)

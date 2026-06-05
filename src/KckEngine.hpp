@@ -155,7 +155,7 @@ struct Config {
     //
     // accentMix decides the LEVEL relationship across the four cases
     // (ghost / global / local / both) in dB. Wide spread for pronounced,
-    // 909-style accent dynamics + multi-level multi-level kick rolls;
+    // 909-style accent dynamics + multi-level kick rolls;
     // ghost stays -6 dB so steady patterns / the -6 dBFS calibration hold.
     Ghost::AccentMix accentMix = Ghost::Accent::kickMix();
 

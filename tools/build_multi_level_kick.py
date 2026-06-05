@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""multi-level multi-level kick study — ONE kick, four dynamic levels.
+"""Multi-level kick study — ONE kick, four dynamic levels.
 
 The GHOST kick has two accent inputs (TOTAL_ACC = Accent A, LOCAL_ACC = Accent B)
 and an AccentMix that sets four level tiers: ghost (neither) -6 dB, Accent A
 -1 dB, Accent B 0 dB, both +1.5 dB. Programming two accent lanes against the
-trigger lane lets a single kick roll with dynamics -- the minimal techno move.
+trigger lane lets a single kick roll with dynamics -- the minimal-techno move.
 
 This patch: clock -> Hora -> GHOST CTRL + GHOST KCK -> audio. Three Hora lanes:
   trigger (out4/track2), Accent A (out3/track1), Accent B (out5/track3).

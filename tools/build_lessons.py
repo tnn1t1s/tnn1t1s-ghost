@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the Detroit techno construction lesson series from one committed donor.
+"""Build the construction lesson series from one committed donor.
 
 Source of truth is a committed patch (git HEAD:02-add-bassdrum.vcv) used only
 for its module dicts + the known-good Hora baseline params/data. ALL routing

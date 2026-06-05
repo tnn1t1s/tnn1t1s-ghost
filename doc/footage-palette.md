@@ -11,7 +11,8 @@ archival channels license their footage.
 
 | # | Clip | Source | Length | Mood / fits | Used |
 |---|------|--------|--------|-------------|------|
-| 1 | [70s New York Showreel](https://www.youtube.com/watch?v=1tDRmxJR32c) | Kinolibrary | 2:56 | Grainy archival NYC street life — decaying-city grit, kids, fences, transit. Pairs with Detroit/house/raw-909 grooves. The middle-third slice (street level) reads best. | First context-band test (kid-by-fence band) |
+| 1 | [70s New York Showreel](https://www.youtube.com/watch?v=1tDRmxJR32c) | Kinolibrary | 2:56 | Grainy archival NYC street life — decaying-city grit, kids, fences, transit. Pairs with Detroit/house/raw-909 grooves. The middle-third slice (street level) reads best. **Montage** — de-pillarbox to narrowest shot (the skill does this). | First context-band clip (kid-by-fence band) |
+| 2 | [Late 1970s Driving into NY at Night, FDR Drive](https://www.youtube.com/watch?v=1DMz6Z7Gd6w) | Kinolibrary | 1:14 | Night driving, city lights streaking past — hypnotic, forward motion. Pairs with minimal / hypnotic / Detroit-at-night grooves. **Single shot** (no montage variance), 720p. | — next |
 
 ## What makes a good clip
 - **Eye-level human/street content in the middle third** — that's the band you

@@ -30,6 +30,12 @@ band.
 - **Montage footage warning:** `cropdetect` samples one moment, but a montage's
   shots have *different* pillarbox amounts — one de-pillarbox rect can't fit all.
   Prefer single-shot footage, or pass a time-trimmed clip of one consistent shot.
+- **Dark/night footage:** cropdetect mistakes the dark frame for black border and
+  crops into the content (→ "just red, no video"). The guard below skips
+  de-pillarbox for dark footage; if you still see a chopped band, force full frame.
+- **Footage shorter than the take:** loop it with `-stream_loop -1 -i "$FOOT"`
+  before the input so the band covers the whole take; `-shortest` stops at the
+  take's end. (The take's audio can be light-limited inline: `[1:a]alimiter=...[a]`.)
 - Map **the VCV audio only**; footage is silent. `-shortest`.
 
 ## Run
@@ -50,11 +56,27 @@ esac
 #    content width (a montage has shots with different pillarbox; cropping to the
 #    narrowest means no shot ever shows black bars). Filter widths < 50% of frame
 #    to ignore fade-to-black artifacts.
+#
+#    DARK-FOOTAGE GUARD: cropdetect reads anything below luma 24 as "black
+#    border", so on dark/night footage it crops INTO the real content (chops the
+#    sides, leaves a tiny red/black band -> "just red, no video"). If the footage
+#    is dark (mean luma < 50) OR cropdetect would remove >12% of width or any
+#    height, DON'T de-pillarbox -- use the full frame.
 VW=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$FOOT")
-PB=$(ffmpeg -hide_banner -i "$FOOT" -t 60 -vf cropdetect=24:2:0 -f null - 2>&1 \
+VHt=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$FOOT")
+MEANLUMA=$(ffmpeg -hide_banner -ss 20 -i "$FOOT" -vf "format=gray,scale=1:1" -frames:v 1 -f rawvideo - 2>/dev/null | od -An -tu1 | awk '{print $1}')
+CD=$(ffmpeg -hide_banner -i "$FOOT" -t 60 -vf cropdetect=24:2:0 -f null - 2>&1 \
      | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' \
      | awk -F'[=:]' -v m=$((VW/2)) '$2>=m{print $2, $0}' | sort -n | head -1 | cut -d' ' -f2)
-[ -z "$PB" ] && PB="crop=iw:ih:0:0"
+CDH=$(echo "$CD" | grep -oE ':[0-9]+' | head -1 | tr -d ':')
+# Genuine pillarbox is WIDTH-ONLY (full height preserved). Accept the crop only if
+# it keeps full height AND the footage isn't dark (cropdetect lies on night
+# footage). Otherwise use the full frame.
+if [ -n "$CD" ] && [ "${CDH:-0}" -eq "${VHt:-0}" ] && [ "${MEANLUMA:-0}" -ge 40 ]; then
+  PB="$CD"; echo "de-pillarbox -> $CD"
+else
+  PB="crop=iw:ih:0:0"; echo "de-pillarbox SKIPPED (dark or height-reduced = content, not bars) -> full frame"
+fi
 
 # 3. measure VCV module bounds (row-luma; skip the bright title bar)
 ffmpeg -hide_banner -y -ss 20 -i "$OURS" -vf "scale=1:ih,format=gray" \

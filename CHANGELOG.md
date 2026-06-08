@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 (2026-06-08)
+
+- **Snare** — fixed ~170 Hz high-pass on the body to clear the kick/snare
+  collision on the backbeat when the snare is tuned low. Transparent at center
+  tune; self-cleans as you tune down. (#24)
+
 ## 2.1.0 (2026-06-01)
 
 - **GHOST MIX** — new dedicated 12-input kit summing mixer: one labeled input

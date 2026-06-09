@@ -85,7 +85,6 @@ struct SvgHelper {
         darkSvgFileName = "";
 
         if (panel == nullptr) {
-            DEBUG("Loading SVG file [%s]", filename.c_str());
             panel = createPanel(filename);
             widget()->setPanel(panel);
         } else {
@@ -99,7 +98,6 @@ struct SvgHelper {
         darkSvgFileName = darkFilename;
 
         if (panel == nullptr) {
-            DEBUG("Loading SVG files - Light: [%s], Dark: [%s]", lightFilename.c_str(), darkFilename.c_str());
             panel = createPanel(lightFilename, darkFilename);
             widget()->setPanel(panel);
         } else {

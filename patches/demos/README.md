@@ -7,4 +7,20 @@ host-transport-synced variant — silent on load, starts/stops with the DAW
 
 Also here: standalone example patches — `ghost-full-kit.vcv`,
 `ghost-accent-groove.vcv`, `ghost-buscrush-demo.vcv`, `ghost-output-ep.vcv`,
-`ghost-supersonic.vcv`, and the factory-MIDI `ghost-midi-play.vcv`.
+and `ghost-supersonic.vcv`.
+
+## Plugin requirements
+
+The numbered demos (`01`–`09`) need only free VCV Library plugins besides
+Ghost: Hora Sequencers (Drum Sequencer), SlimeChild Substation (clock), and
+Core. The lessons additionally use Bogaudio (UMix).
+
+The demos were designed with **Hora's Drum Sequencer** — it's the right tool
+for step-programming a 909-style kit, and Ghost was built to pair with it.
+The voices respond to standard triggers and gates, so any Rack sequencer
+works; the demos standardize on Hora because they built something good.
+
+`ghost-accent-groove`, `ghost-buscrush-demo`, `ghost-supersonic`, and
+`ghost-output-ep` depend on **AgentRack** (BusCrush, Saphire, …), which is not
+in the VCV Library — they load fully only on machines with AgentRack
+installed. `ghost-full-kit.vcv` is pure Ghost.

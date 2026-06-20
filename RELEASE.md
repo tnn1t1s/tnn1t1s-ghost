@@ -1,41 +1,38 @@
-# GHOST — Release Roadmap
+# GHOST — Release Process
 
-Single view of everything between here and a public launch on the VCV Library.
-Each item links to its tracking issue. Two tracks run in parallel: **Ship the
-plugin** (technical / VCV submission) and **Launch it** (community / content).
+Ghost is published on the VCV Library (slug `tnn1t1s-ghost`). This is how to cut
+an update.
 
-## Track A — Ship the plugin (VCV Library submission)
+## Versioning
 
-- [x] **Unregister the tuning benches** — `KckLab` dropped from the browser
-      (kick calibration done); `TomLab` never registered. Source kept for tuning.
-- [ ] #6 IP / ethics audit — no Roland/TR-909 public-facing; panel distinctness
-- [ ] #1 Manifest keywords for discoverability
-- [ ] #9 Documentation completeness (README + manual)
-- [ ] #4 Stability soak + timing / choke / accent correctness
-- [ ] #5 Memory-leak & CPU profiling (Instruments)
-- [ ] #7 Local release verification (`make dist`/install + Rack load + save/reload)
-- [ ] #3 Cross-platform CI via the official VCV toolchain (VCV builds per-OS from source)
-- [ ] #10 Submit to VCV Library
+`plugin.json` `version` is `MAJOR.MINOR.REVISION`, no `v` prefix. The MAJOR
+number tracks the Rack major version, so it stays `2.x.x` while targeting
+Rack 2. Choose `MINOR.REVISION` per change: REVISION for fixes and small tweaks,
+MINOR for new modules or notable features.
 
-## Track B — Launch it (community / content)
+## Cutting a release
 
-- [ ] #8 Demo patches for the demo sequence *(have: buscrush, accent-groove, supersonic, full-kit)*
-- [ ] #11 Website — simple hosted landing page (GitHub Pages)
-- [ ] #12 Discord — public community channel
-- [ ] #13 YouTube channel + 5 launch videos
+1. Land the changes on `main`.
+2. Bump `version` in `plugin.json`.
+3. Add a dated entry to `CHANGELOG.md`.
+4. Commit, then tag and push:
+   ```
+   git tag vX.Y.Z
+   git push origin main
+   git push origin vX.Y.Z
+   ```
+5. Create the GitHub release: `gh release create vX.Y.Z`.
 
-## Suggested order
+## Getting the update into the VCV Library
 
-1. **IP/ethics audit (#6)** first — it can force naming/panel changes; cheapest to do before docs/site/videos lock copy.
-2. **Website (#11)** — self-contained, reuses the panel renders, becomes the hub all other links point at.
-3. **Docs (#9) + demo patches (#8)** — the manual and patches feed both the submission and the videos.
-4. **Discord (#12)** — stand it up so the invite can go in docs/site/listing.
-5. **YouTube (#13)** — scripts can start now; record once patches + site are ready.
-6. **Verification (#4/#5/#7) → CI (#3) → Submit (#10).**
+The Library build farm builds from a specific commit you name — not a tag, not a
+branch. After pushing the release commit:
 
-## Done
+1. Get the commit hash: `git rev-parse HEAD`.
+2. Comment on the plugin's Library thread — VCVRack/library#919 — with the new
+   version and that exact commit hash.
 
-- Voice DSP: all seven on the panelkit system; kick rebuilt + TR-09 calibrated;
-  toms noise circuit added. Suite sounds convincing (audit: real 909 samples for
-  hats/crash/ride/rim/clap, faithful analog topology for snare/kick/toms).
-- Inventory cleaned across tnn1t1s-ghost + AgentRack.
+A Library maintainer builds the commit per-OS and closes the thread when the
+build is live. Users then pick up the update through Rack's plugin update flow
+(Library → Update all, then restart). `configParam` default changes apply only
+to newly added modules; saved patches keep their stored values.

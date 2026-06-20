@@ -49,9 +49,9 @@ struct GhostCtrl : GhostModule {
 
     GhostCtrl() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
-        configParam(ACCENT_A_PARAM,   0.f, 1.f, 0.5f, "Accent A amount", "%", 0.f, 100.f);
-        configParam(ACCENT_B_PARAM,   0.f, 1.f, 0.5f, "Accent B amount", "%", 0.f, 100.f);
-        configParam(MASTER_VOL_PARAM, 0.f, 1.f, 0.5f, "Master volume",   "%", 0.f, 100.f);
+        configParam(ACCENT_A_PARAM,   0.f, 1.f, 1.0f, "Accent A amount", "%", 0.f, 100.f);
+        configParam(ACCENT_B_PARAM,   0.f, 1.f, 1.0f, "Accent B amount", "%", 0.f, 100.f);
+        configParam(MASTER_VOL_PARAM, 0.f, 1.f, 1.0f, "Master volume",   "%", 0.f, 100.f);
         configSwitch(RANGE_PARAM, 0.f, 2.f, 1.f, "Dynamic range",
                      {"Tight", "Classic", "Wide"});
         configInput(ACCENT_A_CV_INPUT,   "Accent A amount CV");

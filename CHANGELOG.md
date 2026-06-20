@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2 (2026-06-20)
+
+- **GHOST CTRL** — Accent A, Accent B, and Master now default to 100% (were
+  50%). Applies to newly added modules; saved patches keep their stored values.
+  (#33)
+
 ## 2.1.1 (2026-06-08)
 
 - **Snare** — fixed ~170 Hz high-pass on the body to clear the kick/snare

@@ -1,9 +1,7 @@
 # panelkit/specs/
 
-Declarative source-of-truth for the module panels, consumed by the panelkit
-toolkit to generate `res/*.svg`.
+- `panels/` — per-module jack/knob/label intent
 
-- `panels/` — per-module jack/knob/label layouts
-- `layout/` — shared grid/geometry
-- `themes/` — palette and typography
-- `fragments.yaml` — reusable spec snippets
+The theme, layout and shared section fragments come from the installed panelkit
+package. Placing a `themes/ghost.yaml`, `layout/ghost.yaml` or `fragments.yaml`
+here would shadow the packaged copy for this repo only.

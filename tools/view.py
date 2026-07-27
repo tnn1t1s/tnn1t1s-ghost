@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Live panel viewer. Renders a module's panel and opens it in the browser on a
 neutral background; the page reloads the SVG every second, so after you edit a
-YAML and re-render (`python -m panelkit render <Module>`), the view updates.
+YAML and re-render (`panelkit render <Module>`), the view updates.
 
 Usage:  .venv/bin/python tools/view.py [Module]   # default: Attenuate
 """
+import os
 import pathlib
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+os.chdir(ROOT)                      # panelkit resolves the repo from the cwd
 from panelkit.cli import render   # noqa: E402
 
 module = sys.argv[1] if len(sys.argv) > 1 else "Attenuate"
@@ -32,7 +33,7 @@ page.write_text(f"""<!doctype html><html><head><meta charset="utf-8">
 <body>
   <img id="panel">
   <div class="cap">{module}.svg — live; edit a YAML then
-    <code>python -m panelkit render {module}</code></div>
+    <code>panelkit render {module}</code></div>
   <script>
     const src = "file://{svg}";
     function reload() {{ document.getElementById("panel").src = src + "?t=" + Date.now(); }}

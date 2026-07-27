@@ -1,7 +1,7 @@
 """End-to-end: the declarative Attenuate spec compiles to a panel with the
 expected bound anchors, vector-only labels, and a vertically-centred param row."""
 import pytest
-from panelkit.cli import ROOT
+from panelkit.paths import panel_spec_path
 from panelkit.dsl import load_panel_spec
 from panelkit.layout.engine import build_panel
 
@@ -24,14 +24,14 @@ def _find(els, eid):
 
 
 def test_attenuate_anchors_present(theme, layout, footprints, fontbook):
-    spec = load_panel_spec(ROOT / "panelkit/specs/panels/Attenuate.panel.yaml")
+    spec = load_panel_spec(panel_spec_path("Attenuate"))
     els = build_panel(spec, theme, layout, footprints, fontbook)
     assert {"param.main.scale", "cv.main.scale",
             "in.main.signal", "out.main.signal"} <= _all_ids(els)
 
 
 def test_attenuate_no_text_elements(theme, layout, footprints, fontbook):
-    spec = load_panel_spec(ROOT / "panelkit/specs/panels/Attenuate.panel.yaml")
+    spec = load_panel_spec(panel_spec_path("Attenuate"))
     els = build_panel(spec, theme, layout, footprints, fontbook)
     assert all(not n.tag.endswith("text") for e in els for n in e.xml().iter())
 
@@ -39,7 +39,7 @@ def test_attenuate_no_text_elements(theme, layout, footprints, fontbook):
 def test_param_row_vertically_centred(theme, layout, footprints, fontbook):
     from panelkit import units
     from panelkit.components import header
-    spec = load_panel_spec(ROOT / "panelkit/specs/panels/Attenuate.panel.yaml")
+    spec = load_panel_spec(panel_spec_path("Attenuate"))
     els = build_panel(spec, theme, layout, footprints, fontbook)
     # band starts below the (possibly collapsed) header — derive its bottom the
     # same way the engine does, honouring the header's brand flag.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Side-by-side panel editor (no external deps).
 
-URL-addressable per module:  http://127.0.0.1:8765/<Module>   (e.g. /Kck, /Attenuate)
+URL-addressable per module:  http://127.0.0.1:8765/<Module>   (e.g. /Kck, /Snr)
 Left: a YAML file (panel spec for the module / shared theme / shared layout).
 Right: the rendered panel. Shift+Return saves + re-renders + refreshes;
 Cmd/Ctrl+R reloads the file from disk. Errors show inline.
@@ -20,7 +20,7 @@ from panelkit import paths          # noqa: E402
 from panelkit.cli import render     # noqa: E402
 
 PORT = 8765
-DEFAULT = "Attenuate"
+DEFAULT = "Kck"
 PANELS = paths.repo_root() / "panelkit/specs/panels"
 # the theme and layout are carried by the installed panelkit package; editing
 # them here edits the toolkit, not this plugin

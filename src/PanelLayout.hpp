@@ -21,7 +21,7 @@
  * ┌─────────────────────────────────────────────────────────┐
  * │ Template    │ HP │  Width  │ Rows │ Use                  │
  * ├─────────────────────────────────────────────────────────┤
- * │ T_8HP_6ROW  │  8 │ 40.64mm │  6   │ Noise, Attenuate, ADSR │
+ * │ T_8HP_6ROW  │  8 │ 40.64mm │  6   │ GHOST CTRL │
  * │ T_8HP_PAIR  │  8 │ 40.64mm │  6   │ Sonic, Saphire, Crinkle │
  * │ T_6HP_7ROW  │  6 │ 30.48mm │  7   │ Ladder, Maurizio     │
  * │ T_12HP_FREE │ 12 │ 60.96mm │  --  │ BusCrush             │
@@ -54,7 +54,7 @@ static constexpr float kW8Hp  = 40.64f;
 static constexpr float kTitleBarHPx = 20.f;   // pixels (Rack native coords)
 static constexpr float kTitleYPx    = 10.f;   // center y of title text (px)
 
-// ── 6-row grid (shared by Noise, Attenuate, ADSR, and future 6-row modules) ─
+// ── 6-row grid (shared by GHOST CTRL, and future 6-row modules) ─
 static constexpr int   kRows         = 6;
 static constexpr float kRowY[kRows]  = { 26.f, 43.f, 60.f, 77.f, 94.f, 111.f };
 static constexpr float kRowSpacing   = 17.f;   // mm between row centres

@@ -3,7 +3,7 @@
 neutral background; the page reloads the SVG every second, so after you edit a
 YAML and re-render (`panelkit render <Module>`), the view updates.
 
-Usage:  .venv/bin/python tools/view.py [Module]   # default: Attenuate
+Usage:  .venv/bin/python tools/view.py [Module]   # default: Kck
 """
 import os
 import pathlib
@@ -14,7 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 os.chdir(ROOT)                      # panelkit resolves the repo from the cwd
 from panelkit.cli import render   # noqa: E402
 
-module = sys.argv[1] if len(sys.argv) > 1 else "Attenuate"
+module = sys.argv[1] if len(sys.argv) > 1 else "Kck"
 render(module, preview=False)                      # (re)generate res/<Module>.svg
 
 svg = ROOT / "res" / f"{module}.svg"

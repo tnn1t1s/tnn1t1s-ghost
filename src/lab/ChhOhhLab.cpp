@@ -39,18 +39,12 @@ struct ChhOhhLab : GhostModule {
         NUM_OUTPUTS
     };
 
-    dsp::SchmittTrigger chhTrigger;
-    dsp::SchmittTrigger ohhTrigger;
-    float chhSamplePos = 1e9f;
-    float chhEnv = 0.f;
-    float ohhSamplePos = 1e9f;
-    float ohhEnv = 0.f;
-    bool ohhChokeActive = false;
+    // Same voice as the production module -- one playback system with a
+    // CLOSED/OPEN control line. The Lab adds BITS on top of it rather than
+    // keeping its own copy of the DSP.
+    ChhOhhVoice voice;
     Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
-    float chhLatchedGain = 1.f;
-    float ohhLatchedGain = 1.f;
-    float chhLatchedChar = 0.f;
-    float ohhLatchedChar = 0.f;
+    float latchedGain = 1.f;
 
     ChhOhhLab() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -72,27 +66,23 @@ struct ChhOhhLab : GhostModule {
         configOutput(OHH_OUT_OUTPUT, "Open audio");
     }
 
-    /// Per-sample engine matching the production voice, with the extra
-    /// per-voice BITS control feeding bitReduce on each hat.
+    /// Per-sample engine: the production voice, with the extra BITS control
+    /// feeding bitReduce on whichever path the control line has selected.
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
-        if (chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            chhSamplePos = 0.f;
-            chhEnv = 1.f;
-            auto acc = Ghost::sampleAccentAtTrig(
-                this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
-            chhLatchedChar = acc.charStrength;
-            chhLatchedGain = acc.gain;
-            if (ohhEnv > 1e-4f) ohhChokeActive = true;
-        }
-        if (ohhTrigger.process(inputs[OHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            ohhSamplePos = 0.f;
-            ohhEnv = 1.f;
-            ohhChokeActive = false;
-            auto acc = Ghost::sampleAccentAtTrig(
-                this, TOTAL_ACC_INPUT, bus, accentMix);
-            ohhLatchedChar = acc.charStrength;
-            ohhLatchedGain = acc.gain;
+
+        const bool chTrig = voice.chhTrigger.process(
+            inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f);
+        const bool ohTrig = voice.ohhTrigger.process(
+            inputs[OHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f);
+        if (chTrig || ohTrig) {
+            const bool openMode = ohTrig;
+            auto acc = openMode
+                ? Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix)
+                : Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix,
+                                            LOCAL_ACC_INPUT);
+            latchedGain = acc.gain;
+            voice.fire(openMode, acc.charStrength);
         }
 
         float chhTune = rack::math::clamp(params[CHH_TUNE_PARAM].getValue(), 0.f, 1.f);
@@ -109,37 +99,16 @@ struct ChhOhhLab : GhostModule {
         float ohhLevel = rack::math::clamp(params[OHH_LEVEL_PARAM].getValue(), 0.f, 1.f);
         int ohhBits = int(std::round(params[OHH_BITS_PARAM].getValue()));
 
-        float chhRate = std::pow(2.f, (chhTune - 0.5f) * 2.f * kChhTuneOctaves);
-        float chhDecayShape = std::sqrt(chhDecay);
-        float chhDecaySec = kChhDecayMinSec
-                          + chhDecayShape * (kChhDecayMaxSec - kChhDecayMinSec);
-        float chhSrc = Ghost::sampleAt(chhSource(), chhSamplePos);
-        chhSamplePos += Ghost::playbackStep(
-            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, chhRate);
-        chhEnv *= std::exp(-args.sampleTime / chhDecaySec);
-        if (chhEnv < Ghost::kDenormalFloor) chhEnv = 0.f;   // denormal safety
-        float chhOut = chhSrc * chhEnv * 1.04f;
+        float chhOut, ohhOut;
+        voice.process(args,
+                      chhTune, chhDecay, chhDrive, chhLevel,
+                      ohhTune, ohhDecay, ohhDrive, ohhLevel,
+                      chhOut, ohhOut);
+        // BITS still reads per-path off the panel, applied to the live jack.
         chhOut = Ghost::bitReduce(chhOut, chhBits);
-        chhOut = Ghost::driveWithAccent(
-            chhOut, chhDrive, chhLatchedChar, kChhAccent.driveAmt);
-        chhOut *= chhLevel * 0.94f;
-        chhOut *= chhLatchedGain * bus.masterVolume;
-
-        float ohhRate = std::pow(2.f, (ohhTune - 0.5f) * 2.f * kOhhTuneOctaves);
-        float ohhDecaySec = kOhhDecayMinSec + ohhDecay * (kOhhDecayMaxSec - kOhhDecayMinSec);
-        float ohhSrc = Ghost::sampleAt(ohhSource(), ohhSamplePos);
-        ohhSamplePos += Ghost::playbackStep(
-            Ghost::kEmbeddedPcmSampleRate, args.sampleRate, ohhRate);
-        const float ohhEffectiveDecaySec = ohhChokeActive ? kChokeDecaySec : ohhDecaySec;
-        ohhEnv *= std::exp(-args.sampleTime / ohhEffectiveDecaySec);
-        if (ohhEnv < Ghost::kDenormalFloor) ohhEnv = 0.f;   // denormal safety
-        if (ohhChokeActive && ohhEnv < 1e-4f) ohhChokeActive = false;
-        float ohhOut = ohhSrc * ohhEnv * 1.05f;
         ohhOut = Ghost::bitReduce(ohhOut, ohhBits);
-        ohhOut = Ghost::driveWithAccent(
-            ohhOut, ohhDrive, ohhLatchedChar, kOhhAccent.driveAmt);
-        ohhOut *= ohhLevel * 0.96f;
-        ohhOut *= ohhLatchedGain * bus.masterVolume;
+        chhOut *= latchedGain * bus.masterVolume;
+        ohhOut *= latchedGain * bus.masterVolume;
 
         outputs[CHH_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(chhOut));
         outputs[OHH_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(ohhOut));

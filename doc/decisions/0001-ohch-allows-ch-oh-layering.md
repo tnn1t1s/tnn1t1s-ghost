@@ -1,7 +1,11 @@
 # 0001 — GHOST OHCH allows closed+open hi-hat on the same step
 
-**Status:** Accepted (2026-06-01)
+**Status:** Superseded by [0003](0003-ohch-single-playback-system.md) (2026-08-06)
 **Issue:** [#14](https://github.com/tnn1t1s/tnn1t1s-ghost/issues/14)
+
+> GHOST OHCH now models the hardware's single hi-hat playback system, so closed
+> and open cannot sound together and the question this record answered no longer
+> arises. Retained for the reasoning; see 0003 for what shipped.
 
 ## Context
 

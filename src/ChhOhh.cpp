@@ -12,25 +12,24 @@ extern Plugin* pluginInstance;
 /**
  * ChhOhh -- 909-style closed + open hi-hat in a single module.
  *
- * The original 909 closed and open hi-hat share a single envelope/sound
- * circuit: a CH hit instantly mutes any sounding OH. We model that by
- * keeping both voices in the same module, where the choke is just
- * internal state (no cross-module bus signaling needed). This also
- * mirrors the CrashRide / RimClap pattern of grouping voices that
- * share a hardware path.
+ * The hardware has one hi-hat playback system: one sample ROM, one address
+ * counter that any hi-hat trigger resets, one decay envelope, and a CLOSED/OPEN
+ * control line selecting the voicing path. GHOST models that directly (see
+ * ChhOhhVoice), so the hats cannot sound together, a closed hat replaces a
+ * ringing open one, and a tie resolves to open -- all structurally, with no
+ * mutual-exclusion rules to enforce.
  *
  * Accent rails per the classic 909 voice layout:
  *   - CH has Accent B: responds to LOCAL_ACC and TOTAL_ACC
  *   - OH has only Accent A: responds to TOTAL_ACC
  *
- * Choke (issue #78): when the CH trigger fires, OH switches to a fast
- * release (~5ms tau) which decays its envelope to silence within ~25ms.
- * A subsequent OH trigger re-arms the voice and cancels any pending
- * choke state.
+ * The module keeps two output jacks where the hardware has one, so GHOST MIX can
+ * fade closed and open separately. The voice emits on the jack its control line
+ * selects and declicks the other.
  */
 
-/// Production combined closed + open hi-hat voice. Both hats share one module
-/// so the CH-mutes-OH choke is internal state; CH carries Accent B, OH Accent A.
+/// Production hi-hat module: one voice behind two jacks. CH carries Accent B,
+/// OH Accent A.
 struct ChhOhh : GhostModule {
     enum ParamId {
         CHH_TUNE_PARAM,  CHH_DECAY_PARAM,  CHH_DRIVE_PARAM,  CHH_LEVEL_PARAM,
@@ -58,8 +57,7 @@ struct ChhOhh : GhostModule {
     ChhOhhVoice voice;
 
     Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
-    float chhLatchedGain = 1.f;
-    float ohhLatchedGain = 1.f;
+    float latchedGain = 1.f;   // one voice, one per-hit accent gain
 
     ChhOhh() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS);
@@ -90,13 +88,14 @@ struct ChhOhh : GhostModule {
     void onReset() override {
         voice.chhTrigger.reset();
         voice.ohhTrigger.reset();
-        voice.chhSamplePos = voice.ohhSamplePos = 1e9f;
-        voice.chhEnv = voice.ohhEnv = 0.f;
-        voice.ohhChokeActive = false;
-        chhLatchedGain = ohhLatchedGain = 1.f;
-        voice.chhLatchedChar = voice.ohhLatchedChar = 0.f;
-        voice.chhAir.reset();
-        voice.ohhAir.reset();
+        voice.samplePos   = 1e9f;
+        voice.env         = 0.f;
+        voice.open        = false;
+        voice.latchedChar = 0.f;
+        voice.lastOut = voice.declickVal = voice.declickGain = 0.f;
+        voice.declickOpen = false;
+        latchedGain = 1.f;
+        voice.air.reset();
     }
 
     /// Read a panel knob plus its CV input (CV/10), clamped to 0..1.
@@ -112,22 +111,26 @@ struct ChhOhh : GhostModule {
     void process(const ProcessArgs& args) override {
         const auto bus = Ghost::resolveBus(this);
 
-        // -- Closed hi-hat trigger -------------------------------------
-        if (voice.chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            auto acc = Ghost::sampleAccentAtTrig(
-                this, TOTAL_ACC_INPUT, bus, accentMix, LOCAL_ACC_INPUT);
-            chhLatchedGain = acc.gain;
-            // fireChh re-arms the CH voice and applies the CH->OH choke.
-            voice.fireChh(acc.charStrength);
-        }
+        // -- Hi-hat trigger --------------------------------------------
+        // One voice, so one trigger path. Both gates are read every sample (a
+        // Schmitt trigger must see every edge), then the CLOSED/OPEN control line
+        // takes its state: OPEN whenever the open gate fires, which resolves a
+        // same-sample tie to the open hat without a priority rule.
+        const bool chTrig =
+            voice.chhTrigger.process(inputs[CHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f);
+        const bool ohTrig =
+            voice.ohhTrigger.process(inputs[OHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f);
 
-        // -- Open hi-hat trigger ---------------------------------------
-        if (voice.ohhTrigger.process(inputs[OHH_TRIG_INPUT].getVoltage(), 0.1f, 2.f)) {
-            // OH has no Accent B; pass localInputId=-1 by default arg.
-            auto acc = Ghost::sampleAccentAtTrig(
-                this, TOTAL_ACC_INPUT, bus, accentMix);
-            ohhLatchedGain = acc.gain;
-            voice.fireOhh(acc.charStrength);
+        if (chTrig || ohTrig) {
+            const bool openMode = ohTrig;
+            // Accent rails follow the classic 909 layout: CH reads Accent B
+            // (LOCAL_ACC) as well as Accent A, OH reads only Accent A.
+            auto acc = openMode
+                ? Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix)
+                : Ghost::sampleAccentAtTrig(this, TOTAL_ACC_INPUT, bus, accentMix,
+                                            LOCAL_ACC_INPUT);
+            latchedGain = acc.gain;
+            voice.fire(openMode, acc.charStrength);
         }
 
         // -- Read controls once per frame for both voices -------------
@@ -147,8 +150,8 @@ struct ChhOhh : GhostModule {
                       chhTune, chhDecay, chhDrive, chhLevel,
                       ohhTune, ohhDecay, ohhDrive, ohhLevel,
                       chhOut, ohhOut);
-        chhOut *= chhLatchedGain * bus.masterVolume;
-        ohhOut *= ohhLatchedGain * bus.masterVolume;
+        chhOut *= latchedGain * bus.masterVolume;
+        ohhOut *= latchedGain * bus.masterVolume;
 
         outputs[CHH_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(chhOut));
         outputs[OHH_OUT_OUTPUT].setVoltage(Ghost::Signal::Audio::toRackVolts(ohhOut));

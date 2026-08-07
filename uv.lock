@@ -94,7 +94,7 @@ wheels = [
 [[package]]
 name = "panelkit"
 version = "0.1.0"
-source = { git = "https://github.com/tnn1t1s/vcv-panelkit#e94c15980444b6884bcc41a9869e52d1397bd7dc" }
+source = { git = "https://github.com/tnn1t1s/vcv-panelkit#bdcc582119115fb56d9cef9db32136ad4aef480d" }
 dependencies = [
     { name = "fonttools" },
     { name = "pyyaml" },

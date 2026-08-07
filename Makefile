@@ -19,7 +19,6 @@ FLAGS += -Ivendor/svghelper -Isrc
 
 # --- Shipping plugin: the registered kit only ---
 SOURCES += src/plugin.cpp
-SOURCES += src/Attenuate.cpp
 SOURCES += src/GhostCtrl.cpp
 SOURCES += src/Kck.cpp
 SOURCES += src/Snr.cpp

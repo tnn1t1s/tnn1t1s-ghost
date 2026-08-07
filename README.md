@@ -86,6 +86,25 @@ make RACK_DIR=/path/to/Rack-SDK
 make install
 ```
 
+## Panels
+
+The panel SVGs in `res/` are generated from `panelkit/specs/panels/*.panel.yaml`
+by the external [panelkit](../panelkit) toolkit, which also carries the shared
+theme and layout. It is a dev dependency, wired to a local checkout:
+
+```sh
+uv sync
+uv run panelkit render Kck --no-preview
+uv run pytest
+```
+
+To consume it from a git remote instead, replace the `[tool.uv.sources]` entry in
+`pyproject.toml` with:
+
+```toml
+panelkit = { git = "https://github.com/<org>/panelkit" }
+```
+
 ## Audio provenance
 
 All embedded audio captures were recorded by the author from a drum machine the

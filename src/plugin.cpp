@@ -4,8 +4,8 @@
 // Separate voices, shared accent, and a central control bus (GHOST CTRL).
 
 // Forward declarations -- the GHOST core system (one per shipped module).
-// Lab variants and the Attenuate reference module exist in the source tree but
-// are intentionally not registered, so the browser shows only the core kit.
+// Lab variants exist in the source tree but are
+// intentionally not registered, so the browser shows only the core kit.
 extern rack::Model* modelKck;
 extern rack::Model* modelSnr;
 extern rack::Model* modelChhOhh;

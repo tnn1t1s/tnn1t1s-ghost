@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Side-by-side panel editor (no external deps).
 
-URL-addressable per module:  http://127.0.0.1:8765/<Module>   (e.g. /Kck, /Attenuate)
+URL-addressable per module:  http://127.0.0.1:8765/<Module>   (e.g. /Kck, /Snr)
 Left: a YAML file (panel spec for the module / shared theme / shared layout).
 Right: the rendered panel. Shift+Return saves + re-renders + refreshes;
 Cmd/Ctrl+R reloads the file from disk. Errors show inline.
@@ -10,19 +10,22 @@ Usage:  .venv/bin/python tools/editor.py        # then open http://127.0.0.1:876
 """
 import http.server
 import json
+import os
 import pathlib
-import sys
 import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-from panelkit.cli import render  # noqa: E402
+os.chdir(ROOT)                      # panelkit resolves the repo from the cwd
+from panelkit import paths          # noqa: E402
+from panelkit.cli import render     # noqa: E402
 
 PORT = 8765
-DEFAULT = "Attenuate"
-PANELS = ROOT / "panelkit/specs/panels"
-SHARED = {"theme": ROOT / "panelkit/specs/themes/ghost.yaml",
-          "layout": ROOT / "panelkit/data/layout.defaults.yaml"}
+DEFAULT = "Kck"
+PANELS = paths.repo_root() / "panelkit/specs/panels"
+# the theme and layout are carried by the installed panelkit package; editing
+# them here edits the toolkit, not this plugin
+SHARED = {"theme": paths.theme_path(),
+          "layout": paths.layout_defaults_path()}
 RESERVED = {"file", "svg", "render", "favicon.ico"}
 
 

@@ -1,25 +1,17 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "panelkit"
-version = "0.1.0"
-description = "Deterministic, test-first VCV Rack panel generation toolkit"
+name = "ghost"
+version = "0"
+description = "Panel tooling for the GHOST NOTES VCV Rack plugin"
 requires-python = ">=3.12"
-dependencies = ["fonttools>=4.63", "pyyaml>=6"]
+dependencies = []
 
-[project.optional-dependencies]
-dev = ["pytest>=8", "pytest-env"]
+[dependency-groups]
+dev = ["panelkit", "pytest>=8", "pytest-env"]
 
-[project.scripts]
-panelkit = "panelkit.cli:main"
-
-[tool.setuptools.packages.find]
-include = ["panelkit*"]
-
-[tool.setuptools.package-data]
-panelkit = ["data/*.yaml"]
+[tool.uv.sources]
+# The exact commit is pinned in uv.lock, so panel output stays reproducible
+# without hardcoding a rev here. Refresh with: uv lock --upgrade-package panelkit
+panelkit = { git = "https://github.com/tnn1t1s/vcv-panelkit" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

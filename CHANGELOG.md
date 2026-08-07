@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **GHOST OHCH is now one hi-hat voice**, matching the hardware: one sample ROM,
+  one address counter, one envelope, and a closed/open control that selects the
+  decay and voicing path. Closed and open can no longer sound together. A closed
+  hat over a ringing open hat replaces it (the choke); both on one step gives the
+  open hat. None of this is configurable — it is what a single voice does.
+  See doc/decisions/0003.
+- **Closed hat timbre changed.** It now plays the same ROM as the open hat under
+  the fast decay, as the hardware makes it, instead of a separate recording. The
+  second ROM is gone and the plugin binary drops ~140 kB.
+- **Closed hat mix gain raised 2.50 → 4.60** to match. Under the closed decay
+  only the first few tens of ms of the ROM sound, which measured 5.3 dB below the
+  old dedicated closed-hat recording; the makeup puts the default back where it
+  was. Patches saved between these two changes will need CLOSED LEVEL turned back
+  down. Applied post-drive, so it is level only and does not alter saturation.
+
 ## 2.1.2 (2026-06-20)
 
 - **GHOST CTRL** — Accent A, Accent B, and Master now default to 100% (were

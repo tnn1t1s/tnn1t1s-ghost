@@ -82,9 +82,20 @@ much each rail contributes across the whole kit.
 
 ## Hi-hat choke (GHOST OHCH)
 
-The open and closed hats share one sound path. Triggering the closed hat
-instantly mutes any sounding open hat — the canonical hi-hat choke, often
-mistaken for compression. A fresh open-hat trigger re-arms the voice.
+The closed and open hats are one voice, as on the hardware: one sample, one
+playback engine, and a closed/open control that changes the decay and voicing.
+Only one hat sounds at a time. Everything follows from that:
+
+- Trigger the closed hat while the open hat is ringing and the open hat stops —
+  the canonical hi-hat choke, often mistaken for compression.
+- Trigger the open hat over a closed one and the open hat takes over.
+- Program both on the same step and you get the open hat. There is no setting;
+  it is what one voice does. For closed hats on every 16th with open hats on the
+  offbeats, the offbeat opens up instead of being buried.
+
+They cannot be layered. The module keeps separate closed and open output jacks so
+GHOST MIX can treat them as separate channels, but only one carries the voice at
+any moment.
 
 ## A typical patch
 

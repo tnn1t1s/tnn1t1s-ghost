@@ -112,18 +112,18 @@ struct SnrAdapter {
     }
 };
 
-// --- ChhOhh (closed + open hat in one struct, internal CH->OH choke) --------
-// Single combined voice (the module has two outputs but one DSP struct). fire()
-// triggers CH then OH each retrigger: CH-first so on the opening hit OH then
-// rings out on its natural (up to 3.2 s) tail -- the longest, most denormal-
-// prone path -- while the choke coupling in fireChh() is still exercised on
-// every subsequent overlapping hit. process() returns CH + OH summed so the
-// harness's finite/bounded/flush checks cover both signal paths at once.
+// --- ChhOhh (one hi-hat playback system, CLOSED/OPEN control line) ----------
+// One playback system with a CLOSED/OPEN control line, so fire() alternates the
+// two paths: successive hits flip the line, which exercises the closed path, the
+// open path (the longest, most denormal-prone tail at up to 3.2 s), and the
+// declick ramp that runs on every flip. process() returns both jacks summed so
+// the harness's finite/bounded/flush checks cover the whole output.
 struct ChhOhhAdapter {
     ChhOhhVoice voice;
+    bool nextOpen = true;
     const char* name() const { return "ChhOhh"; }
-    void fire(float accent) { voice.fireChh(accent); voice.fireOhh(accent); }
-    void reset() { voice = ChhOhhVoice(); }
+    void fire(float accent) { voice.fire(nextOpen, accent); nextOpen = !nextOpen; }
+    void reset() { voice = ChhOhhVoice(); nextOpen = true; }
     float process(const rack::Module::ProcessArgs& args, const Ctrl& c) {
         float chh = 0.f, ohh = 0.f;
         voice.process(args,

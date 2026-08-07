@@ -45,6 +45,24 @@ DISTRIBUTABLES += res
 
 include $(RACK_DIR)/plugin.mk
 
+# --- BUILD_LABS config stamp -----------------------------------------------
+# BUILD_LABS changes both which sources link AND how plugin.cpp compiles
+# (-DGHOST_LABS registers the lab models). Make cannot see a variable change, so
+# without this a `make BUILD_LABS=1` followed by a plain `make` leaves every
+# object newer than its source and ships the LAB binary as if it were the kit.
+#
+# The stamp's name carries the flag value, so flipping it names a file that does
+# not exist yet. Creating it makes it newer than every object, forcing a full
+# recompile with the right flags. Building twice at the same setting is a no-op.
+GHOST_LABS_STAMP := build/.build-labs-$(BUILD_LABS)
+
+$(GHOST_LABS_STAMP):
+	@mkdir -p build
+	@rm -f build/.build-labs-*
+	@touch $@
+
+$(OBJECTS): $(GHOST_LABS_STAMP)
+
 RACK_PLUGINS := $(HOME)/Library/Application Support/Rack2/plugins-mac-arm64
 
 # Fast in-place deploy for development (the SDK `install` target builds and

@@ -9,7 +9,9 @@ dependencies = []
 dev = ["panelkit", "pytest>=8", "pytest-env"]
 
 [tool.uv.sources]
-panelkit = { path = "/Users/davidpalaitis/Development/panelkit", editable = true }
+# The exact commit is pinned in uv.lock, so panel output stays reproducible
+# without hardcoding a rev here. Refresh with: uv lock --upgrade-package panelkit
+panelkit = { git = "https://github.com/tnn1t1s/vcv-panelkit" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

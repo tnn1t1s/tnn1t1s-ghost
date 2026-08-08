@@ -57,8 +57,18 @@ inline std::vector<float> decodeEmbeddedF32(const unsigned char* bytes, size_t b
     return out;
 }
 
+// Taper applied to the last frames of a ROM, in source frames (~2.9 ms at
+// 44.1 kHz). Past the end sampleAt returns silence, so a ROM that does not
+// itself end at zero would step -- a click. The hi-hat ROM is truncated, not
+// faded, ending on -0.0033. Audibility is governed by TUNE rather than decay:
+// raising TUNE brings the read head to the end sooner, with less of the
+// envelope decayed. At maximum TUNE and decay that reached -40 dBFS. Fading in
+// the read path rather than re-cutting the ROM keeps every sampled voice, and
+// any future ROM, safe.
+static constexpr float kRomEndFadeFrames = 128.f;
+
 /// Read `data` at a fractional position with 4-point cubic Hermite
-/// (Catmull-Rom) interpolation.
+/// (Catmull-Rom) interpolation, tapering the final frames to silence.
 ///
 /// The ROMs are 44.1 kHz and the host usually is not, so the read head almost
 /// never lands on a sample boundary and the interpolator runs on every sample.
@@ -87,7 +97,15 @@ inline float sampleAt(const std::vector<float>& data, float pos) {
     const float c1 = 0.5f * (x1 - xm1);
     const float c2 = xm1 - 2.5f * x0 + 2.f * x1 - 0.5f * x2;
     const float c3 = 0.5f * (x2 - xm1) + 1.5f * (x0 - x1);
-    return ((c3 * t + c2) * t + c1) * t + x0;
+    float out = ((c3 * t + c2) * t + c1) * t + x0;
+
+    // Smoothstep the last frames to zero so the read head lands on silence.
+    const float remaining = float(last) - pos;
+    if (remaining < kRomEndFadeFrames) {
+        const float x = remaining / kRomEndFadeFrames;   // 1 -> 0 across the fade
+        out *= x * x * (3.f - 2.f * x);
+    }
+    return out;
 }
 
 inline float playbackStep(float sourceSampleRate, float hostSampleRate, float playbackRate) {

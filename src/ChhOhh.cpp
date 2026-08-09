@@ -96,6 +96,7 @@ struct ChhOhh : GhostModule {
         voice.declickOpen = false;
         latchedGain = 1.f;
         voice.air.reset();
+        voice.body.reset();
     }
 
     /// Read a panel knob plus its CV input (CV/10), clamped to 0..1.

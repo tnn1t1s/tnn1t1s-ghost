@@ -157,6 +157,31 @@ struct AirShelf {
     }
 };
 
+/// Band lift for the low-mid "body" of a sampled voice: adds a scaled copy of
+/// the content between loHz and hiHz back into the signal. Two one-poles, two
+/// floats of state; the counterpart to AirShelf at the other end of the range.
+///
+/// Deliberately a band and not a low shelf. A shelf (x + amount * lowpass)
+/// boosts hardest at DC, which on a per-hit sample means a DC step, headroom
+/// eaten, and rumble beneath the useful body -- measured, a fitted shelf put
+/// ~20x the reference's sub-160 Hz energy into the hat. Subtracting a second,
+/// lower one-pole removes the DC term: the lift is zero at DC by construction.
+struct BodyShelf {
+    float lpLo = 0.f;
+    float lpHi = 0.f;
+    void reset() { lpLo = 0.f; lpHi = 0.f; }
+    float process(float x, float amount, float loHz, float hiHz, float sampleRate) {
+        if (amount <= 0.f) return x;
+        const float aLo = 1.f - std::exp(-2.f * float(M_PI) * loHz / sampleRate);
+        const float aHi = 1.f - std::exp(-2.f * float(M_PI) * hiHz / sampleRate);
+        lpLo += aLo * (x - lpLo);
+        lpHi += aHi * (x - lpHi);
+        if (std::abs(lpLo) < kDenormalFloor) lpLo = 0.f;   // denormal safety
+        if (std::abs(lpHi) < kDenormalFloor) lpHi = 0.f;
+        return x + amount * (lpHi - lpLo);   // x + amount * bandpass(lo..hi)
+    }
+};
+
 inline float bitReduce(float x, int bits) {
     if (bits >= 16) {
         return x;

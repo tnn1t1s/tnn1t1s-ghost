@@ -40,8 +40,8 @@ static constexpr float kDeclickSec      = 0.002f;
 // that much less energy than the open hat's full tail. Measured as RMS of the
 // ROM under each path's default envelope. Applied post-drive, so this is level
 // only -- it does not change the saturation the drive control produces.
-static constexpr float kChhMixGain = 4.60f;   // mix makeup (post-drive); headroom to push hats past the cymbals
-static constexpr float kOhhMixGain = 2.50f;   // "
+static constexpr float kChhMixGain = 4.42f;   // mix makeup (post-drive); trimmed 4.60 for the body lift's +0.34 dB
+static constexpr float kOhhMixGain = 2.40f;   // "  (trimmed 2.50 for the same reason)
 
 // 909-style "air": a high-pass-emphasized HF lift inside the hat voice so it
 // cuts the kick/snare/clap midrange instead of being masked by it. The real 909
@@ -60,6 +60,20 @@ static constexpr float kOhhAirHz = 8000.f;
 static constexpr float kOhhAir   = 0.15f;   // was 1.20; open-hat band error 3.29 -> 2.00 dB
 static constexpr float kChhAirHz = 9000.f;
 static constexpr float kChhAir   = 0.10f;   // was 0.40; same ROM, so the same tilt applied
+
+// Low-mid body. Measured against a real 909 open hat, our ROM runs ~5 dB light
+// through 315-630 Hz while matching above 1.25 kHz -- the deficit that reads as
+// thin. A 120-500 Hz band lift closes it: open-hat band error 2.00 -> 0.97 dB
+// RMS, tail centroid 7199 -> 7030 Hz against the reference's 6805.
+//
+// A band rather than a low shelf, because a shelf boosts DC hardest and the ROM
+// is played per hit. Amount 1.0 rather than the 1.5 the fit also allows: both
+// score 0.97 dB, but 1.0 overshoots 630 Hz-1.25 kHz by half as much (+1.4 vs
+// +2.2 dB) and moves the level half as far. Equal fit, smaller intervention.
+static constexpr float kBodyLoHz = 120.f;
+static constexpr float kBodyHiHz = 500.f;
+static constexpr float kOhhBody  = 1.00f;
+static constexpr float kChhBody  = 1.00f;   // one ROM, so one deficit to correct
 
 // Per-DSP-stage accent character. CH and OH both have a small drive boost
 // on accented hits; per the 909 reference doc, CH has level-only accent on
@@ -110,6 +124,7 @@ struct ChhOhhVoice {
     // 909-style HF "air" shelf (see issue #20); coefficients are picked by the
     // control line, so one filter serves both paths.
     Ghost::AirShelf air;
+    Ghost::BodyShelf body;
 
     // Declick for GHOST's second output jack. The hardware has one hi-hat output;
     // GHOST splits closed and open onto their own jacks, so when the control line
@@ -130,6 +145,7 @@ struct ChhOhhVoice {
                 declickGain = 1.f;
             }
             air.reset();                // the shelf changes coefficients with the path
+            body.reset();
         }
         samplePos   = 0.f;
         env         = 1.f;
@@ -153,6 +169,7 @@ struct ChhOhhVoice {
         const float decayMin = open ? kOhhDecayMinSec : kChhDecayMinSec;
         const float decayMax = open ? kOhhDecayMaxSec : kChhDecayMaxSec;
         const float airAmt   = open ? kOhhAir     : kChhAir;
+        const float bodyAmt  = open ? kOhhBody    : kChhBody;
         const float airHz    = open ? kOhhAirHz   : kChhAirHz;
         const float mixGain  = open ? kOhhMixGain : kChhMixGain;
         const float norm     = open ? 1.05f       : 1.04f;
@@ -172,6 +189,7 @@ struct ChhOhhVoice {
         if (env < Ghost::kDenormalFloor) env = 0.f;   // denormal safety
         float o = s * env * norm;
         o = air.process(o, airAmt, airHz, args.sampleRate);   // 909-style air
+        o = body.process(o, bodyAmt, kBodyLoHz, kBodyHiHz, args.sampleRate);  // low-mid body
         o = Ghost::driveWithAccent(o, drive, latchedChar, driveAmt);
         o *= level * mixGain;
         lastOut = o;

@@ -44,14 +44,22 @@ static constexpr float kChhMixGain = 4.60f;   // mix makeup (post-drive); headro
 static constexpr float kOhhMixGain = 2.50f;   // "
 
 // 909-style "air": a high-pass-emphasized HF lift inside the hat voice so it
-// cuts the kick/snare/clap midrange instead of being masked by it. Our open-hat
-// sample peaks at ~4 kHz (mid-heavy); the real 909 shapes its sample through
-// series filters with high-pass/bandpass emphasis. Applied post-sample/pre-drive.
-// Tunable by ear; see issue #20.
+// cuts the kick/snare/clap midrange instead of being masked by it. The real 909
+// shapes its sample through series filters with high-pass/bandpass emphasis.
+// Applied post-sample/pre-drive. See issue #20.
+//
+// Held deliberately low. Measured against a real 909 open hat, band error rises
+// monotonically with this control -- 1.20 gave 3.29 dB RMS, 0.00 gives 1.84 --
+// so most of what it added was error. It also sat on a tail that is stationary
+// filtered noise (crest 3.2-3.7, centroid pinned near 7300 Hz for 500 ms), which
+// is what made the decay read as washed out. The earlier high setting was very
+// likely compensating for the linear interpolator's droop (-3.1 dB at 16 kHz),
+// which cubic Hermite removed. Kept just off zero to retain the voicing rather
+// than delete it; see #44 for the full fit and the body shelf still outstanding.
 static constexpr float kOhhAirHz = 8000.f;
-static constexpr float kOhhAir   = 1.20f;   // ~+7 dB shelf above 8 kHz on the open hat
+static constexpr float kOhhAir   = 0.15f;   // was 1.20; open-hat band error 3.29 -> 2.00 dB
 static constexpr float kChhAirHz = 9000.f;
-static constexpr float kChhAir   = 0.40f;   // closed hat already cuts; light touch
+static constexpr float kChhAir   = 0.10f;   // was 0.40; same ROM, so the same tilt applied
 
 // Per-DSP-stage accent character. CH and OH both have a small drive boost
 // on accented hits; per the 909 reference doc, CH has level-only accent on

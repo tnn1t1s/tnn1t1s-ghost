@@ -157,13 +157,12 @@ struct AccentCharacter {
 // Shared accent policy. Tune the whole suite's accent FEEL here, in ONE place,
 // instead of scattering magic numbers across every voice. Each voice composes
 // from these named amounts via a factory; real per-voice differences (snare
-// noise, tom body) live in the factory, not as repeated literals downstream.
+// noise) live in the factory, not as repeated literals downstream.
 // 909-style accent = a little drive + a touch of gain; NO pitch/body sweep.
 // ---------------------------------------------------------------------------
 namespace Accent {
     constexpr float kDrive     = 0.10f;  // saturation bump (sample voices: rim/hats/cymbals)
-    constexpr float kClick     = 0.15f;  // attack/click emphasis (kick, toms)
-    constexpr float kBody      = 0.10f;  // body emphasis (toms)
+    constexpr float kClick     = 0.15f;  // attack/click emphasis (kick)
     constexpr float kNoise     = 0.12f;  // noise emphasis (snare)
     constexpr float kDriveKick = 0.20f;  // kick's slightly stronger drive
     constexpr float kGainDb    = 3.0f;   // additive level boost on an accented hit
@@ -172,7 +171,8 @@ namespace Accent {
     inline AccentCharacter driveOnly(float drive = kDrive) { return AccentCharacter{0,0,0,drive,0,0,0,0,0}; }
     inline AccentCharacter kick()  { return AccentCharacter{0,0,kClick,kDriveKick,0,0,0,0,0}; }
     inline AccentCharacter snare() { return AccentCharacter{0,0,0,kDrive*0.8f,kNoise,0,0,0,0}; }
-    inline AccentCharacter toms()  { return AccentCharacter{kBody,0,kClick,kDrive*0.8f,0,0,0,0,0}; }
+    // Toms have level-only accent on the 909 reference (no character
+    // shift) -- AccentCharacter{} all-zero, no factory needed.
     // Un-accented stays at normal level; an accented hit adds +kGainDb on top.
     inline AccentMix gentleMix() { AccentMix m = neutralMix(); m.globalDb = kGainDb; m.bothDb = kGainDb; return m; }
 

@@ -61,7 +61,15 @@ struct Toms : GhostModule {
 
     TomVoice low, mid, high;
     TomFit::Config lowFit, midFit, highFit;
-    Ghost::AccentMix accentMix = Ghost::Accent::gentleMix();
+    // Toms use a wider accent swing than the shared Accent::gentleMix()
+    // +3dB (Snr/ChhOhh/CrashRide/RimClap) -- +3dB wasn't audible against a
+    // full kit; +7dB is Toms-only, ear-tuned.
+    Ghost::AccentMix accentMix = [] {
+        Ghost::AccentMix m = Ghost::Accent::gentleMix();
+        m.globalDb = 7.f;
+        m.bothDb   = 7.f;
+        return m;
+    }();
     float lowGain = 1.f, midGain = 1.f, highGain = 1.f;
     float lowChar = 0.f, midChar = 0.f, highChar = 0.f;
 

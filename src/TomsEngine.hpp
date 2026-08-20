@@ -18,7 +18,9 @@
  *               ? clickGain * (1 - sample / clickLengthSamples) : 0
  *   out       = (tri(p1)*osc1Gain + tri(p2)*osc2Gain + click) * env
  *   out       = HP(out, hpCoef)
- *   if driveGain > 0: out = tanh(out * driveGain)
+ *   out       = Ghost::driveWithAccent(out, driveGain, accentNorm, accent.driveAmt)
+ *               (accent character is all-zero for toms -- level-only accent,
+ *               matching the 909 reference; see AccentMix in Toms.cpp)
  *   final     = clamp(out * outputGain * level, -1, 1)
  *
  * Per-voice difference is just `baseHz`; everything else shares defaults
@@ -86,12 +88,10 @@ struct Config {
 
     // Output
     float outputGain         = 0.78f;
-    // Per-DSP-stage CHARACTER weights, applied multiplicatively when
-    // charStrength > 0. Per the 909 reference doc, toms have level-only
-    // accent on the original 909; the Ghost default keeps a small
-    // body/click/drive boost as a stylistic add. AccentCharacter member
-    // order is body, pitch, click, drive, noise, snap, decay, brightness, bend.
-    Ghost::AccentCharacter accent = Ghost::Accent::toms();  // shared policy
+    // Per the 909 reference doc, toms have level-only accent -- no timbral
+    // shift. AccentMix (Toms.cpp, +3dB on an accented hit) is the whole
+    // accent effect; this stays all-zero to match hardware.
+    Ghost::AccentCharacter accent{};
 };
 
 // baseHz calibrated against the reference machine references at tune050-decay050:
@@ -195,11 +195,7 @@ struct TomVoice {
         if (std::abs(hpState) < Ghost::kDenormalFloor) hpState = 0.f;   // denormal safety
         out -= hpState;
 
-        const float driveGain = Ghost::accentAdd(
-            fit.driveGain, accentNorm, fit.accent.driveAmt);
-        if (driveGain > 0.f) {
-            out = std::tanh(out * driveGain);
-        }
+        out = Ghost::driveWithAccent(out, fit.driveGain, accentNorm, fit.accent.driveAmt);
 
         float result = rack::math::clamp(out * fit.outputGain * levelNorm, -1.f, 1.f);
 

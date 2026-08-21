@@ -12,6 +12,8 @@ Documentation for the Ghost drum plugin.
 - [using-ghost-in-a-daw.md](using-ghost-in-a-daw.md) — host transport sync,
   running Ghost inside a DAW.
 - [recording.md](recording.md) — capturing audio from a patch.
+- [toms-pattern-walkthrough.md](toms-pattern-walkthrough.md) — five GHOST
+  TOMS demo patches, dissected.
 
 ## For contributors
 

@@ -24,6 +24,12 @@ any specific recording — see the module docstring for sourcing on each:
   approach.
 - `toms-descending-roll.vcv` — a generic high-to-low tom roll into the next
   bar.
+- `toms-clock-drift.vcv` — all three tom trigger lanes pass through one
+  shared ~20ms delay (Merge → Bogaudio CVD → Split) before reaching Toms, as
+  if the toms were a second, slightly-unsynced drum machine. Not artist
+  attributed — a general drum-machine-sync idea, built by
+  `tools/build_tom_drift_demo.py`. Needs Fundamental (VCV Free) and Bogaudio
+  in addition to Hora/Substation/Core.
 
 ## Plugin requirements
 

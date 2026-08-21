@@ -1,15 +1,15 @@
-# Machine Rhythms: Five GHOST TOMS Techniques
+# Building Machine Rhythms With GHOST TOMS
 
-Five compact patches explore how tuning, accent, orchestration and clock
-relationships can turn three tom voices into complete compositional
-material.
+Tuning, accent and timing can turn three tom voices into a surprisingly
+complete source of rhythm. The following patches explore one idea at a
+time: shaping a phrase with accents, distributing it across pitches, and
+finally allowing the whole pattern to move against the main clock.
 
-## Three Voices, Five Techniques
+Each patch changes only one element, making it easy to hear exactly what
+that element — accent, tuning, orchestration, clock movement — contributes
+on its own, and just as easy to lift it and misuse it somewhere else.
 
-The constraint here is deliberate: one small, largely unchanged system,
-used to isolate one technique at a time rather than to build toward a
-finished track. Three tom voices — low, mid, high — a sequencer, and
-nothing else doing any real work until the technique calls for it.
+## Working In A Tradition
 
 None of the techniques explored here emerged in isolation. They belong to
 a machine-music vocabulary developed over decades by artists who found
@@ -36,7 +36,10 @@ adapted from a specific documented source, that source is named. Where a
 patch simply works in a tradition an artist is known for, it says so
 plainly instead of implying a closer connection than exists.
 
-The shared setup, once, so it doesn't need repeating:
+## The Setup
+
+One routing, shared by every patch below, stated once so it doesn't need
+repeating:
 
 ```
 step sequencer  →  GHOST TOMS (low / mid / high)  →  output or mixer

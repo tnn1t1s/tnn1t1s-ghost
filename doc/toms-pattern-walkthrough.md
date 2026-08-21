@@ -11,11 +11,30 @@ used to isolate one technique at a time rather than to build toward a
 finished track. Three tom voices — low, mid, high — a sequencer, and
 nothing else doing any real work until the technique calls for it.
 
-The approach is influenced by the machine-focused methods associated with
-Jeff Mills, Juan Atkins and Richie Hawtin. None of what follows is a
-transcription or an attempt to recreate a particular record — each is a
-listening experiment, built to be reproduced, varied and carried into your
-own patches.
+None of the techniques explored here emerged in isolation. They belong to
+a machine-music vocabulary developed over decades by artists who found
+possibilities in drum machines, sequencers and synchronization systems
+that their designers hadn't necessarily anticipated — Juan Atkins, Jeff
+Mills and Richie Hawtin among them. These patches are small studies in
+that vocabulary: a chance to listen closely to an idea, understand its
+mechanics, and then carry it somewhere personal. Studying it closely is
+the point, not a substitute for it — the value is in changing one thing
+and hearing what becomes possible, not in the study itself.
+
+So the artist references below are precise about what kind of reference
+they are. Three kinds appear in this piece, and each is labeled as such:
+
+- **Transcription** — this pattern reproduces a specific, cited source.
+- **Adaptation** — this patch adapts a documented technique to a new
+  context (a different instrumentation, a different tool).
+- **In the tradition of** — this experiment draws on an approach
+  associated with an artist's known body of work, without claiming any
+  single track as its source.
+
+Nothing here is a transcription of a record. Where a technique is
+adapted from a specific documented source, that source is named. Where a
+patch simply works in a tradition an artist is known for, it says so
+plainly instead of implying a closer connection than exists.
 
 The shared setup, once, so it doesn't need repeating:
 
@@ -80,10 +99,11 @@ Try it:
 - Compare what an accent change does to the groove against what adding or
   removing a trigger does — they're not interchangeable moves.
 
-This is the useful reference point for Juan Atkins' machine-funk: a
-pattern that repeats exactly, where the motion comes entirely from what
-gets emphasized inside the repetition, not from the pattern itself
-changing.
+In the tradition of Juan Atkins' machine-funk: a vocabulary built on exact
+repetition animated from the inside, through emphasis, timbre and subtle
+internal variation rather than through the pattern itself changing. The
+groove here works the same way — the trigger grid never moves, and the
+motion comes entirely from what gets emphasized inside it.
 
 ## Interlocking Voices
 
@@ -111,11 +131,14 @@ Try it:
 - Change a single trigger anywhere in the figure and notice how much of
   the combined pattern shifts, not just the one step you touched.
 
-Jeff Mills is the reference worth having in mind here — percussion as the
-primary compositional material, where spacing, velocity and timbre between
-three simple drums are doing the work a melody would do somewhere else.
-The practical skill is orchestration: deciding which voice owns which
-moment, and leaving the others silent so it can.
+In the tradition of Jeff Mills, whose records demonstrate percussion
+treated as complete compositional material — capable of carrying
+identity, momentum and form the way a melody would carry them elsewhere.
+Inspired by the way that approach lets tuned percussion do that carrying
+work, this patch distributes a sparse phrase across the three GHOST TOMS
+voices rather than giving any one of them the whole line. The practical
+skill is orchestration: deciding which voice owns which moment, and
+leaving the others silent so it can.
 
 ## Contour Through Tuning
 
@@ -176,15 +199,19 @@ Try it:
   displacement — they read as different effects, not degrees of the same
   one.
 
-The starting point for this one was Richie Hawtin's *Spastik*, on the
-theory that its swung, slightly-off timing might translate to a tom
-pattern. It's worth telling the story honestly: that timing turns out to
-be a piano-roll technique, individual 32nd-notes nudged late by hand in a
-DAW, with nothing on record about how or whether it was ever done on
-actual hardware. That technique doesn't have a sequencer-native
-equivalent to build toward — so this patch is a different idea it led to
-instead. The result isn't random mistiming. It's coherent displacement:
-one rhythmic object, moving as a whole against another.
+In the tradition of Richie Hawtin, whose work provides a real lineage for
+treating timing, phase and the relationship between machines as musical
+parameters in their own right, not just as things to correct. The starting
+point was a specific adaptation attempt: *Spastik*'s swung, slightly-off
+timing, on the theory it might translate to a tom pattern. Worth telling
+that part honestly — that timing turns out to be a piano-roll technique,
+individual 32nd-notes nudged late by hand in a DAW, and nothing on record
+says whether it was ever done on hardware. It doesn't adapt to a
+sequencer. What this patch takes from Hawtin isn't that specific
+technique, then — it's the underlying premise his work argues for, that
+the relationship between machines is itself a musical parameter. The
+result isn't random mistiming. It's coherent displacement: one rhythmic
+object, moving as a whole against another.
 
 ## Combining The Techniques
 

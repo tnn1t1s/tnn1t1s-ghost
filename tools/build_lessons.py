@@ -114,7 +114,24 @@ def load_base():
     subprocess.run(["tar", "--use-compress-program=unzstd", "-xf", p, "-C", d],
                    check=True)
     with open(os.path.join(d, "patch.json")) as f:
-        return json.load(f)
+        data = json.load(f)
+    reset_ctrl(data)
+    return data
+
+
+# GhostCtrl defaults per src/GhostCtrl.cpp (A=1, B=1, MASTER=1, RANGE=Classic).
+# The donor predates issue #34 (defaults to 100%) and carries stale saved knob
+# values (MASTER=0.5), which override the code defaults on load -- so a
+# generated patch would ship with the controller silently cutting the kit 6 dB.
+GHOSTCTRL_DEFAULTS = [1.0, 1.0, 1.0, 1.0]
+
+
+def reset_ctrl(data):
+    """Overwrite the donor's saved GhostCtrl knob state with current defaults."""
+    ctrl = by_model(data, "GhostCtrl")
+    if ctrl:
+        ctrl["params"] = [dict(id=i, value=v)
+                          for i, v in enumerate(GHOSTCTRL_DEFAULTS)]
 
 
 def save_vcv(data, path):

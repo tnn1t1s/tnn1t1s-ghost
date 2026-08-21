@@ -10,18 +10,18 @@ sections:
   - kind: param_grid          # 2 voices (cols) x TUNE/DECAY/LEVEL (rows); voice in the label
     columns: 2
     params:
-      - { label: CLOSED TUNE,  param: param.closed.tune,  cv: cv.closed.tune }
-      - { label: OPEN TUNE,    param: param.open.tune,    cv: cv.open.tune }
-      - { label: CLOSED DECAY, param: param.closed.decay, cv: cv.closed.decay }
-      - { label: OPEN DECAY,   param: param.open.decay,   cv: cv.open.decay }
-      - { label: CLOSED LEVEL, param: param.closed.level, cv: cv.closed.level }
-      - { label: OPEN LEVEL,   param: param.open.level,   cv: cv.open.level }
+      - { label: CH TUNE,  param: param.closed.tune,  cv: cv.closed.tune }
+      - { label: OH TUNE,  param: param.open.tune,    cv: cv.open.tune }
+      - { label: CH DECAY, param: param.closed.decay, cv: cv.closed.decay }
+      - { label: OH DECAY, param: param.open.decay,   cv: cv.open.decay }
+      - { label: CH LEVEL, param: param.closed.level, cv: cv.closed.level }
+      - { label: OH LEVEL, param: param.open.level,   cv: cv.open.level }
 
   - kind: io_row              # triggers, accents (LOCAL is closed-only), outputs
     cells:
-      - { label: TRIG,  sub: CLSD, id: trig.closed.trig }
-      - { label: TRIG,  sub: OPEN, id: trig.open.trig }
+      - { label: TRIG,  sub: CH, id: trig.closed.trig }
+      - { label: TRIG,  sub: OH, id: trig.open.trig }
       - { label: LOCAL, id: accent.closed.local }
       - { label: TOTAL, id: accent.main.total }
-      - { label: OUT,   sub: CLSD, id: out.closed.audio }
-      - { label: OUT,   sub: OPEN, id: out.open.audio }
+      - { label: OUT,   sub: CH, id: out.closed.audio }
+      - { label: OUT,   sub: OH, id: out.open.audio }

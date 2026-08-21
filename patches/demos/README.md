@@ -9,6 +9,22 @@ Also here: standalone example patches — `ghost-full-kit.vcv`,
 `ghost-accent-groove.vcv`, `ghost-buscrush-demo.vcv`, `ghost-output-ep.vcv`,
 and `ghost-supersonic.vcv`.
 
+## Tom pattern showcase (`toms-*.vcv`)
+
+Four patches built to exercise GHOST TOMS specifically (built by
+`tools/build_tom_demos.py`). Style-inspired grooves, not transcriptions of
+any specific recording — see the module docstring for sourcing on each:
+
+- `toms-fill-at-the-turn.vcv` — steady groove, mid-tom fill on the turn of
+  the second bar (a documented techno tom-fill convention).
+- `toms-accent-contrast.vcv` — a steady tom line alternating accented and
+  ghost hits, a direct listening test for the Toms accent swing.
+- `toms-mills-lead.vcv` — no kick or snare; toms plus ride/clap carry the
+  whole groove, style-inspired by Jeff Mills' documented toms-as-lead
+  approach.
+- `toms-descending-roll.vcv` — a generic high-to-low tom roll into the next
+  bar.
+
 ## Plugin requirements
 
 The numbered demos (`01`–`09`) need only free VCV Library plugins besides

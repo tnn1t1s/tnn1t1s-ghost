@@ -1,105 +1,215 @@
-# GHOST TOMS: a pattern walkthrough
+# Machine Rhythms: Five GHOST TOMS Techniques
 
-Five patches, all loading from `patches/demos/toms-*.vcv`: Hora Drum
-Sequencer driving GHOST TOMS through GHOST MIX, the same routing every other
-demo patch here uses. Built by `tools/build_tom_demos.py` and
-`tools/build_tom_drift_demo.py`.
+Five compact patches explore how tuning, accent, orchestration and clock
+relationships can turn three tom voices into complete compositional
+material.
 
-A few of these borrow a real technique from a documented source, and that's
-cited under each one. A couple are style-inspired by a specific artist's
-known approach rather than a transcription of a track. The rest are just
-generic techno/house moves with no particular owner. None of it is a
-transcription of a recording.
+## Three Voices, Five Techniques
 
-## Fill At The Turn
+The constraint here is deliberate: one small, largely unchanged system,
+used to isolate one technique at a time rather than to build toward a
+finished track. Three tom voices — low, mid, high — a sequencer, and
+nothing else doing any real work until the technique calls for it.
 
-A plain four-on-the-floor bed: kick on 1/5/9/13, clap on 5/13, closed hat on
-every 8th note. Nothing in the tom lanes for the first bar. Then the mid tom
-shows up on steps 11, 12, 15 and 16 of the second bar and nowhere else.
-128 BPM.
+The approach is influenced by the machine-focused methods associated with
+Jeff Mills, Juan Atkins and Richie Hawtin. None of what follows is a
+transcription or an attempt to recreate a particular record — each is a
+listening experiment, built to be reproduced, varied and carried into your
+own patches.
 
-This is drum-patterns.com's "Techno 10 Tom Fill" transcription, close to
-verbatim. The pattern plays completely straight for a bar, then puts four
-consecutive mid-tom hits at the very end of the phrase to mark the turnaround.
-It works because the fill is the only thing that changes between the two
-bars.
+The shared setup, once, so it doesn't need repeating:
 
-Source: [drum-patterns.com, "Techno 10 Tom Fill"](https://drum-patterns.com/techno-10-tom-fill/)
+```
+step sequencer  →  GHOST TOMS (low / mid / high)  →  output or mixer
+```
 
-## Accent Contrast
+A reference kick or hat joins in wherever a technique needs something
+steady to be heard against. BPM, step counts and any patch-specific detail
+sit in a small diagram beside each example rather than in the running text.
 
-Kick on 1/5/9/13, low tom on 2/6/10/14, steady, no syncopation. 126 BPM. The
-point of this one is the accent lane: only steps 2 and 10 carry an accent
-gate. Steps 6 and 14 don't.
+## Phrase Marking
 
-Attack Magazine's TR-909 beginner guide describes this move for toms
-directly — hit the same drum on a steady grid but alternate full-strength
-and ghost hits, so the pattern breathes instead of hammering flat. On GHOST
-TOMS this also doubles as a regression test: the accent stage used to crush
-an accented hit down to about 1/8th volume instead of boosting it (a
-driveGain bug, fixed in `TomsEngine.hpp`). Loop this patch and the gap
-between steps 2/10 and 6/14 should read as a lift, not a dropout.
+**Technique: concentrate a short tom figure at a phrase boundary.**
 
-Source: [Attack Magazine, "The Beginners Guide To The TR-909"](https://www.attackmagazine.com/technique/tutorials/the-beginners-guide-to-the-tr-909/)
+A loop that never varies has no sense of where it is in time — every bar
+sounds like every other bar. Put a brief, otherwise-absent event at the end
+of a phrase, and the loop suddenly has a shape: a length, an approach, a
+turnaround. The tom fill isn't decoration here, it's the only information
+telling the listener a cycle is about to close.
 
-## Mills Lead
+```
+bar 1   kick · · · clap · · · kick · · · clap · · ·   (no toms)
+bar 2   same, plus mid tom on steps 11 12 · · 15 16
+```
 
-No kick, no snare. Low tom on 1/9, mid tom on 3/11/14/16, high tom on
-5/7/13/15, a light clap on 5/13, ride on every 8th note. 130 BPM.
+Try it:
+- Run a plain two-bar foundation with nothing in the tom lanes at all.
+- Add a four-hit mid-tom figure only at the very end of bar two.
+- Move that figure's starting point a step or two earlier each time and
+  listen to how early is too early.
+- Swap the single mid-tom voice for a rising low–mid–high figure instead.
+- Take the last hit away entirely and listen to what the phrase loses.
 
-Jeff Mills has talked in interviews about building whole passages from
-nothing but toms plus ride and clap, skipping kick and snare entirely, and
-treating the 909 as an instrument he plays live rather than a sequence he
-sets and forgets. This patch takes the instrumentation choice — toms
-carrying the groove, ride and clap the only support — and locks it into a
-static 16-step loop. Style-inspired, not a transcription: nobody's playing
-this one live.
+The lesson isn't really about programming a fill. It's that a phrase's
+length and shape can live entirely in one small, brief event — the rest of
+the loop can stay exactly the same.
 
-Source: [MusicTech, "Jeff Mills on the TR-909"](https://musictech.com/news/gear/jeff-mills-roland-tr-909-tony-allen/)
+## Accent Patterns
 
-## Descending Roll
+**Technique: build a second rhythm out of amplitude alone.**
 
-Same bed as Fill At The Turn — kick 1/5/9/13, clap 5/13, straight 8th-note
-hats — but the fill is a descending roll instead of a repeated hit: high tom
-on step 13, mid on 14, low tom landing twice on 15 and 16. 124 BPM.
+Keep the trigger grid completely steady — same voice, same spacing, no
+new hits added or removed — and change only which of those hits are
+accented. The placement pattern and the accent pattern are now two
+different rhythms occupying the same steps, and the second one is audible
+even though nothing about *where* anything happens has changed.
 
-No source for this one. It's the generic high-to-low fill shape that shows
-up across house and techno regardless of drum machine or artist — the move
-you'd reach for before reaching for anything more specific.
+```
+low tom   ·   X   ·   ·   ·   X   ·   ·   ·   X   ·   ·   ·   X   ·   ·
+accent            ^                       ^
+step      1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
+```
 
-## Clock Drift
+Try it:
+- Start with evenly spaced hits and no accent at all.
+- Accent every other hit and listen for the new, slower pulse that
+  appears.
+- Run a three-accent cycle against a bar that's naturally divisible by
+  four, so the accent keeps landing somewhere different each time round.
+- Give each of the three tom voices its own, unrelated accent cycle.
+- Compare what an accent change does to the groove against what adding or
+  removing a trigger does — they're not interchangeable moves.
 
-The steadiest pattern in the set: low tom on 1/9, mid on 5/13, high on
-3/7/11/15, plain kick and hats underneath. 126 BPM. The interesting part is
-downstream of the Hora grid, not in it.
+This is the useful reference point for Juan Atkins' machine-funk: a
+pattern that repeats exactly, where the motion comes entirely from what
+gets emphasized inside the repetition, not from the pattern itself
+changing.
 
-The starting point was Richie Hawtin's *Spastik*, on the theory its swung
-timing might translate to a tom pattern. Attack Magazine's breakdown of the
-track is specific about how that timing was actually done: in Ableton's
-piano roll, set to 1/32 resolution, individual 32nd-note hits get nudged
-later than their quantized position by hand — "the sixth 32nd-note between
-positions 1 and 1.2 is delayed," and a few more like it. That's a real,
-documented technique, and it's a DAW piano-roll edit. The article doesn't
-say anything about how or whether that timing existed on the original
-hardware — the 909 is credited there as Hawtin's sample source, not his
-sequencing method. So this patch isn't a Hawtin pattern.
+## Interlocking Voices
 
-What it is instead: all three tom trigger lanes merged into one poly cable
-(`Merge`, Fundamental), through a single `Bogaudio CVD` set to roughly 20ms
-and fully wet, then split back out to GHOST TOMS' three trigger inputs. One
-delay time, applied identically to all three voices, as if the toms were
-coming from a second drum machine whose clock had drifted against the main
-kit. Three cables in, one delay module, three cables out — a coarser and
-much simpler idea than nudging individual hits in a piano roll, arrived at
-because that piano-roll technique doesn't have a real hardware-sequencer
-equivalent to build toward.
+**Technique: build one composite rhythm out of three sparse parts.**
 
-Source: [Attack Magazine, "Spastik-Style Percussive Techno"](https://www.attackmagazine.com/technique/beat-dissected/spastik-style-percussive-techno/)
+Give the low, mid and high toms each a short, incomplete figure — sparse
+enough that none of them describes the groove on its own — and let the
+groove exist only in how the three interlock. No voice is the lead; the
+composite is the lead.
 
-## Loading these
+```
+low    X   ·   ·   ·   ·   ·   ·   ·   X   ·   ·   ·   ·   ·   ·   ·
+mid    ·   ·   X   ·   ·   ·   ·   ·   ·   ·   X   ·   ·   X   ·   X
+high   ·   ·   ·   ·   X   ·   X   ·   ·   ·   ·   ·   X   ·   X   ·
+step   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
+```
 
-All five patches run on VCV Library plugins only: Hora Sequencers,
-SlimeChild Substation, Core, plus Fundamental and Bogaudio for
-`toms-clock-drift.vcv`'s delay chain. No AgentRack dependency, unlike some
-of the other example patches in `patches/demos/`. Full plugin matrix in
-[`patches/demos/README.md`](../patches/demos/README.md).
+Try it:
+- Start with a short low-tom figure alone and get familiar with its gaps.
+- Place the mid tom only inside those gaps.
+- Add the high tom sparingly — only where it changes the direction or
+  momentum of what's already there, not on every remaining free step.
+- Mute each voice in turn and listen to what the other two sound like
+  without it.
+- Change a single trigger anywhere in the figure and notice how much of
+  the combined pattern shifts, not just the one step you touched.
+
+Jeff Mills is the reference worth having in mind here — percussion as the
+primary compositional material, where spacing, velocity and timbre between
+three simple drums are doing the work a melody would do somewhere else.
+The practical skill is orchestration: deciding which voice owns which
+moment, and leaving the others silent so it can.
+
+## Contour Through Tuning
+
+**Technique: use the three voices as a small pitch space.**
+
+Low, mid and high tom aren't three interchangeable drums — they're three
+points a figure can travel through. A descending roll is the obvious
+starting shape, but reversed, interrupted or repeated-note contours each
+produce a different kind of motion, and the identity of the figure lives
+in the path, not in any single hit.
+
+```
+step    13    14    15    16
+voice   high  mid   low   low
+```
+
+Try it:
+- Program a plain high-to-low roll across four consecutive steps.
+- Reverse it, low to high, and compare the sense of motion.
+- Repeat one voice before completing the movement — high, high, mid,
+  low — and listen to what the repetition does to the arrival.
+- Change the tuning interval between the three voices and hear how far
+  the same rhythmic shape can be pushed before it stops reading as one
+  gesture.
+- Push decay time until the hits either stay separate or start to overlap
+  into something closer to a continuous slide.
+
+This section is really about hearing the toms as a three-point pitch
+space rather than three separate instruments. The figure is defined as
+much by the direction it traces as by when its hits land.
+
+## Group Clock Drift
+
+**Technique: move an internally coherent pattern against the main clock.**
+
+Sequence all three tom voices from their own clock, separate from
+whatever's driving the rest of the kit. The relationships between low,
+mid and high stay exactly as programmed — but the whole group can now
+shift against the reference rhythm as a single object, rather than any
+one hit moving on its own.
+
+```
+tom clock   →  offset  →  low / mid / high (relationships fixed)
+kick clock  →  reference
+```
+
+Try it:
+- Start with both clocks locked, so there's a clean baseline to compare
+  against.
+- Introduce a small, fixed offset between them and listen to the toms
+  arrive consistently late (or early) as a group.
+- Let the offset drift continuously instead of sitting at one fixed
+  amount, and listen to the toms pass through a whole range of
+  relationships with the kick over time.
+- Reset the offset back to zero at a chosen phrase length, so the drift
+  becomes a repeating arc rather than an open-ended wander.
+- Compare that continuous drift against a single fixed phase
+  displacement — they read as different effects, not degrees of the same
+  one.
+
+The starting point for this one was Richie Hawtin's *Spastik*, on the
+theory that its swung, slightly-off timing might translate to a tom
+pattern. It's worth telling the story honestly: that timing turns out to
+be a piano-roll technique, individual 32nd-notes nudged late by hand in a
+DAW, with nothing on record about how or whether it was ever done on
+actual hardware. That technique doesn't have a sequencer-native
+equivalent to build toward — so this patch is a different idea it led to
+instead. The result isn't random mistiming. It's coherent displacement:
+one rhythmic object, moving as a whole against another.
+
+## Combining The Techniques
+
+One slightly larger patch, built from two or three of the above rather
+than all five at once — piling on every technique at the same time just
+buries them again, which defeats the point of isolating them in the first
+place. A workable combination:
+
+- interlocking voices establish the core rhythm,
+- an accent cycle layered on top gives it a longer-than-the-bar arc,
+- and a phrase-marking fill at the turn signals where that longer cycle
+  resets.
+
+Any two or three techniques can substitute for these. The goal is hearing
+how they compose, with each one still identifiable inside the result.
+
+## Closing Invitation
+
+Five ways to use the same three voices: as markers at a phrase boundary,
+as an accent cycle layered over a fixed grid, as interlocking parts with
+no lead, as a contour through pitch, and as a coherently displaced group
+against the main clock. Each is small enough to hear on its own, and open
+enough to become a starting point rather than a finished pattern.
+
+Take one existing sequence and change exactly one dimension at a time —
+placement, accent, voice assignment, tuning, or clock relationship — before
+touching anything else. Working example patches for all five techniques
+are in `patches/demos/toms-*.vcv`.

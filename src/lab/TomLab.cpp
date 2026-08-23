@@ -62,8 +62,8 @@ struct TomLab : GhostModule {
         configParam(OSC2_GAIN_PARAM,             0.f,    1.f,     0.12f, "Osc2 gain");
         configParam(CLICK_GAIN_PARAM,            0.f,    1.f,     0.18f, "Click gain");
         configParam(CLICK_LEN_PARAM,             1.f,  200.f,    30.f,   "Click length",        " smp");
-        configParam(ENV_RATE_MIN_PARAM,          1.f,   30.f,     6.f,   "Env rate min (decay=1)");
-        configParam(ENV_RATE_SPAN_PARAM,         0.f,   50.f,     8.f,   "Env rate span");
+        configParam(ENV_RATE_MIN_PARAM,          0.005f, 0.150f, 0.030f, "Decay tau min (decay=0)", " s");
+        configParam(ENV_RATE_SPAN_PARAM,         0.100f, 1.000f, 0.333f, "Decay tau max (decay=1)", " s");
         configParam(HP_COEF_PARAM,               0.f,    0.05f,   0.002f,"HP coef");
         configParam(DRIVE_GAIN_PARAM,            0.f,    3.f,     0.f,   "Drive gain (0 = off)");
         configParam(OUTPUT_GAIN_PARAM,           0.f,    2.f,     0.78f, "Output gain");
@@ -90,8 +90,8 @@ struct TomLab : GhostModule {
         fit.osc2Gain           = params[OSC2_GAIN_PARAM].getValue();
         fit.clickGain          = params[CLICK_GAIN_PARAM].getValue();
         fit.clickLengthSamples = params[CLICK_LEN_PARAM].getValue();
-        fit.envRateMin         = params[ENV_RATE_MIN_PARAM].getValue();
-        fit.envRateSpan        = params[ENV_RATE_SPAN_PARAM].getValue();
+        fit.decayTauMinSec     = params[ENV_RATE_MIN_PARAM].getValue();
+        fit.decayTauMaxSec     = params[ENV_RATE_SPAN_PARAM].getValue();
         fit.hpCoef             = params[HP_COEF_PARAM].getValue();
         fit.driveGain          = params[DRIVE_GAIN_PARAM].getValue();
         fit.outputGain         = params[OUTPUT_GAIN_PARAM].getValue();
@@ -186,8 +186,8 @@ struct TomLabWidget : rack::ModuleWidget {
             {TomLab::OSC2_GAIN_PARAM,             "O2 GAIN"},
             {TomLab::CLICK_GAIN_PARAM,            "CLK GAIN"},
             {TomLab::CLICK_LEN_PARAM,             "CLK LEN"},
-            {TomLab::ENV_RATE_MIN_PARAM,          "ENV MIN"},
-            {TomLab::ENV_RATE_SPAN_PARAM,         "ENV SPAN"},
+            {TomLab::ENV_RATE_MIN_PARAM,          "TAU MIN"},
+            {TomLab::ENV_RATE_SPAN_PARAM,         "TAU MAX"},
             {TomLab::DRIVE_GAIN_PARAM,            "DRIVE"},
         };
         for (int i = 0; i < 16; i++) {

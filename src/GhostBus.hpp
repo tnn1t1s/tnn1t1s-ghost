@@ -129,12 +129,12 @@ inline float dbToLinear(float db) {
  *   bendAmt        accentScale on tom pitch-bend depth
  *
  * The naming is convention; per-voice authors keep the freedom to choose
- * scale-vs-add per stage. Per the 909 reference doc, only SD has true
- * timbral accent on the original hardware (gates noise and tone VCAs);
- * other voices are level-only on the original. AccentCharacter is what
- * gives Ghost room to add tasteful per-voice timbral character on
- * top of the level rail without losing circuit-faithful behaviour
- * (zero is the faithful default).
+ * scale-vs-add per stage. On the original hardware, SD's accent gates its
+ * noise and tone VCAs, and the toms' accent also drives their shared
+ * noise-burst VCA (TR-909 service notes; TipTop's licensed adaptation);
+ * the other voices are level-only. AccentCharacter is what gives Ghost
+ * room to add per-voice timbral character on top of the level rail
+ * without losing circuit-faithful behaviour (zero = no character shift).
  */
 struct AccentCharacter {
     // No in-class member initializers: keeps the struct a C++11 aggregate
@@ -171,8 +171,9 @@ namespace Accent {
     inline AccentCharacter driveOnly(float drive = kDrive) { return AccentCharacter{0,0,0,drive,0,0,0,0,0}; }
     inline AccentCharacter kick()  { return AccentCharacter{0,0,kClick,kDriveKick,0,0,0,0,0}; }
     inline AccentCharacter snare() { return AccentCharacter{0,0,0,kDrive*0.8f,kNoise,0,0,0,0}; }
-    // Toms have level-only accent on the 909 reference (no character
-    // shift) -- AccentCharacter{} all-zero, no factory needed.
+    // Toms: accent drives the shared noise-burst VCA on the 909 (more
+    // snap on an accented hit), and nothing else -- noise-only character.
+    inline AccentCharacter toms()  { return AccentCharacter{0,0,0,0,kNoise,0,0,0,0}; }
     // Un-accented stays at normal level; an accented hit adds +kGainDb on top.
     inline AccentMix gentleMix() { AccentMix m = neutralMix(); m.globalDb = kGainDb; m.bothDb = kGainDb; return m; }
 

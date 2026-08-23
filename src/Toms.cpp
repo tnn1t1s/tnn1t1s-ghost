@@ -116,6 +116,7 @@ struct Toms : GhostModule {
             v->t = 0.f;
             v->sampleCount = 0;
             v->hpState = 0.f;
+            v->noiseLpState = 0.f;
             v->rngState = 1u;
             v->active = false;
         }

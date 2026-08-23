@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## Unreleased (2.1.3)
+
+- **Toms attack rebuilt as the 909's noise burst** (#51). The burst is now a
+  real transient: gain 0.06 → 0.30, band-limited by a 350 Hz high-pass (per
+  Roland's s/n 426700 factory change), tightened to a ~9 ms spike. Accent
+  drives the burst as it does the hardware's noise VCA. The synthetic click
+  defaults to 0 — the 909 has no click feedthrough. Attack-to-body ratio
+  +3.9 dB; body level unchanged.
+- Plugin version reads 2.1.3 (module right-click → Info) so this build is
+  identifiable against 2.1.2.
 
 - **GHOST OHCH is now one hi-hat voice**, matching the hardware: one sample ROM,
   one address counter, one envelope, and a closed/open control that selects the

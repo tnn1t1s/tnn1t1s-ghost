@@ -6,6 +6,11 @@
   hits to roughly 1/8 volume instead of boosting them — the cause of "toms
   are super low volume." Accent is now a clean level lift, widened to +7 dB
   (the shared +3 dB was inaudible against a full kit).
+- **Toms DECAY range widened to match the 909** (#53). The knob spanned
+  barely 2:1 (tau 71-167 ms) -- DECAY 0 wasn't a pluck. Now a geometric
+  knob->tau curve (the same shape the sample voices use): tau 30 ms at 0,
+  333 ms at full, with the reference calibration anchor exactly preserved
+  at noon (100 ms).
 - **Toms attack rebuilt as the 909's noise burst** (#51, #52). The burst is
   now a real transient: gain 0.06 → 0.30, band-limited by a 350 Hz high-pass
   (per Roland's s/n 426700 factory change), tightened to a ~9 ms spike.

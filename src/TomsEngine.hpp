@@ -12,7 +12,7 @@
  *   pitchEnv  = exp(-pitchBendRate * t)
  *   freq1     = tunedFreq + pitchEnv * (pitchBendBase + baseHz * pitchBendBaseScale)
  *   freq2     = freq1 * osc2Ratio
- *   envRate   = envRateMin + (1 - decay) * envRateSpan
+ *   envRate   = 1 / expDecaySec(decay, decayTauMinSec, decayTauMaxSec)
  *   env       = exp(-envRate * t)
  *   click     = (sample < clickLengthSamples)
  *               ? clickGain * (1 - sample / clickLengthSamples) : 0
@@ -81,10 +81,13 @@ struct Config {
     float clickGain          = 0.f;
     float clickLengthSamples = 30.f;
 
-    // Body envelope rate range: rate(decay) = envRateMin + (1-decay) * envRateSpan
-    // Calibrated against the reference machine LowTom tune050-decay050: tau ~ 100 ms at decay=0.5.
-    float envRateMin         = 6.f;
-    float envRateSpan        = 8.f;
+    // Body envelope: geometric knob->tau map (Ghost::expDecaySec, the same
+    // curve the sample voices use), tau = min * (max/min)^decay. DECAY 0 is
+    // a tight pluck, DECAY 1 the full body -- the real DECAY pot truncates
+    // the natural ring down to a pluck (~10:1 span). sqrt(min*max) keeps the
+    // reference calibration anchor: tau ~ 100 ms at decay=0.5.
+    float decayTauMinSec     = 0.030f;
+    float decayTauMaxSec     = 0.333f;
 
     // Leaky DC-blocking HP coefficient (~14 Hz cutoff at 44.1 kHz).
     float hpCoef             = 0.002f;
@@ -132,6 +135,11 @@ struct TomVoice {
     float noiseLpState = 0.f;   // one-pole LP state for the noise HP (y = x - LP(x))
     bool  active = false;
     uint32_t rngState = 1u;
+    // Memo for the geometric decay map (expDecaySec calls powf); recomputed
+    // only when the DECAY knob or tau bounds move, not per sample.
+    float lastDecayNorm = -1.f;
+    float lastTauMin = -1.f, lastTauMax = -1.f;
+    float cachedEnvRate = 10.f;
 
     /// Start a new one-shot: reset phases, time, filter and noise seed, activate.
     void fire() {
@@ -169,7 +177,15 @@ struct TomVoice {
                               + pitchEnv * (fit.pitchBendBase + fit.baseHz * fit.pitchBendBaseScale);
         const float freq2     = freq1 * fit.osc2Ratio;
         const float freq3     = freq1 * fit.osc3Ratio;
-        const float envRate   = fit.envRateMin + (1.f - decayNorm) * fit.envRateSpan;
+        if (decayNorm != lastDecayNorm || fit.decayTauMinSec != lastTauMin
+            || fit.decayTauMaxSec != lastTauMax) {
+            lastDecayNorm = decayNorm;
+            lastTauMin = fit.decayTauMinSec;
+            lastTauMax = fit.decayTauMaxSec;
+            cachedEnvRate = 1.f / Ghost::expDecaySec(
+                decayNorm, fit.decayTauMinSec, fit.decayTauMaxSec);
+        }
+        const float envRate   = cachedEnvRate;
         float env       = std::exp(-envRate * t);
         if (env < Ghost::kDenormalFloor) env = 0.f;   // denormal safety
 

@@ -16,11 +16,12 @@
  *   env       = exp(-envRate * t)
  *   click     = (sample < clickLengthSamples)
  *               ? clickGain * (1 - sample / clickLengthSamples) : 0
- *   out       = (tri(p1)*osc1Gain + tri(p2)*osc2Gain + click) * env
+ *   noise     = HP(white, noiseHpHz) * exp(-noiseDecayRate * t)
+ *               * accentScale(noiseGain, accent, noiseAmt)
+ *   out       = (tri(p1)*osc1Gain + tri(p2)*osc2Gain + tri(p3)*osc3Gain
+ *               + click) * env + noise
  *   out       = HP(out, hpCoef)
  *   out       = Ghost::driveWithAccent(out, driveGain, accentNorm, accent.driveAmt)
- *               (accent character is all-zero for toms -- level-only accent,
- *               matching the 909 reference; see AccentMix in Toms.cpp)
  *   final     = clamp(out * outputGain * level, -1, 1)
  *
  * Per-voice difference is just `baseHz`; everything else shares defaults
@@ -65,13 +66,19 @@ struct Config {
     float osc3Ratio          = 2.77f;   // top partial (relative to freq1)
     float osc3Gain           = 0.08f;
 
-    // Noise circuit -- the 909 toms mix in a short white-noise burst (the
-    // "little noise" the body alone lacked). Subtle by default.
-    float noiseGain          = 0.06f;
-    float noiseDecayRate     = 28.f;    // noise burst 1/tau (~36 ms)
+    // Noise circuit -- the attack transient. On the 909 a trigger-gated
+    // noise VCA feeds all three toms; the burst is the audible "snap"
+    // (service notes p.9 scope photo shows it riding the first cycles;
+    // the s/n 426700 factory change emphasizes it). Band-limited, not
+    // hiss: high-passed at noiseHpHz. Calibration: doc/dev/calibration.md.
+    float noiseGain          = 0.30f;
+    float noiseDecayRate     = 110.f;   // noise burst 1/tau (~9 ms spike)
+    float noiseHpHz          = 350.f;   // one-pole HP corner on the burst
 
-    // Click
-    float clickGain          = 0.18f;
+    // Click -- extra shaping option, off by default. The 909 has no click
+    // feedthrough (the VCA path is muted during trigger reset); its click
+    // is the noise burst plus the coherent oscillator onset.
+    float clickGain          = 0.f;
     float clickLengthSamples = 30.f;
 
     // Body envelope rate range: rate(decay) = envRateMin + (1-decay) * envRateSpan
@@ -88,10 +95,10 @@ struct Config {
 
     // Output
     float outputGain         = 0.78f;
-    // Per the 909 reference doc, toms have level-only accent -- no timbral
-    // shift. AccentMix (Toms.cpp, +3dB on an accented hit) is the whole
-    // accent effect; this stays all-zero to match hardware.
-    Ghost::AccentCharacter accent{};
+    // On the 909 the accent pulse also drives the tom-noise VCA ("slightly
+    // more attack and noise" -- TipTop's licensed circuit adaptation), so
+    // accent is level (AccentMix, Toms.cpp) plus a noise-burst boost here.
+    Ghost::AccentCharacter accent = Ghost::Accent::toms();
 };
 
 // baseHz calibrated against the reference machine references at tune050-decay050:
@@ -122,6 +129,7 @@ struct TomVoice {
     float t = 0.f;
     int   sampleCount = 0;
     float hpState = 0.f;
+    float noiseLpState = 0.f;   // one-pole LP state for the noise HP (y = x - LP(x))
     bool  active = false;
     uint32_t rngState = 1u;
 
@@ -131,6 +139,7 @@ struct TomVoice {
         t = 0.f;
         sampleCount = 0;
         hpState = 0.f;
+        noiseLpState = 0.f;
         rngState = 22699u;
         active = true;
     }
@@ -177,10 +186,17 @@ struct TomVoice {
         phase2 -= std::floor(phase2);
         phase3 -= std::floor(phase3);
 
-        // Short white-noise burst (909 tom noise circuit), own fast envelope.
+        // Attack noise burst (909 tom-noise VCA): band-limited spike riding
+        // the first cycles. One-pole HP at noiseHpHz strips the low end so
+        // the burst reads as snap on top of the body, not added rumble.
         float noiseEnv = std::exp(-fit.noiseDecayRate * t);
         if (noiseEnv < Ghost::kDenormalFloor) noiseEnv = 0.f;   // denormal safety
-        const float noise = nextNoise() * noiseEnv
+        const float noiseRaw = nextNoise();
+        const float noiseLpCoef = 1.f - std::exp(
+            -2.f * float(M_PI) * fit.noiseHpHz * args.sampleTime);
+        noiseLpState += noiseLpCoef * (noiseRaw - noiseLpState);
+        if (std::abs(noiseLpState) < Ghost::kDenormalFloor) noiseLpState = 0.f;
+        const float noise = (noiseRaw - noiseLpState) * noiseEnv
                           * Ghost::accentScale(fit.noiseGain, accentNorm, fit.accent.noiseAmt);
 
         float out = ((tomTriangle(phase1) * fit.osc1Gain

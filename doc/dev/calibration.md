@@ -35,11 +35,22 @@ generator and kept by ear (`bodyHarmGain 0.19`, `subGain 0.36`, `hpCoef 0.0012`)
 
 ## Toms (`src/Toms.cpp`, `TomFit::Config`)
 
-Three damped sines at ratios **1 : 1.5 : 2.77** plus a short white-noise burst
-(the "little noise" the body alone lacks). Per-voice difference is only `baseHz`;
-everything else shares defaults. Calibrated against the reference LowTom at
-tune 0.5 / decay 0.5: **tau ≈ 100 ms**. `tuneOffset 0.62 / tuneSpan 0.88`,
-`pitchBendRate 16`, `noiseGain 0.06` / `noiseDecayRate 28` (~36 ms burst).
+Three damped triangles at ratios **1 : 1.5 : 2.77** plus a trigger-gated
+noise burst — the burst is the attack. Per-voice difference is only `baseHz`;
+everything else shares defaults. Body calibrated against the reference LowTom
+at tune 0.5 / decay 0.5: **tau ≈ 100 ms**. `tuneOffset 0.62 / tuneSpan 0.88`,
+`pitchBendRate 16`.
+
+**Noise burst** (issue #51): on the real machine a shared noise source feeds a
+trigger-gated tom-noise VCA; the TR-909 service notes' scope photos show the
+burst riding the first cycles, and Roland's s/n 426700 factory change (C54
+0.0022→0.0047uF, R194 47k→100k, "will emphasize attack of TOM TOMs") drops the
+noise coupling corner toward ~340 Hz. Ghost models it as high-passed white
+noise: `noiseGain 0.30`, `noiseHpHz 350`, `noiseDecayRate 110` (~9 ms spike).
+Accent drives the noise VCA on the hardware, so toms carry
+`Accent::toms()` = noise-only character (`kNoise`) on top of the AccentMix
+level ladder. The synthetic click (`clickGain`) defaults to 0: the 909 has no
+click feedthrough — its click is the burst plus the coherent oscillator onset.
 
 ## Snare (`src/Snr.cpp`)
 

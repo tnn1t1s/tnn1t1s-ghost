@@ -1,16 +1,31 @@
 # Changelog
 
-## Unreleased (2.1.3)
+## 2.1.3 (2026-08-23)
 
-- **Toms attack rebuilt as the 909's noise burst** (#51). The burst is now a
-  real transient: gain 0.06 → 0.30, band-limited by a 350 Hz high-pass (per
-  Roland's s/n 426700 factory change), tightened to a ~9 ms spike. Accent
-  drives the burst as it does the hardware's noise VCA. The synthetic click
-  defaults to 0 — the 909 has no click feedthrough. Attack-to-body ratio
-  +3.9 dB; body level unchanged.
+- **Toms accent fixed** (#36, #47). The accent drive stage crushed accented
+  hits to roughly 1/8 volume instead of boosting them — the cause of "toms
+  are super low volume." Accent is now a clean level lift, widened to +7 dB
+  (the shared +3 dB was inaudible against a full kit).
+- **Toms attack rebuilt as the 909's noise burst** (#51, #52). The burst is
+  now a real transient: gain 0.06 → 0.30, band-limited by a 350 Hz high-pass
+  (per Roland's s/n 426700 factory change), tightened to a ~9 ms spike.
+  Accent drives the burst as it does the hardware's noise VCA. The synthetic
+  click defaults to 0 — the 909 has no click feedthrough. Attack-to-body
+  ratio +3.9 dB; body level unchanged.
+- **Sample playback interpolated with cubic Hermite** (#42), replacing
+  linear — removes the top-octave droop (−3.1 dB at 16 kHz) on every
+  sampled voice.
+- **ROM playback lands on silence** (#43). A ~3 ms smoothstep fade on the
+  last frames of every ROM removes the end-of-sample click, audible on the
+  open hat at high TUNE (23.7 dB quieter there).
+- **Hi-hat voicing matched to a measured 909** (#45, #46): a 120–500 Hz
+  body lift closes the ~5 dB low-mid deficit that read as thin, and the air
+  shelf — which was compensating for the old interpolator's droop — is held
+  near zero. Mix gains trimmed so existing patches keep their balance.
+- **Panel labels match the module titles** (#48): GHOST CRSHRIDE labels read
+  CRSH, GHOST OHCH labels read CH/OH.
 - Plugin version reads 2.1.3 (module right-click → Info) so this build is
   identifiable against 2.1.2.
-
 - **GHOST OHCH is now one hi-hat voice**, matching the hardware: one sample ROM,
   one address counter, one envelope, and a closed/open control that selects the
   decay and voicing path. Closed and open can no longer sound together. A closed
